@@ -1,0 +1,5 @@
+<todo version="0.1.19">
+    <note priority="medium" time="1253611196">
+        Add gtk support, show a gtk dialog asking for passwords and copy the resulting password into the X or Gtk clip buffer, erase it outta there as soon as the dialog window is closed.
+    </note>
+</todo>
