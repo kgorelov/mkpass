@@ -14,7 +14,7 @@
 ################################################################################
 
 import sys
-import sha
+import hashlib
 import base64
 import optparse
 
@@ -22,8 +22,9 @@ import optparse
 
 # Generates base64 encoded SHA1 out of master and slave passwords
 def mkpass(master, slave, len=8):
-    shao = sha.new(master + slave)
-    hash = shao.digest()
+    sha = hashlib.sha1()
+    sha.update(master + slave)
+    hash = sha.digest()
     return base64.b64encode(hash)[:len]
 
 ################################################################################
