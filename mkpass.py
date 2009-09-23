@@ -120,10 +120,6 @@ class MakePassGUI:
         vb.pack_start(service_entry, False, False, 0)
         service_entry.show()
 
-        sep = gtk.HSeparator()
-        vb.pack_start(sep, False, False, 0)
-        sep.show()
-
         hb1 = gtk.HBox()
         pwdlen_label = gtk.Label("Password length:")
         adj = gtk.Adjustment(self.opts.len, 4, 24+1, 1, 1, 1)
@@ -136,6 +132,10 @@ class MakePassGUI:
         scale.show()
         hb1.show()
         vb.pack_start(hb1, False, False, 0)
+
+        sep = gtk.HSeparator()
+        vb.pack_start(sep, False, False, 5)
+        sep.show()
 
         close_button = gtk.Button(stock=gtk.STOCK_CLOSE)
         close_button.connect("clicked", lambda w: self.quit())
