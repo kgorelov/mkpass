@@ -6,6 +6,9 @@
         </comment>
     </note>
     <note priority="medium" time="1253699625">
-        Dibianize, add a destop file and an icon
+        Dibianize, add a desktop file and an icon
+    </note>
+    <note priority="medium" time="1253706215">
+        Password length
     </note>
 </todo>
