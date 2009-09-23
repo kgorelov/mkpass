@@ -58,8 +58,6 @@ class MakePassGUI:
             errdialog = gtk.MessageDialog(parent=None, flags=0,
                 type=gtk.MESSAGE_ERROR,
                 buttons=gtk.BUTTONS_CLOSE, message_format=None)
-            #errlabel = gtk.Label("Passwords mismatch!")
-            #errdialog.pack_start(errlabel, True, True, 0)
             errdialog.set_markup("Passwords mismatch!")
             errdialog.run()
             errdialog.destroy()
@@ -104,14 +102,14 @@ class MakePassGUI:
         service_entry.set_visibility(1)
         service_entry.show()
 
-        vb = gtk.VBox()
-        vb.pack_start(master_label, True, True, 0)
-        vb.pack_start(master_entry, True, True, 0)
+        vb = gtk.VBox(False, 0)
+        vb.pack_start(master_label, False, False, 0)
+        vb.pack_start(master_entry, False, False, 0)
         if recheck:
-            vb.pack_start(master2_label, True, True, 0)
-            vb.pack_start(master2_entry, True, True, 0)
-        vb.pack_start(service_label, True, True, 0)
-        vb.pack_start(service_entry, True, True, 0)
+            vb.pack_start(master2_label, False, False, 0)
+            vb.pack_start(master2_entry, False, False, 0)
+        vb.pack_start(service_label, False, False, 0)
+        vb.pack_start(service_entry, False, False, 0)
 
         close_button = gtk.Button(stock=gtk.STOCK_CLOSE)
         close_button.connect("clicked", lambda w: self.quit())
@@ -126,12 +124,13 @@ class MakePassGUI:
         hb.pack_start(copy_button, True, True, 0)
         hb.pack_start(close_button, True, True, 0)
         hb.show()
-        vb.pack_start(hb, True, True, 0)
+        vb.pack_start(hb, False, False, 0)
 
         wnd = gtk.Window(type=gtk.WINDOW_TOPLEVEL)
+        wnd.connect("destroy", lambda w: self.quit())
+        wnd.set_title("mkpass")
         wnd.add(vb)
         vb.show()
-        wnd.set_title("mkpass")
         wnd.show()
 
     def run(self):
