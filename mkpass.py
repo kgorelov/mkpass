@@ -16,7 +16,6 @@
 import sys
 import sha
 import base64
-import getpass
 import optparse
 
 ################################################################################
@@ -105,15 +104,14 @@ class MakePassGUI:
         service_entry.set_visibility(1)
         service_entry.show()
 
-        dialog = gtk.Dialog(title="mkpass", parent=None,
-                            flags=gtk.DIALOG_MODAL | gtk.WINDOW_TOPLEVEL,
-                            buttons=None)
-        dialog.set_flags(gtk.FLOATING)
-        #dialog.set_flags(gtk.gdk.WINDOW_STATE_ABOVE)
-        #dialog.set_size_request(200, 100)
-        dialog.set_geometry_hints(dialog, max_width=200, max_height=200,
-                base_width=200, base_height=200)
-        dialog.set_position(gtk.WIN_POS_CENTER)
+        vb = gtk.VBox()
+        vb.pack_start(master_label, True, True, 0)
+        vb.pack_start(master_entry, True, True, 0)
+        if recheck:
+            vb.pack_start(master2_label, True, True, 0)
+            vb.pack_start(master2_entry, True, True, 0)
+        vb.pack_start(service_label, True, True, 0)
+        vb.pack_start(service_entry, True, True, 0)
 
         close_button = gtk.Button(stock=gtk.STOCK_CLOSE)
         close_button.connect("clicked", lambda w: self.quit())
@@ -124,19 +122,17 @@ class MakePassGUI:
             lambda w: self.copy(master_entry, master2_entry, service_entry))
         copy_button.show()
 
-        dialog.action_area.pack_start(copy_button, True, True, 0)
-        dialog.action_area.pack_start(close_button, True, True, 0)
-        dialog.vbox.pack_start(master_label, True, True, 0)
-        dialog.vbox.pack_start(master_entry, True, True, 0)
-        if recheck:
-            dialog.vbox.pack_start(master2_label, True, True, 0)
-            dialog.vbox.pack_start(master2_entry, True, True, 0)
-        dialog.vbox.pack_start(service_label, True, True, 0)
-        dialog.vbox.pack_start(service_entry, True, True, 0)
-        dialog.vbox.pack_start(gtk.VRuler(), True, True, 0)
-        dialog.connect("close", lambda w: self.quit())
+        hb = gtk.HBox()
+        hb.pack_start(copy_button, True, True, 0)
+        hb.pack_start(close_button, True, True, 0)
+        hb.show()
+        vb.pack_start(hb, True, True, 0)
 
-        dialog.show()
+        wnd = gtk.Window(type=gtk.WINDOW_TOPLEVEL)
+        wnd.add(vb)
+        vb.show()
+        wnd.set_title("mkpass")
+        wnd.show()
 
     def run(self):
         gtk.main()
@@ -165,5 +161,6 @@ if options.gui:
     import gtk
     sys.exit(MakePassGUI(mkpass, options.newpwd).run())
 else:
+    import getpass
     sys.exit(MakePassTUI(mkpass, options.newpwd).run())
 
