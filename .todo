@@ -5,10 +5,25 @@
             done, gtk gui implemented
         </comment>
     </note>
+    <note priority="medium" time="1253706215" done="1253797815">
+        Password length
+        <comment>
+            done
+        </comment>
+    </note>
     <note priority="medium" time="1253699625">
         Dibianize, add a desktop file and an icon
     </note>
-    <note priority="medium" time="1253706215">
-        Password length
+    <note priority="medium" time="1255521847">
+        Use DISPLAY variable to launch in GUI
+    </note>
+    <note priority="medium" time="1255521862">
+        Add -t (force text user mode)
+    </note>
+    <note priority="medium" time="1255521887" done="1255529832">
+        Implement service name autocompletion
+        <comment>
+            implemented
+        </comment>
     </note>
 </todo>

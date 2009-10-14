@@ -13,10 +13,12 @@
 # Kirill Gorelov <kgorelov@gmail.com>
 ################################################################################
 
+import os
 import sys
 import hashlib
 import base64
 import optparse
+import sqlite3
 
 ################################################################################
 
@@ -29,10 +31,36 @@ def mkpass(master, slave, len=8):
 
 ################################################################################
 
+class ConfigDB:
+    def __init__(self):
+        self.dbfile = os.path.expanduser('~') + "/.mkpass.db"
+        # Connect to the database
+        self.conn = sqlite3.connect(self.dbfile)
+        cur = self.conn.cursor()
+        # Create table if it doesn't exist
+        cur.execute("create table if not exists snames (name TEXT, length INTEGER)")
+        # Load properties
+        cur.execute("select name, length from snames")
+        self.names = dict([(i[0], i[1]) for i in cur.fetchall()])
+
+    def get_names(self):
+        return self.names.keys()
+    def get_len(self, name):
+        if name in self.names:
+            return self.names[name]
+        return None
+    def save_name(self, name, length):
+        cur = self.conn.cursor()
+        cur.execute("replace into snames values (?, ?)", (name, length))
+        self.conn.commit()
+
+################################################################################
+
 class MakePassTUI:
-    def __init__(self, pwfun, options):
+    def __init__(self, pwfun, options, cfg):
         self.pwfun = pwfun
         self.opts = options
+        self.cfg = cfg
 
     def run(self):
         # Prompt for the master password and service specific info
@@ -45,12 +73,15 @@ class MakePassTUI:
             service = raw_input("Service: ")
             # Print out the password we've just generated
             print "Password: %s" % self.pwfun(master, service, self.opts.len)
+            self.cfg.save_name(service, self.opts.len)
         except KeyboardInterrupt, e:
             return 1
         except EOFError, e:
             return 1
 
 ################################################################################
+
+COL_TEXT = 0
 
 class MakePassGUI:
     def copy(self, me, me2, se):
@@ -60,6 +91,8 @@ class MakePassGUI:
             master = me.get_text()
             service = se.get_text()
             self.clip.set_text(self.pwfun(master, service, self.opts.len))
+            self.add_words((service,))
+            self.cfg.save_name(service, self.opts.len)
 
     def quit(self):
         self.clip.clear()
@@ -76,9 +109,26 @@ class MakePassGUI:
             errdialog.run()
             errdialog.destroy()
 
-    def __init__(self, pwfun, options):
+    def match_func(self, completion, key, iter):
+        model = completion.get_model()
+        if model[iter][COL_TEXT] is not None:
+            return model[iter][COL_TEXT].find(self.service_entry.get_text()) != -1
+
+    def on_completion_match(self, completion, model, iter):
+        service_name = model[iter][COL_TEXT]
+        self.service_entry.set_text(service_name)
+        self.service_entry.set_position(-1)
+        self.len_adj.set_value(self.cfg.get_len(service_name))
+
+    def add_words(self, words):
+        model = self.service_entry.get_completion().get_model()
+        for word in words:
+            model.append([word])
+
+    def __init__(self, pwfun, options, cfg):
         self.pwfun = pwfun
         self.opts = options
+        self.cfg = cfg
         self.clip = gtk.Clipboard()
 
         self.wnd = wnd = gtk.Window(type=gtk.WINDOW_TOPLEVEL)
@@ -115,9 +165,19 @@ class MakePassGUI:
         service_label.show()
 
         service_entry = gtk.Entry()
-        service_entry.set_max_length(32)
+        service_entry.set_max_length(64)
         service_entry.set_text("")
         service_entry.set_visibility(1)
+        self.service_entry = service_entry
+
+        completion = gtk.EntryCompletion()
+        completion.set_match_func(self.match_func)
+        completion.connect("match-selected",
+                self.on_completion_match)
+        completion.set_model(gtk.ListStore(str))
+        completion.set_text_column(COL_TEXT)
+        service_entry.set_completion(completion)
+
         vb.pack_start(service_entry, False, False, 0)
         service_entry.show()
 
@@ -126,6 +186,7 @@ class MakePassGUI:
         adj = gtk.Adjustment(self.opts.len, 4, 24+1, 1, 1, 1)
         scale = gtk.HScale(adj)
         adj.connect("value_changed", self.len_change)
+        self.len_adj = adj
         scale.set_digits(0)
         hb1.pack_start(pwdlen_label, False, False, 10)
         pwdlen_label.show()
@@ -158,6 +219,8 @@ class MakePassGUI:
         wnd.show()
 
     def run(self):
+        self.add_words(self.cfg.get_names())
+
         gtk.main()
         return 0
 
@@ -183,13 +246,14 @@ parser.add_option('-l', '--length',
         help = 'Password length')
 
 (options, arguments) = parser.parse_args()
+cfg = ConfigDB()
 
 if options.gui:
     import pygtk
     pygtk.require('2.0')
     import gtk
-    sys.exit(MakePassGUI(mkpass, options).run())
+    sys.exit(MakePassGUI(mkpass, options, cfg).run())
 else:
     import getpass
-    sys.exit(MakePassTUI(mkpass, options).run())
+    sys.exit(MakePassTUI(mkpass, options, cfg).run())
 
