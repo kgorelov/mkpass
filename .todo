@@ -11,6 +11,15 @@
             done
         </comment>
     </note>
+    <note priority="medium" time="1255521887" done="1255529832">
+        Implement service name autocompletion
+        <comment>
+            implemented
+        </comment>
+    </note>
+    <note priority="veryhigh" time="1255531852">
+        Fix the bug (duplicate entries in suggest list)
+    </note>
     <note priority="medium" time="1253699625">
         Dibianize, add a desktop file and an icon
     </note>
@@ -19,11 +28,5 @@
     </note>
     <note priority="medium" time="1255521862">
         Add -t (force text user mode)
-    </note>
-    <note priority="medium" time="1255521887" done="1255529832">
-        Implement service name autocompletion
-        <comment>
-            implemented
-        </comment>
     </note>
 </todo>
