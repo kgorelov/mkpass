@@ -50,6 +50,7 @@ class ConfigDB:
             return self.names[name]
         return None
     def save_name(self, name, length):
+        self.names[name] = length
         cur = self.conn.cursor()
         cur.execute("replace into snames values (?, ?)", (name, length))
         self.conn.commit()
@@ -91,8 +92,8 @@ class MakePassGUI:
             master = me.get_text()
             service = se.get_text()
             self.clip.set_text(self.pwfun(master, service, self.opts.len))
-            self.add_words((service,))
             self.cfg.save_name(service, self.opts.len)
+            self.set_words(self.cfg.get_names())
 
     def quit(self):
         self.clip.clear()
@@ -120,8 +121,9 @@ class MakePassGUI:
         self.service_entry.set_position(-1)
         self.len_adj.set_value(self.cfg.get_len(service_name))
 
-    def add_words(self, words):
+    def set_words(self, words):
         model = self.service_entry.get_completion().get_model()
+        model.clear()
         for word in words:
             model.append([word])
 
@@ -219,8 +221,7 @@ class MakePassGUI:
         wnd.show()
 
     def run(self):
-        self.add_words(self.cfg.get_names())
-
+        self.set_words(self.cfg.get_names())
         gtk.main()
         return 0
 

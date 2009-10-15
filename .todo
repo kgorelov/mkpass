@@ -17,8 +17,11 @@
             implemented
         </comment>
     </note>
-    <note priority="veryhigh" time="1255531852">
+    <note priority="veryhigh" time="1255531852" done="1255621724">
         Fix the bug (duplicate entries in suggest list)
+        <comment>
+            fixed
+        </comment>
     </note>
     <note priority="medium" time="1253699625">
         Dibianize, add a desktop file and an icon
