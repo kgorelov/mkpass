@@ -136,6 +136,7 @@ class MakePassGUI:
         self.wnd = wnd = gtk.Window(type=gtk.WINDOW_TOPLEVEL)
         wnd.connect("destroy", lambda w: self.quit())
         wnd.set_title("mkpass")
+        wnd.set_size_request(320, -1)
         vb = gtk.VBox(False, 0)
 
         master_label = gtk.Label("Enter Master Password:")
@@ -198,7 +199,7 @@ class MakePassGUI:
         vb.pack_start(hb1, False, False, 0)
 
         sep = gtk.HSeparator()
-        vb.pack_start(sep, False, False, 5)
+        vb.pack_start(sep, False, True, 5)
         sep.show()
 
         close_button = gtk.Button(stock=gtk.STOCK_CLOSE)
@@ -214,7 +215,7 @@ class MakePassGUI:
         hb2.pack_start(copy_button, True, True, 0)
         hb2.pack_start(close_button, True, True, 0)
         hb2.show()
-        vb.pack_start(hb2, False, False, 0)
+        vb.pack_end(hb2, False, False, 0)
 
         wnd.add(vb)
         vb.show()
