@@ -127,6 +127,9 @@ class MakePassGUI:
         for word in words:
             model.append([word])
 
+    def expanded_cb(self, expander, params):
+        self.opts.newpwd = expander.get_expanded()
+
     def __init__(self, pwfun, options, cfg):
         self.pwfun = pwfun
         self.opts = options
@@ -150,18 +153,27 @@ class MakePassGUI:
         vb.pack_start(master_entry, False, False, 0)
         master_entry.show()
 
-        master2_label = gtk.Label("Re-Enter Master Password:")
-        if self.opts.newpwd:
-            vb.pack_start(master2_label, False, False, 0)
-            master2_label.show()
+        expander = gtk.Expander(None)
+        double_check = gtk.Label("Double check master password")
+        expander.set_label_widget(double_check)
+        double_check.show()
 
         master2_entry = gtk.Entry()
         master2_entry.set_max_length(32)
         master2_entry.set_text("")
         master2_entry.set_visibility(0)
-        if self.opts.newpwd:
-            vb.pack_start(master2_entry, False, False, 0)
-            master2_entry.show()
+
+        expander.add(master2_entry)
+        master2_entry.show()
+        vb.pack_start(expander, False, False, 0)
+        expander.connect('notify::expanded', self.expanded_cb)
+        if self.opts.newpwd is not None:
+            expander.set_expanded(self.opts.newpwd)
+        expander.show()
+
+        sep = gtk.HSeparator()
+        vb.pack_start(sep, False, True, 5)
+        sep.show()
 
         service_label = gtk.Label("Enter Service Name:")
         vb.pack_start(service_label, False, False, 0)
