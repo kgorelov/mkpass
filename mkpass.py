@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- Mode: python; tab-width: 4; indent-tabs-mode: nil -*-
 
 ################################################################################
 #
@@ -94,6 +95,31 @@ class MakePassGUI:
             self.clip.set_text(self.pwfun(master, service, self.opts.len))
             self.cfg.save_name(service, self.opts.len)
             self.set_words(self.cfg.get_names())
+
+    def color_master_entry(self, me, me2, se):
+        sha = hashlib.sha1()
+        sha.update(me.get_text())
+        mesha1 = sha.hexdigest()
+        print repr(mesha1)
+
+        red = 0
+        green = 0
+
+        if self.opts.newpwd:
+            if me.get_text() != me2.get_text():
+                red = 1
+            else:
+                green = 1
+
+        if red:
+            me.modify_base(gtk.STATE_NORMAL,
+                                     gtk.gdk.color_parse("#FF0000"))
+        elif green:
+            me.modify_base(gtk.STATE_NORMAL,
+                                     gtk.gdk.color_parse("#00FF00"))
+        else:
+            me.modify_base(gtk.STATE_NORMAL, None);
+
 
     def quit(self):
         self.clip.clear()
@@ -196,6 +222,19 @@ class MakePassGUI:
         vb.pack_start(service_entry, False, False, 0)
         service_entry.show()
 
+        master_entry.connect("changed",
+            lambda w: self.color_master_entry(master_entry,
+                                              master2_entry,
+                                              service_entry))
+        master2_entry.connect("changed",
+            lambda w: self.color_master_entry(master_entry,
+                                              master2_entry,
+                                              service_entry))
+        expander.connect('notify::expanded',
+            lambda w,e: self.color_master_entry(master_entry,
+                                              master2_entry,
+                                              service_entry))
+
         hb1 = gtk.HBox()
         pwdlen_label = gtk.Label("Password length:")
         adj = gtk.Adjustment(self.opts.len, 4, 24+1, 1, 1, 1)
@@ -270,4 +309,3 @@ if options.gui:
 else:
     import getpass
     sys.exit(MakePassTUI(mkpass, options, cfg).run())
-
