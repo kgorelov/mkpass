@@ -1,4 +1,11 @@
-<todo version="0.1.19">
+<?xml version="1.0"?>
+<todo version="0.1.20">
+    <note priority="veryhigh" time="1255531852" done="1255621724">
+        Fix the bug (duplicate entries in suggest list)
+        <comment>
+            fixed
+        </comment>
+    </note>
     <note priority="medium" time="1253611196" done="1253699543">
         Add gtk support, show a gtk dialog asking for passwords and copy the resulting password into the X or Gtk clip buffer, erase it outta there as soon as the dialog window is closed.
         <comment>
@@ -17,10 +24,10 @@
             implemented
         </comment>
     </note>
-    <note priority="veryhigh" time="1255531852" done="1255621724">
-        Fix the bug (duplicate entries in suggest list)
+    <note priority="veryhigh" time="1288654872" done="1288656548">
+        Fix duplicate entries bug. Every time you hit the copy button an entry is inserted into the mkpass.db even if it's already there.
         <comment>
-            fixed
+            done for newly created databases. Gotta do something about DBs that already exist.
         </comment>
     </note>
     <note priority="medium" time="1253699625">

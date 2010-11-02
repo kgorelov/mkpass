@@ -39,7 +39,7 @@ class ConfigDB:
         self.conn = sqlite3.connect(self.dbfile)
         cur = self.conn.cursor()
         # Create table if it doesn't exist
-        cur.execute("create table if not exists snames (name TEXT, length INTEGER)")
+        cur.execute("create table if not exists snames (name TEXT primary key, length INTEGER)")
         # Load properties
         cur.execute("select name, length from snames")
         self.names = dict([(i[0], i[1]) for i in cur.fetchall()])
