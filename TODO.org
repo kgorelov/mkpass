@@ -1,0 +1,80 @@
+* Tasks
+** TODO Introduce database versions.
+   Implement import from old db format.
+
+   1) copy the file (.mkpass.db) to .mkpass.db.DATABASE_VERSION
+      where DATABASE_VERSION is an integer that denotes database version of that file
+
+   2) create a new instance of ConfigDB, call ConfigDB.import(old_database)
+
+   Assumptions:
+   To upgrade database to the next version the program shall be able to create
+   a database of that version. And to import data from the database of the previous
+   version.
+
+** TODO Master password color highlighting
+   *Master password background shall be read*
+   IF (
+       (
+        Secondary master password is not empty
+        and primary and secondary master passwords don't match
+       )
+       OR
+       (
+        Master password sha1 associated with the selected service name
+        is not empty and it doesn't match the entered master password sha1
+       )
+     )
+
+   *Master password background shall be green*
+   IF (
+       (None of the above conditions are met)
+       AND
+       (
+         (
+          Secondary master password is not empty
+          and primary and secondary master passwords match
+         )
+         OR
+         (
+          Master password sha1 associated with the selected service name
+          is not empty and it matches the entered master password sha1
+         )
+       )
+      )
+
+   Gotta come up with the idea of where to put the settings checkbox like
+   "[ ] Store my master password sha1 along with the service name"
+
+** TODO Service names ordering
+   Service names in the suggest window must be ordered according to the time
+   a record was last used
+        
+** TODO Text mode service name autocompletion
+   Use readline set_completer. Tab should expand user input.
+
+** TODO Autodetect UI mode
+   The app shall detect whether it should run in GUI or text mode.
+   Under Linux/Unix the DISPLAY environment variable can be used.
+   Not sure what to do about this under Windows.
+
+   To force the application to start in the desired mode either -g (for GUI)
+   or -t (for text mode) command line parameters shall be used.
+
+** TODO Dibianize, add a desktop file and an icon
+   Make sure it works fine on Maemo as well.
+
+** DONE Add gtk support
+   Show a gtk dialog asking for passwords and copy the resulting password
+   into the X or Gtk clip buffer.
+   Erase clip buffer as soon as the dialog window is closed.
+** DONE Service name autocompletion
+   Implement suggest dropdown for GUI mode.
+** DONE Password length
+   Implement password length option. Use a slider in GUI mode.
+   Store associated password length along with the service name in the database.
+* Bugs
+** DONE Duplicate entries in sname table                                :bug:
+   Every time a user hits "copy" another record is inserted into the 'snames' table.
+   The tables doesn't have a primary key. That's why "replace into" statement
+   doesn't work as expected.

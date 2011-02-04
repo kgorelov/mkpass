@@ -32,29 +32,89 @@ def mkpass(master, slave, len=8):
 
 ################################################################################
 
+class DBException:
+    def __init__(self, what):
+        self.what = what
+    def __str__(self):
+        return repr(self.what)
+
+################################################################################
+
+class DBConverter:
+    def __init__(self):
+        pass
+    def convert_v0_to_v1(self, ):
+        pass
+
+################################################################################
+
 class ConfigDB:
+    # The following represents the class version.
+    # The program will abort and prompt a user to update the program
+    # if this version is less than the database version.
+    # The program will update database structure to the current version
+    # if this version is greater than the database version.
+    VERSION = 1
     def __init__(self):
         self.dbfile = os.path.expanduser('~') + "/.mkpass.db"
         # Connect to the database
         self.conn = sqlite3.connect(self.dbfile)
-        cur = self.conn.cursor()
-        # Create table if it doesn't exist
-        cur.execute("create table if not exists snames (name TEXT primary key, length INTEGER)")
+        cur = self.conn.cursor();
+
+        # Check database version
+        db_version = self.get_db_version(cur) 
+        if self.get_db_version(cur) != self.VERSION:
+            raise DBException("Database version mismatch: %d" % db_version)
+
+        # Create db if necessary
+        self.create_db(cur);
+
         # Load properties
         cur.execute("select name, length from snames")
         self.names = dict([(i[0], i[1]) for i in cur.fetchall()])
+        # print self.get_db_version() # XXX DEBUG RMME
+
+    def create_db(self, cursor = None):
+        cur = cursor if cursor is not None else self.conn.cursor()
+        # Create tables when needed
+        cur.execute("create table if not exists snames (name TEXT primary key, length INTEGER)")
+        cur.execute("create table if not exists params (name TEXT primary key, value TEXT)")
 
     def get_names(self):
         return self.names.keys()
+
     def get_len(self, name):
         if name in self.names:
             return self.names[name]
         return None
+
     def save_name(self, name, length):
         self.names[name] = length
         cur = self.conn.cursor()
         cur.execute("replace into snames values (?, ?)", (name, length))
         self.conn.commit()
+
+    def get_db_version(self, cursor = None):
+        cur = cursor if cursor is not None else self.conn.cursor()
+        cur.execute("select value from params where name = 'dbversion'")
+        strver = cur.fetchone()
+        ver = 0
+        if strver is not None:
+            ver = int(strver[0])
+        return ver
+
+    def set_db_version(self, version):
+        cur = self.conn.cursor()
+        cur.execute("replace into params values(?, ?) name = 'dbversion'",
+                    ('dbversion', version))
+
+
+    def upgrade_db(self):
+        # XXX 2DO:
+        # Read database version
+        # copy original file to backup. (.mkpass.db.backup.v0)
+        # Call updaters chain
+        pass
 
 ################################################################################
 

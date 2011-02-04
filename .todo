@@ -6,6 +6,12 @@
             fixed
         </comment>
     </note>
+    <note priority="veryhigh" time="1288654872" done="1288656548">
+        Fix duplicate entries bug. Every time you hit the copy button an entry is inserted into the mkpass.db even if it's already there.
+        <comment>
+            done for newly created databases. Gotta do something about DBs that already exist.
+        </comment>
+    </note>
     <note priority="medium" time="1253611196" done="1253699543">
         Add gtk support, show a gtk dialog asking for passwords and copy the resulting password into the X or Gtk clip buffer, erase it outta there as soon as the dialog window is closed.
         <comment>
@@ -24,12 +30,6 @@
             implemented
         </comment>
     </note>
-    <note priority="veryhigh" time="1288654872" done="1288656548">
-        Fix duplicate entries bug. Every time you hit the copy button an entry is inserted into the mkpass.db even if it's already there.
-        <comment>
-            done for newly created databases. Gotta do something about DBs that already exist.
-        </comment>
-    </note>
     <note priority="medium" time="1253699625">
         Dibianize, add a desktop file and an icon
     </note>
@@ -38,5 +38,8 @@
     </note>
     <note priority="medium" time="1255521862">
         Add -t (force text user mode)
+    </note>
+    <note priority="medium" time="1288659475">
+        Introduce database versions
     </note>
 </todo>
