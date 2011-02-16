@@ -351,6 +351,11 @@ parser.add_option('-g', '--gui',
         action = 'store_true',
         help = 'Run in GUI mode')
 
+parser.add_option('-t', '--tui',
+        dest = 'tui',
+        action = 'store_true',
+        help = 'Run in text mode')
+
 parser.add_option('-l', '--length',
         dest = 'len',
         type = 'int',
@@ -360,6 +365,9 @@ parser.add_option('-l', '--length',
 
 (options, arguments) = parser.parse_args()
 cfg = ConfigDB()
+
+if "DISPLAY" in os.environ and not options.tui:
+    options.gui = True
 
 if options.gui:
     import pygtk
