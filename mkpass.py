@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- Mode: python; tab-width: 4; indent-tabs-mode: nil -*-
 
 ################################################################################
@@ -20,13 +20,15 @@ import hashlib
 import base64
 import optparse
 import sqlite3
+import readline
 
 ################################################################################
 
 # Generates base64 encoded SHA1 out of master and slave passwords
 def mkpass(master, slave, len=8):
     sha = hashlib.sha1()
-    sha.update(master + slave)
+    thestring = master + slave
+    sha.update(thestring.encode('utf-8'))
     hash = sha.digest()
     return base64.b64encode(hash)[:len]
 
@@ -124,21 +126,37 @@ class MakePassTUI:
         self.opts = options
         self.cfg = cfg
 
+    def complete(text, state):
+        volcab = ['dog','cat','rabbit','bird','slug','snail']
+        # volcab = self.cfg.get_names()
+        print("volcab = {}".format(volcab))
+        results = [x for x in volcab if x.startswith(text)] + [None]
+        return results[state]
+
     def run(self):
         # Prompt for the master password and service specific info
         try:
             master = getpass.getpass("Master password: ")
             if self.opts.newpwd \
                 and master != getpass.getpass("ReEnter Master password: "):
-                print "Error: Passwords mismatch!"
+                print("Error: Passwords mismatch!")
                 return 1
-            service = raw_input("Service: ")
+
+            readline.set_completer(self.complete)
+            readline.parse_and_bind("tab: complete")
+            print("XXX autocomplete in action")
+            service = input("Service: ")
             # Print out the password we've just generated
-            print "Password: %s" % self.pwfun(master, service, self.opts.len)
+            savedlen = self.cfg.get_len(service)
+            if savedlen is not None:
+                self.opts.len = savedlen
+            # print("self.opts.len = {}, savedlen = {}".format(
+            #     self.opts.len, savedlen))
+            print("Password: %s" % self.pwfun(master, service, self.opts.len))
             self.cfg.save_name(service, self.opts.len)
-        except KeyboardInterrupt, e:
+        except KeyboardInterrupt as e:
             return 1
-        except EOFError, e:
+        except EOFError as e:
             return 1
 
 ################################################################################
@@ -152,15 +170,17 @@ class MakePassGUI:
         else:
             master = me.get_text()
             service = se.get_text()
-            self.clip.set_text(self.pwfun(master, service, self.opts.len))
+            text = self.pwfun(master, service, self.opts.len)
+            print(text)
+            self.clip.set_text(text.decode('utf-8'), len=-1)
             self.cfg.save_name(service, self.opts.len)
             self.set_words(self.cfg.get_names())
 
     def color_master_entry(self, me, me2, se):
         sha = hashlib.sha1()
-        sha.update(me.get_text())
+        sha.update(me.get_text().encode('utf-8'))
         mesha1 = sha.hexdigest()
-        print repr(mesha1)
+        print(repr(mesha1))
 
         red = 0
         green = 0
@@ -171,6 +191,7 @@ class MakePassGUI:
             else:
                 green = 1
 
+        return # XXX FIXME
         if red:
             me.modify_base(gtk.STATE_NORMAL,
                                      gtk.gdk.color_parse("#FF0000"))
@@ -186,7 +207,8 @@ class MakePassGUI:
         gtk.main_quit()
 
     def len_change(self, adj):
-        self.opts.len = int(adj.value)
+        # print('adj: {}'.format(dir(adj)))
+        self.opts.len = int(adj.get_value())
 
     def errmsg(self, msg):
             errdialog = gtk.MessageDialog(parent=self.wnd, flags=0,
@@ -205,7 +227,9 @@ class MakePassGUI:
         service_name = model[iter][COL_TEXT]
         self.service_entry.set_text(service_name)
         self.service_entry.set_position(-1)
+        print("XXX Setting len={}".format(self.cfg.get_len(service_name)))
         self.len_adj.set_value(self.cfg.get_len(service_name))
+        print("XXX value set={}".format(self.len_adj.get_value()))
 
     def set_words(self, words):
         model = self.service_entry.get_completion().get_model()
@@ -222,7 +246,8 @@ class MakePassGUI:
         self.cfg = cfg
         self.clip = gtk.Clipboard()
 
-        self.wnd = wnd = gtk.Window(type=gtk.WINDOW_TOPLEVEL)
+        # self.wnd = wnd = gtk.Window(type=gtk.WINDOW_TOPLEVEL)
+        self.wnd = wnd = gtk.Window()
         wnd.connect("destroy", lambda w: self.quit())
         wnd.set_title("mkpass")
         wnd.set_size_request(320, -1)
@@ -239,7 +264,8 @@ class MakePassGUI:
         vb.pack_start(master_entry, False, False, 0)
         master_entry.show()
 
-        expander = gtk.Expander(None)
+        # expander = gtk.Expander(None)
+        expander = gtk.Expander()
         double_check = gtk.Label("Double check master password")
         expander.set_label_widget(double_check)
         double_check.show()
@@ -298,7 +324,8 @@ class MakePassGUI:
         hb1 = gtk.HBox()
         pwdlen_label = gtk.Label("Password length:")
         adj = gtk.Adjustment(self.opts.len, 4, 24+1, 1, 1, 1)
-        scale = gtk.HScale(adj)
+        # scale = gtk.HScale(adj)
+        scale = gtk.HScale()
         adj.connect("value_changed", self.len_change)
         self.len_adj = adj
         scale.set_digits(0)
@@ -370,9 +397,12 @@ if "DISPLAY" in os.environ and not options.tui:
     options.gui = True
 
 if options.gui:
-    import pygtk
-    pygtk.require('2.0')
-    import gtk
+    import gi
+    gi.require_version('Gtk', '3.0')
+    from gi.repository import Gtk as gtk
+    #import pygtk
+    #pygtk.require('2.0')
+    #import gtk
     sys.exit(MakePassGUI(mkpass, options, cfg).run())
 else:
     import getpass
