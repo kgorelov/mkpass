@@ -163,6 +163,85 @@ class MakePassTUI:
 
 COL_TEXT = 0
 
+class MakePassQtGUI:
+    def __init__(self, pwfun, options, cfg):
+        self.pwfun = pwfun
+        self.opts = options
+        self.cfg = cfg
+
+    def quit(self):
+        clipboard = QGuiApplication.clipboard()
+        clipboard.clear(clipboard.Mode.Clipboard)
+        clipboard.clear(clipboard.Mode.Selection)
+        QGuiApplication.quit()
+
+    def copy(self, master, service, length):
+        text = self.pwfun(master, service, length)
+        clipboard = QGuiApplication.clipboard()
+        clipboard.clear()
+        clipboard.setText(text.decode('utf-8'))
+        self.cfg.save_name(service, length)
+
+    def run(self):
+        app = QApplication([])
+        window = QWidget()
+        window.setWindowTitle('MkPass')
+
+        layout = QVBoxLayout()
+
+        # Master password block
+        layout.addWidget(QLabel('Enter Master Password:'))
+        MasterPassEdit = QLineEdit()
+        MasterPassEdit.setEchoMode(QLineEdit.EchoMode.Password)
+        layout.addWidget(MasterPassEdit)
+
+        # Service name field
+        layout.addWidget(QLabel('Enter Service Name:'))
+        SrvNameEdit = QLineEdit()
+        names = self.cfg.get_names()
+        completer = QCompleter(names)
+        completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        SrvNameEdit.setCompleter(completer)
+        layout.addWidget(SrvNameEdit)
+
+        # Password length controls
+        lenGrpBox = QGroupBox("Password Length:")
+        hlout = QHBoxLayout()
+        lenSpin = QSpinBox()
+        lenSpin.setValue(8)
+        hlout.addWidget(lenSpin)
+        lenSlider = QSlider(Qt.Orientation.Horizontal)
+        lenSlider.setMinimum(1)
+        lenSlider.setMaximum(32)
+        lenSlider.setValue(8)
+        lenSlider.setSingleStep(1)
+        lenSlider.setTickInterval(1)
+        hlout.addWidget(lenSlider)
+        lenGrpBox.setLayout(hlout)
+        lenSlider.valueChanged.connect(lenSpin.setValue)
+        lenSpin.valueChanged.connect(lenSlider.setValue)
+        layout.addWidget(lenGrpBox)
+
+        completer.activated.connect(lambda srvname: lenSpin.setValue(self.cfg.get_len(srvname)))
+
+        # Action Buttons
+        copyBtn = QPushButton('Copy')
+        copyBtn.clicked.connect(
+            lambda: self.copy(
+                MasterPassEdit.text(),
+                SrvNameEdit.text(),
+                lenSpin.value()))
+        layout.addWidget(copyBtn)
+        closeBtn = QPushButton('Close')
+        closeBtn.clicked.connect(lambda: self.quit())
+        layout.addWidget(closeBtn)
+
+        window.setLayout(layout)
+        window.show()
+        app.exec()
+        return 0
+
+
 class MakePassGUI:
     def copy(self, me, me2, se):
         if self.opts.newpwd and me.get_text() != me2.get_text():
@@ -378,6 +457,11 @@ parser.add_option('-g', '--gui',
         action = 'store_true',
         help = 'Run in GUI mode')
 
+parser.add_option('-q', '--qt-gui',
+        dest = 'qt_gui',
+        action = 'store_true',
+        help = 'Run in QT GUI mode')
+
 parser.add_option('-t', '--tui',
         dest = 'tui',
         action = 'store_true',
@@ -396,7 +480,22 @@ cfg = ConfigDB()
 if "DISPLAY" in os.environ and not options.tui:
     options.gui = True
 
-if options.gui:
+if options.qt_gui:
+    from PyQt5.QtCore import Qt
+    from PyQt5.QtGui import QGuiApplication, QClipboard
+    from PyQt5.QtWidgets import (
+        QApplication,
+        QLabel,
+        QWidget,
+        QVBoxLayout, QHBoxLayout, QGroupBox,
+        QLineEdit,
+        QSlider,
+        QSpinBox,
+        QCompleter,
+        QPushButton)
+
+    sys.exit(MakePassQtGUI(mkpass, options, cfg).run())
+elif options.gui:
     import gi
     gi.require_version('Gtk', '3.0')
     from gi.repository import Gtk as gtk
