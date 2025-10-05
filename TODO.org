@@ -1,4 +1,6 @@
 * Tasks
+** TODO Sync mkpass database to the cloud
+** TODO Make an Android version
 ** TODO Introduce database versions.
    Implement import from old db format.
 

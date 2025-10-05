@@ -1,0 +1,24 @@
+* C++ mkpass2
+** DONE Pseudo-Radom Generator
+** DONE Uniform Distributon
+** DONE Password Generator
+** TODO Tests
+  - [X] digest
+  - [X] generator
+  - [X] uniform distribution
+  - [X] composer
+** TODO Cli interface
+  - [X] read user input
+  - [X] options class
+  - [ ] minimal cmd line options parser
+  - [ ] support env variables
+** TODO Refactor and Passphrase composer
+** Documentation
+** Database support
+** Get rid of the OpenSSL dependency
+** Support for the old algorithm?
+** QT UI
+** Android Support
+** Windows version
+** Mac version
+** Web version (WebAssembly)

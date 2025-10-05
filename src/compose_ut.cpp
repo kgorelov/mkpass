@@ -1,0 +1,107 @@
+#include <iostream>
+
+#include <set>
+
+#include "compose.h"
+#include <gtest/gtest.h>
+
+
+bool check_char_class(const std::string& str, const std::string& strclass) {
+    std::set<std::string::value_type> chs(strclass.begin(), strclass.end());
+    return std::find_if(str.begin(), str.end(),
+                        [&chs](auto& c){return chs.count(c);}) != str.end();
+}
+
+
+TEST(ComposeTest, TestCharClasses) {
+    Generator g("test");
+    auto classes = {UppercaseLetters, LowercaseLetters, Digits, Symbols};
+    // Test that even the minimum possible length password
+    // contains all requested character classes
+    auto p = ComposePassword(g, classes, 4);
+    for (auto& c: classes) {
+        EXPECT_TRUE(check_char_class(p, c));
+    }
+}
+
+
+TEST(ComposeTest, TestCharClasses16) {
+    Generator g("test");
+    auto classes = {UppercaseLetters, LowercaseLetters, Digits, Symbols};
+    // Test that the password
+    // contains all requested character classes
+    auto p = ComposePassword(g, classes, 16);
+    for (auto& c: classes) {
+        EXPECT_TRUE(check_char_class(p, c));
+    }
+}
+
+
+TEST(ComposeTest, TestCompose8) {
+    Generator g("test");
+    auto classes = {UppercaseLetters, LowercaseLetters, Digits, Symbols};
+    auto p = ComposePassword(g, classes, 8);
+    EXPECT_EQ(p, "m6KZ)X-U");
+}
+
+
+TEST(ComposeTest, Impossible) {
+    Generator g("test");
+    // It's impossible to generate a 3 character long password
+    // using 4 character classes
+    EXPECT_THROW(
+        ComposePassword(g, {UppercaseLetters, LowercaseLetters, Digits, Symbols}, 3),
+        std::runtime_error);
+}
+
+
+TEST(ComposeTest, ZeroLength) {
+    // Zero length password is an empty string
+    Generator g("test");
+    auto classes = {UppercaseLetters, LowercaseLetters, Digits, Symbols};
+    auto p = ComposePassword(g, classes, 0);
+    EXPECT_EQ(p, "");
+}
+
+
+TEST(ComposeTest, ComposeFrequency) {
+    Generator g("test");
+    auto classes = {UppercaseLetters, LowercaseLetters, Digits, Symbols};
+    auto p = ComposePassword(g, classes, 10*1024);
+
+    typedef struct {
+        std::set<char> chrs;
+        unsigned cnt;
+    } cls_cnt_t;
+
+    std::map<std::string, cls_cnt_t> cls_counts = {
+        {"upper", {{UppercaseLetters.begin(), UppercaseLetters.end()}, 0}},
+        {"lower", {{LowercaseLetters.begin(), LowercaseLetters.end()}, 0}},
+        {"digits", {{Digits.begin(), Digits.end()}, 0}},
+        {"symbols", {{Symbols.begin(), Symbols.end()}, 0}}
+    };
+
+    for (auto& ch: p) {
+        for (auto& [name, cls]: cls_counts) {
+            if (cls.chrs.count(ch)) {
+                ++cls.cnt;
+            }
+        }
+    }
+
+    // Count totals
+    unsigned total_chars = 0;
+    unsigned total_cnt = 0;
+    for (auto& [name, cls]: cls_counts) {
+        total_chars += cls.chrs.size();
+        total_cnt += cls.cnt;
+    }
+
+    // Check that frequency of each character class in within 10% range
+    // from theoretical ideal distribution
+    for (auto& [name, cls]: cls_counts) {
+        float r1 = 1.0 * cls.chrs.size() / total_chars;
+        float r2 = 1.0 * cls.cnt / total_cnt;
+        ASSERT_TRUE(100*abs(r1-r2)/r1 < 10);
+    }
+}
