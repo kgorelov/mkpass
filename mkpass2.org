@@ -2,7 +2,8 @@
 ** DONE Pseudo-Radom Generator
 ** DONE Uniform Distributon
 ** DONE Password Generator
-** TODO Tests
+** DONE Get rid of the OpenSSL dependency
+** DONE Tests
   - [X] digest
   - [X] generator
   - [X] uniform distribution
@@ -15,7 +16,6 @@
 ** TODO Refactor and Passphrase composer
 ** Documentation
 ** Database support
-** Get rid of the OpenSSL dependency
 ** Support for the old algorithm?
 ** QT UI
 ** Android Support

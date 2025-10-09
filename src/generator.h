@@ -26,7 +26,7 @@ public:
     Generator(const std::string& seedstr)
         : index_(0)
     {
-        CalcDigest(EVP_sha512(), seedstr.c_str(), seedstr.length(), digest_);
+        Sha512(seedstr.c_str(), seedstr.length(), digest_);
     }
 
     /**
@@ -40,13 +40,13 @@ private:
     void Get(char* dest, size_t len) {
         size_t dest_index = 0;
         while (len > 0) {
-            if (index_ >= digest_.length) {
-                CalcDigest(EVP_sha512(), (const char*) digest_.data, digest_.length, digest_);
+            if (index_ >= digest_.size()) {
+                Sha512((const char*) digest_.data(), digest_.size(), digest_);
                 index_ = 0;
             }
 
-            size_t nbytes = std::min(len, digest_.length - index_);
-            memcpy(dest + dest_index, digest_.data + index_, nbytes);
+            size_t nbytes = std::min(len, digest_.size() - index_);
+            memcpy(dest + dest_index, digest_.data() + index_, nbytes);
             dest_index += nbytes;
             index_ += nbytes;
             len -= nbytes;

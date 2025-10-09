@@ -1,24 +1,49 @@
 cmake_minimum_required (VERSION 3.10)
 project (mkpass)
 
-# Find OpenSSL
-find_package(OpenSSL REQUIRED)
+# C++ part library, used both in the main executable and tests
+set(SOURCES
+  src/digest.cpp
+  src/compose.cpp
+)
+add_library(cpp_part STATIC ${SOURCES})
+target_compile_options(cpp_part PRIVATE -std=c++20)
+# Link external OpenSSL only when cmake -DOPENSSL_SHA512=ON
+if(OPENSSL_SHA512)
+  find_package(OpenSSL REQUIRED)
+  target_link_libraries(cpp_part
+    OpenSSL::SSL
+    OpenSSL::Crypto
+  )
+endif()
 
-add_definitions(-std=c++20)
-#add_definitions(-std=c++23)
-enable_testing()
+# A pure C SHA512 implementation library
+add_library(c_part STATIC src/sha512.c)
 
-#add_subdirectory(src)
-#add_executable(mkpass src/main.cpp src/digest.cpp src/composer.cpp)
-add_executable(mkpass src/main.cpp src/digest.cpp src/compose.cpp)
-
-# Link OpenSSL
-target_link_libraries(mkpass OpenSSL::SSL OpenSSL::Crypto)
+# Main mkpass executable
+add_executable(mkpass src/main.cpp)
+target_compile_options(mkpass PRIVATE -std=c++20)
+target_link_libraries(mkpass PRIVATE
+  cpp_part
+  c_part
+)
 
 # Testing support
-find_package(GTest REQUIRED)
-add_executable(mkpass_tests src/digest.cpp src/digest_ut.cpp src/generator_ut.cpp src/uniform_ut.cpp src/compose.cpp src/compose_ut.cpp)
-target_link_libraries(mkpass_tests GTest::GTest GTest::Main OpenSSL::SSL OpenSSL::Crypto)
 enable_testing()
+set(TEST_SOURCES
+  src/digest_ut.cpp
+  src/generator_ut.cpp
+  src/uniform_ut.cpp
+  src/compose_ut.cpp
+)
+find_package(GTest REQUIRED)
+add_executable(mkpass_tests ${TEST_SOURCES})
+target_compile_options(mkpass_tests PRIVATE -std=c++20)
+target_link_libraries(mkpass_tests
+  cpp_part
+  c_part
+  GTest::GTest
+  GTest::Main
+)
 include(GoogleTest)
 gtest_discover_tests(mkpass_tests)

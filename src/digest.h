@@ -1,17 +1,10 @@
 #pragma once
 
 #include <string>
-#include <openssl/evp.h>
+#include <array>
 
-struct Digest {
-    Digest()
-        : length(0)
-    {
-    }
-    unsigned char data[EVP_MAX_MD_SIZE];
-    unsigned int length;
-};
+using Digest = std::array<unsigned char, 64>;
 
-void CalcDigest(const EVP_MD *hash_type, const char* inp, size_t len, Digest& out);
-std::string DigestString(const Digest& d);
-std::string sha512(const std::string& input);
+void Sha512(const char* inp, size_t len, Digest& out);
+std::string DigestToString(const Digest& d);
+std::string Sha512(const std::string& input);
