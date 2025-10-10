@@ -4,7 +4,17 @@
 #include <concepts>
 #include <random>
 #include <cstring>
+
+#ifdef _WIN32
+// Windows-specific implementation
+inline uint32_t htole32(uint32_t x) {
+    // Windows is little-endian, so no conversion is needed
+    return x;
+}
+#else
+// Linux-specific implementation
 #include <endian.h>
+#endif
 
 #include "digest.h"
 

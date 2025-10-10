@@ -82,7 +82,8 @@ int add_length(hash_state *hs, sha2_word_t inc) {
 static void sha_init(hash_state * hs)
 {
     int i;
-    hs->curlen = hs->length_upper = hs->length_lower = 0;
+    hs->curlen = 0;
+    hs->length_upper = hs->length_lower = 0;
     for (i = 0; i < 8; ++i)
         hs->state[i] = H[i];
 }

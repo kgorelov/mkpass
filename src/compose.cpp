@@ -8,7 +8,7 @@
 #include "uniform.h"
 
 template <typename Container>
-size_t total_length(const Container& strings) {
+int total_length(const Container& strings) {
     return std::accumulate(
         strings.begin(),
         strings.end(),

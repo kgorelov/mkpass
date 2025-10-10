@@ -7,7 +7,12 @@ set(SOURCES
   src/compose.cpp
 )
 add_library(cpp_part STATIC ${SOURCES})
-target_compile_options(cpp_part PRIVATE -std=c++20)
+if (MSVC)
+    target_compile_options(cpp_part PRIVATE /std:c++20)
+else()
+    target_compile_options(cpp_part PRIVATE -std=c++20)
+endif()
+
 # Link external OpenSSL only when cmake -DOPENSSL_SHA512=ON
 if(OPENSSL_SHA512)
   find_package(OpenSSL REQUIRED)
@@ -22,7 +27,12 @@ add_library(c_part STATIC src/sha512.c)
 
 # Main mkpass executable
 add_executable(mkpass src/main.cpp)
-target_compile_options(mkpass PRIVATE -std=c++20)
+if (MSVC)
+    target_compile_options(mkpass PRIVATE /std:c++20)
+else()
+    target_compile_options(mkpass PRIVATE -std=c++20)
+endif()
+
 target_link_libraries(mkpass PRIVATE
   cpp_part
   c_part
@@ -38,7 +48,12 @@ set(TEST_SOURCES
 )
 find_package(GTest REQUIRED)
 add_executable(mkpass_tests ${TEST_SOURCES})
-target_compile_options(mkpass_tests PRIVATE -std=c++20)
+if (MSVC)
+    target_compile_options(mkpass_tests PRIVATE /std:c++20)
+else()
+    target_compile_options(mkpass_tests PRIVATE -std=c++20)
+endif()
+
 target_link_libraries(mkpass_tests
   cpp_part
   c_part

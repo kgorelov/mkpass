@@ -10,7 +10,7 @@
 #include "sha512.h"
 
 void Sha512(const char* inp, size_t len, Digest& out) {
-    sha512((unsigned char*)inp, len, out.data());
+    sha512((unsigned char*)inp, static_cast<int>(len), out.data());
 }
 
 #else
