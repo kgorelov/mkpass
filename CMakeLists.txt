@@ -5,6 +5,8 @@ project (mkpass)
 set(SOURCES
   src/digest.cpp
   src/compose.cpp
+  src/tui.cpp
+  src/mkpass.cpp
 )
 add_library(cpp_part STATIC ${SOURCES})
 if (MSVC)
