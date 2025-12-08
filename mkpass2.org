@@ -14,6 +14,12 @@
   - [ ] minimal cmd line options parser
   - [ ] support env variables
 ** TODO Refactor and Passphrase composer
+** TODO Consider using a slow hash function
+The problem with using sha512 is that it's too fast to compute.
+If a resulting password is easy and quick to check then a proxy attack becomes possible, either brute force or dictionary based.
+If the master password is found, all passwords derived from that master password are compromised.
+
+
 ** Documentation
 ** Database support
 ** Support for the old algorithm?

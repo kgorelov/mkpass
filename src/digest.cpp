@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#include <vector>
 
 #include "digest.h"
 
@@ -9,12 +10,34 @@
 #ifndef OPENSSL_SHA512
 #include "sha512.h"
 
-void Sha512(const char* inp, size_t len, Digest& out) {
-    sha512((unsigned char*)inp, static_cast<int>(len), out.data());
+void SHA512::Update(std::span<const uint8_t> inp) {
+    if (state_ptr_ == nullptr) {
+        state_ptr_ = sha512_init();
+        if (state_ptr_ == nullptr) {
+            throw std::runtime_error("Error initializing sha512");
+        }
+    }
+    sha512_update(state_ptr_, (unsigned char*)inp.data(), inp.size());
 }
+
+
+SHA512::value_type SHA512::Finalize() {
+    value_type result;
+    sha512_finalize(state_ptr_, result.data());
+    return result;
+}
+
 
 #else
 #include <openssl/evp.h>
+
+void SHA512::Update(std::span<const uint8_t> inp) {
+    throw std::runtime_error("not implemented");
+}
+
+value_type SHA512::Finalize() {
+    throw std::runtime_error("not implemented");
+}
 
 void Sha512(const char* inp, size_t len, Digest& out) {
     EVP_MD_CTX* context = EVP_MD_CTX_new();
@@ -46,17 +69,3 @@ void Sha512(const char* inp, size_t len, Digest& out) {
     EVP_MD_CTX_free(context);
 }
 #endif
-
-std::string DigestToString(const Digest& d) {
-    std::ostringstream oss;
-    for (unsigned int i = 0; i < d.size(); ++i) {
-        oss << std::hex << std::setw(2) << std::setfill('0') << (int)(d[i]);
-    }
-    return oss.str();
-}
-
-std::string Sha512(const std::string& input) {
-    Digest d;
-    Sha512(input.c_str(), input.length(), d);
-    return DigestToString(d);
-}

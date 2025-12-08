@@ -1,5 +1,6 @@
 #include "sha512_details.h"
 #include <string.h>
+#include <stdlib.h>
 
 /* define the hash_state structure */
 typedef struct{
@@ -140,10 +141,33 @@ static void sha_done(hash_state * hs, unsigned char *hash)
         hash[i] = (hs->state[i / WORD_SIZE] >> ((WORD_SIZE - 1 - (i % WORD_SIZE)) * 8)) & 0xFF;
 }
 
+
+/* public functions */
+
 void sha512(unsigned char* inp, int len, unsigned char* digest)
 {
     hash_state state;
     sha_init(&state);
     sha_process(&state, inp, len);
     sha_done(&state, digest);
+}
+
+void* sha512_init() {
+    hash_state *state_ptr = malloc(sizeof(hash_state));
+    if (state_ptr != NULL) {
+        sha_init(state_ptr);
+    }
+    return (void*)state_ptr;
+}
+
+void sha512_update(void *state_ptr, unsigned char* inp, int len) {
+    sha_process((hash_state*)state_ptr, inp, len);
+}
+
+void sha512_finalize(void *state_ptr, unsigned char* digest) {
+    if (NULL == state_ptr) {
+        return;
+    }
+    sha_done(state_ptr, digest);
+    free(state_ptr);
 }

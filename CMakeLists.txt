@@ -1,6 +1,10 @@
 cmake_minimum_required (VERSION 3.10)
 project (mkpass)
 
+################################################################################
+# Libraries
+################################################################################
+
 # C++ part library, used both in the main executable and tests
 set(SOURCES
   src/digest.cpp
@@ -13,6 +17,9 @@ if (MSVC)
     target_compile_options(cpp_part PRIVATE /std:c++20)
 else()
     target_compile_options(cpp_part PRIVATE -std=c++20)
+    SET(BUILD_MODE Debug)
+    SET(CMAKE_CXX_FLAGS "-Wall")
+    SET(CMAKE_CXX_FLAGS_DEBUG "-g")
 endif()
 
 # Link external OpenSSL only when cmake -DOPENSSL_SHA512=ON
@@ -24,10 +31,14 @@ if(OPENSSL_SHA512)
   )
 endif()
 
-# A pure C SHA512 implementation library
-add_library(c_part STATIC src/sha512.c)
 
+# A pure C SHA512 implementation library
+add_library(sha512 STATIC src/sha512.c)
+
+################################################################################
 # Main mkpass executable
+################################################################################
+
 add_executable(mkpass src/main.cpp)
 if (MSVC)
     target_compile_options(mkpass PRIVATE /std:c++20)
@@ -37,10 +48,13 @@ endif()
 
 target_link_libraries(mkpass PRIVATE
   cpp_part
-  c_part
+  sha512
 )
 
+################################################################################
 # Testing support
+################################################################################
+
 enable_testing()
 set(TEST_SOURCES
   src/digest_ut.cpp
@@ -58,7 +72,7 @@ endif()
 
 target_link_libraries(mkpass_tests
   cpp_part
-  c_part
+  sha512
   GTest::GTest
   GTest::Main
 )

@@ -1,5 +1,12 @@
+#include <iostream>
 #include "tui.h"
 
+
 int main() {
-    return run_tui();
+    try{
+        return run_tui();
+    } catch (const std::runtime_error &e) {
+        std::cerr << "ERROR: " << e.what() << "\n";
+        return 1;
+    }
 }

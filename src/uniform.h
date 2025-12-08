@@ -64,7 +64,7 @@ private:
 
     template<class URBG>
     static result_type generate(URBG& g, const param_type& p) {
-        using URBG_result_type = typename URBG::result_type;
+        //using URBG_result_type = typename URBG::result_type;
         using unsigned_type = typename std::make_unsigned<result_type>::type;
 
         unsigned_type range = static_cast<unsigned_type>(p.max()) - static_cast<unsigned_type>(p.min()) + 1;
@@ -81,4 +81,3 @@ private:
         return static_cast<result_type>(p.min() + (r % range));
     }
 };
-

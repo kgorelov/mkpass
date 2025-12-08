@@ -4,6 +4,7 @@
 #include <concepts>
 #include <random>
 #include <cstring>
+#include <string_view>
 
 #ifdef _WIN32
 // Windows-specific implementation
@@ -17,6 +18,7 @@ inline uint32_t htole32(uint32_t x) {
 #endif
 
 #include "digest.h"
+#include "hmac.h"
 
 /**
  * @class Generator
@@ -33,10 +35,20 @@ public:
      * @brief C-tor
      * @param seedstr Initial input, defines the random sequence
      */
-    Generator(const std::string& seedstr)
-        : index_(0)
+    Generator(std::span<const uint8_t> key, std::span<const uint8_t> info)
+        : key_(key)
+        , info_(info)
+        , index_(0)
+        , extend_counter_(0)
     {
-        Sha512(seedstr.c_str(), seedstr.length(), digest_);
+        Extract();
+    }
+
+    Generator(const std::string& key, const std::string& info)
+        : Generator(
+            {reinterpret_cast<const uint8_t*>(key.data()), key.size()},
+            {reinterpret_cast<const uint8_t*>(info.data()), info.size()})
+    {
     }
 
     /**
@@ -51,7 +63,7 @@ private:
         size_t dest_index = 0;
         while (len > 0) {
             if (index_ >= digest_.size()) {
-                Sha512((const char*) digest_.data(), digest_.size(), digest_);
+                Extend();
                 index_ = 0;
             }
 
@@ -70,9 +82,31 @@ private:
         return result;
     }
 
+    void Extract() {
+        std::vector<uint8_t> combined(info_.begin(), info_.end());
+        combined.push_back(static_cast<uint8_t>(extend_counter_));
+        digest_ = HMAC<SHA512>(key_, combined);
+    }
+
+    // T(0) = empty
+    // T(1) = HMAC(PRK, T(0) | info | 0x01)
+    // T(2) = HMAC(PRK, T(1) | info | 0x02)
+    // ...
+    // OKM = T(1) | T(2) | ... | T(n)
+    void Extend() {
+        ++extend_counter_;
+        std::vector<uint8_t> combined(digest_.begin(), digest_.end());
+        combined.insert(combined.end(), info_.begin(), info_.end());
+        combined.push_back(static_cast<uint8_t>(extend_counter_));
+        digest_ = HMAC<SHA512>(key_, combined);
+    }
+
 private:
+    std::span<const uint8_t> key_;
+    std::span<const uint8_t> info_;
     size_t index_;
-    Digest digest_;
+    uint8_t extend_counter_;
+    SHA512::value_type digest_;
 };
 
 // Concept check
