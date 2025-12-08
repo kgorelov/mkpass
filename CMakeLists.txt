@@ -35,6 +35,19 @@ endif()
 # A pure C SHA512 implementation library
 add_library(sha512 STATIC src/sha512.c)
 
+
+# Argon2 library
+set(ARGON2_SOURCES
+  src/argon2/argon2.c
+  src/argon2/core.c
+  src/argon2/ref.c
+  src/argon2/blake2/blake2b.c
+  src/argon2/thread.c
+  src/argon2/encoding.c
+)
+add_library(argon2 STATIC ${ARGON2_SOURCES})
+
+
 ################################################################################
 # Main mkpass executable
 ################################################################################
@@ -49,6 +62,7 @@ endif()
 target_link_libraries(mkpass PRIVATE
   cpp_part
   sha512
+  argon2
 )
 
 ################################################################################
