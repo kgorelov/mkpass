@@ -20,13 +20,22 @@ inline uint32_t htole32(uint32_t x) {
 #include "digest.h"
 #include "hmac.h"
 
+class GeneratorInterface {
+public:
+    using result_type = std::uint32_t;
+    static constexpr result_type min() { return 0; }
+    static constexpr result_type max() { return UINT32_MAX; }
+
+    virtual ~GeneratorInterface() = default;
+    virtual result_type operator()() = 0;
+};
+
 /**
  * @class Generator
  * @brief This class implements a pseudo-random number generator.
  */
 template <HashCalculator HC>
-class Generator
-{
+class Generator : public GeneratorInterface {
 public:
     using result_type = std::uint32_t;
     static constexpr result_type min() { return 0; }
@@ -55,7 +64,7 @@ public:
     /**
      * @brief returns a pseudo-random number
      */
-    result_type operator()() {
+    result_type operator()() override {
         return htole32(Get<result_type>());
     }
 
@@ -110,6 +119,8 @@ private:
     HC::value_type digest_;
 };
 
+#include "sha512.h"
+
 // Concept check
-static_assert(std::uniform_random_bit_generator<Generator>,
+static_assert(std::uniform_random_bit_generator<Generator<SHA512>>,
               "Generator does not meet UniformRandomBitGenerator requirements");

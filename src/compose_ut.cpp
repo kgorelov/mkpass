@@ -3,6 +3,8 @@
 #include <set>
 
 #include "compose.h"
+#include "generator.h"
+#include "sha512.h"
 #include <gtest/gtest.h>
 
 
@@ -14,7 +16,7 @@ bool check_char_class(const std::string& str, const std::string& strclass) {
 
 
 TEST(ComposeTest, TestCharClasses) {
-    Generator g("Key", "Info");
+    Generator<SHA512> g("Key", "Info");
     auto classes = {UppercaseLetters, LowercaseLetters, Digits, Symbols};
     // Test that even the minimum possible length password
     // contains all requested character classes
@@ -26,7 +28,7 @@ TEST(ComposeTest, TestCharClasses) {
 
 
 TEST(ComposeTest, TestCharClasses16) {
-    Generator g("Key", "Info");
+    Generator<SHA512> g("Key", "Info");
     auto classes = {UppercaseLetters, LowercaseLetters, Digits, Symbols};
     // Test that the password
     // contains all requested character classes
@@ -38,7 +40,7 @@ TEST(ComposeTest, TestCharClasses16) {
 
 
 TEST(ComposeTest, TestCompose8) {
-    Generator g("Key", "Info");
+    Generator<SHA512> g("Key", "Info");
     auto classes = {UppercaseLetters, LowercaseLetters, Digits, Symbols};
     auto p = ComposePassword(g, classes, 8);
     EXPECT_EQ(p, "xn/T-d#4");
@@ -46,7 +48,7 @@ TEST(ComposeTest, TestCompose8) {
 
 
 TEST(ComposeTest, Impossible) {
-    Generator g("Key", "Info");
+    Generator<SHA512> g("Key", "Info");
     // It's impossible to generate a 3 character long password
     // using 4 character classes
     EXPECT_THROW(
@@ -57,7 +59,7 @@ TEST(ComposeTest, Impossible) {
 
 TEST(ComposeTest, ZeroLength) {
     // Zero length password is an empty string
-    Generator g("Key", "Info");
+    Generator<SHA512> g("Key", "Info");
     auto classes = {UppercaseLetters, LowercaseLetters, Digits, Symbols};
     auto p = ComposePassword(g, classes, 0);
     EXPECT_EQ(p, "");
@@ -65,7 +67,7 @@ TEST(ComposeTest, ZeroLength) {
 
 
 TEST(ComposeTest, ComposeFrequency) {
-    Generator g("test", "");
+    Generator<SHA512> g("test", "");
     auto classes = {UppercaseLetters, LowercaseLetters, Digits, Symbols};
     auto p = ComposePassword(g, classes, 10*1024);
 

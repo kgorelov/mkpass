@@ -4,7 +4,14 @@
 #include <iostream>
 #include <set>
 
+#include <stdexcept>
+#include <numeric>
+#include <algorithm>
+#include <iostream>
+#include <set>
+
 #include "compose.h"
+#include "generator.h"
 #include "uniform.h"
 
 template <typename Container>
@@ -53,7 +60,7 @@ struct combined_string  {
 
 
 std::string ComposePassword(
-    Generator& generator,
+    GeneratorInterface& generator,
     std::vector<std::string>&& char_classes,
     size_t length)
 {

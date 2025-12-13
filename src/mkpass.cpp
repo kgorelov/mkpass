@@ -1,5 +1,7 @@
 #include "mkpass.h"
 #include "compose.h"
+#include "generator.h"
+#include "sha512.h"
 
 std::string MkPass(const context& ctx) {
     Generator<SHA512> g(ctx.password, ctx.service);
