@@ -24,6 +24,7 @@ inline uint32_t htole32(uint32_t x) {
  * @class Generator
  * @brief This class implements a pseudo-random number generator.
  */
+template <HashCalculator HC>
 class Generator
 {
 public:
@@ -85,7 +86,7 @@ private:
     void Extract() {
         std::vector<uint8_t> combined(info_.begin(), info_.end());
         combined.push_back(static_cast<uint8_t>(extend_counter_));
-        digest_ = HMAC<SHA512>(key_, combined);
+        digest_ = HMAC<HC>(key_, combined);
     }
 
     // T(0) = empty
@@ -98,7 +99,7 @@ private:
         std::vector<uint8_t> combined(digest_.begin(), digest_.end());
         combined.insert(combined.end(), info_.begin(), info_.end());
         combined.push_back(static_cast<uint8_t>(extend_counter_));
-        digest_ = HMAC<SHA512>(key_, combined);
+        digest_ = HMAC<HC>(key_, combined);
     }
 
 private:
@@ -106,7 +107,7 @@ private:
     std::span<const uint8_t> info_;
     size_t index_;
     uint8_t extend_counter_;
-    SHA512::value_type digest_;
+    HC::value_type digest_;
 };
 
 // Concept check

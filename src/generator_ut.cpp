@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 
 TEST(GeneratorTest, TestLE) {
-    Generator g("Key", "Info");
+    Generator<SHA512> g("Key", "Info");
 
     // Expect LittleEndian
     EXPECT_EQ(g(), 0xa2ab0569/*0x339eeec6*/);
