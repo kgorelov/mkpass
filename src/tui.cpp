@@ -1,5 +1,7 @@
 #include <iostream>
 #include <string>
+#include <vector>
+#include <map>
 
 #if defined(_WIN32)
 #include "win32_term.h"
@@ -9,6 +11,32 @@
 
 #include "mkpass.h"
 #include "tui.h"
+#include "compose.h"
+
+std::vector<std::string> AskForCharClasses() {
+    std::map<char, std::string> choices = {
+        {'1', LowercaseLetters},
+        {'2', UppercaseLetters},
+        {'3', Digits},
+        {'4', Symbols}
+    };
+
+    std::cerr << "Choose character classes:\n";
+    for (auto const& [key, val] : choices) {
+        std::cerr << key << ". " << val << "\n";
+    }
+    std::cerr << "Your choice (e.g. 123): ";
+    std::string choice;
+    std::cin >> choice;
+
+    std::vector<std::string> result;
+    for (char c : choice) {
+        if (choices.count(c)) {
+            result.push_back(choices[c]);
+        }
+    }
+    return result;
+}
 
 int run_tui() {
     // Input Master Password
@@ -37,7 +65,8 @@ int run_tui() {
     std::cerr << "Service name: ";
     std::cin >> service;
 
-    // TODO read character classes (choice)
+    auto char_classes = AskForCharClasses();
+
     // TODO Input Algorithm: Password, Passphrase, Old Password
 
     // Input length
@@ -49,6 +78,7 @@ int run_tui() {
     std::cout << MkPass({
             .password = pwd,
             .service = service,
+            .char_classes = char_classes,
             .length = length
         }) << std::endl;
     return 0;
