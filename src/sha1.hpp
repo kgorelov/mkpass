@@ -210,7 +210,6 @@ std::string SHA1::final()
 
     // Add padding
     buffer += (char)0x80;
-    size_t orig_size = buffer.size();
     while (buffer.size() < 56)
     {
         buffer += (char)0x00;

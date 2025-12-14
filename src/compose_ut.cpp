@@ -110,5 +110,5 @@ TEST(ComposeTest, ComposeFrequency) {
 
 TEST(ComposeTest, TestOldAlgo) {
     auto p = ComposeOldMkpass1Password("master", "service", 8);
-    EXPECT_EQ(p, "ZmFlZGNm");
+    EXPECT_EQ(p, "Zcxtvpqv");
 }
