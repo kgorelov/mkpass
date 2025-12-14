@@ -13,6 +13,8 @@
 #include "compose.h"
 #include "generator.h"
 #include "uniform.h"
+#include "sha1.hpp"
+#include "base64.hpp"
 
 template <typename Container>
 int total_length(const Container& strings) {
@@ -96,4 +98,16 @@ std::string ComposePassword(
     }
 
     return result;
+}
+
+std::string ComposeOldMkpass1Password(
+    const std::string& master_password,
+    const std::string& service_name,
+    size_t length)
+{
+    SHA1 sha1;
+    sha1.update(master_password + service_name);
+    const std::vector<uint8_t> hash = sha1.final_bytes();
+
+    return czkz::base64_encode(hash).substr(0, length);
 }

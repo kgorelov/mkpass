@@ -13,6 +13,31 @@
 #include "mkpass.h"
 #include "tui.h"
 #include "compose.h"
+#include "context.h"
+
+Algorithm AskForAlgorithm() {
+    std::map<char, Algorithm> choices = {
+        {'1', Algorithm::Modern},
+        {'2', Algorithm::Old}
+    };
+
+    std::cerr << "Choose algorithm:\n";
+    std::cerr << "1. Password\n";
+    std::cerr << "2. OldPassword\n";
+    std::cerr << "Your choice (e.g. 1) [1]: ";
+    std::string choice;
+    std::getline(std::cin, choice);
+
+    if (choice.empty()) {
+        choice = "1";
+    }
+
+    if (choices.count(choice[0])) {
+        return choices[choice[0]];
+    }
+
+    return Algorithm::Modern;
+}
 
 std::vector<std::string> AskForCharClasses() {
     struct Choice {
@@ -75,9 +100,11 @@ int run_tui() {
     std::cin >> service;
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-    auto char_classes = AskForCharClasses();
-
-    // TODO Input Algorithm: Password, Passphrase, Old Password
+    auto algorithm = AskForAlgorithm();
+    std::vector<std::string> char_classes;
+    if (algorithm == Algorithm::Modern) {
+        char_classes = AskForCharClasses();
+    }
 
     // Input length
     unsigned length = 0;
@@ -89,6 +116,7 @@ int run_tui() {
             .password = pwd,
             .service = service,
             .char_classes = char_classes,
+            .algorithm = algorithm,
             .length = length
         }) << std::endl;
     return 0;

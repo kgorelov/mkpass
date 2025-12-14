@@ -107,3 +107,8 @@ TEST(ComposeTest, ComposeFrequency) {
         ASSERT_TRUE(100*abs(r1-r2)/r1 < 10);
     }
 }
+
+TEST(ComposeTest, TestOldAlgo) {
+    auto p = ComposeOldMkpass1Password("master", "service", 8);
+    EXPECT_EQ(p, "ZmFlZGNm");
+}
