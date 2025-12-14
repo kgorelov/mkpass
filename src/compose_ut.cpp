@@ -112,3 +112,28 @@ TEST(ComposeTest, TestOldAlgo) {
     auto p = ComposeOldMkpass1Password("master", "service", 8);
     EXPECT_EQ(p, "Zcxtvpqv");
 }
+
+TEST(ComposeTest, TestOldAlgo1) {
+    auto p = ComposeOldMkpass1Password("password", "gmail.com", 10);
+    EXPECT_EQ(p, "JZ2kMUREH3");
+}
+
+TEST(ComposeTest, TestOldAlgo2) {
+    auto p = ComposeOldMkpass1Password("12345", "facebook", 12);
+    EXPECT_EQ(p, "zRmHkPRuDvPW");
+}
+
+TEST(ComposeTest, TestOldAlgo3) {
+    auto p = ComposeOldMkpass1Password("a", "b", 6);
+    EXPECT_EQ(p, "2iNhTg");
+}
+
+TEST(ComposeTest, TestOldAlgo4) {
+    auto p = ComposeOldMkpass1Password("Secret", "Service", 10);
+    EXPECT_EQ(p, "RDeard32Oz");
+}
+
+TEST(ComposeTest, TestOldAlgo5) {
+    auto p = ComposeOldMkpass1Password("Master", "user@gmail.com", 16);
+    EXPECT_EQ(p, "6QZDwZNE7UitaHGB");
+}
