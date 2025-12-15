@@ -13,6 +13,7 @@ set(SOURCES
   src/mkpass.cpp
 )
 add_library(cpp_part STATIC ${SOURCES})
+target_include_directories(cpp_part PUBLIC src)
 if (MSVC)
     target_compile_options(cpp_part PRIVATE /std:c++20)
 else()
@@ -75,6 +76,7 @@ set(TEST_SOURCES
   src/generator_ut.cpp
   src/uniform_ut.cpp
   src/compose_ut.cpp
+  src/argon2_generator_ut.cpp
 )
 find_package(GTest REQUIRED)
 add_executable(mkpass_tests ${TEST_SOURCES})
@@ -87,6 +89,7 @@ endif()
 target_link_libraries(mkpass_tests
   cpp_part
   sha512
+  argon2
   GTest::GTest
   GTest::Main
 )

@@ -17,13 +17,15 @@
 
 Algorithm AskForAlgorithm() {
     std::map<char, Algorithm> choices = {
-        {'1', Algorithm::Modern},
-        {'2', Algorithm::Old}
+        {'1', Algorithm::Argon2},
+        {'2', Algorithm::Modern},
+        {'3', Algorithm::Old}
     };
 
     std::cerr << "Choose algorithm:\n";
-    std::cerr << "1. Password\n";
-    std::cerr << "2. OldPassword\n";
+    std::cerr << "1. Password (Argon2)\n";
+    std::cerr << "2. Password (SHA512 HMAC)\n";
+    std::cerr << "3. OldPassword\n";
     std::cerr << "Your choice (e.g. 1) [1]: ";
     std::string choice;
     std::getline(std::cin, choice);
@@ -36,7 +38,7 @@ Algorithm AskForAlgorithm() {
         return choices[choice[0]];
     }
 
-    return Algorithm::Modern;
+    return Algorithm::Argon2;
 }
 
 std::vector<std::string> AskForCharClasses() {
