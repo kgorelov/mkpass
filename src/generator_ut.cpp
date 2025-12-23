@@ -1,8 +1,10 @@
 #include "generator.h"
+#include "hkdf_hmac.h"
 #include <gtest/gtest.h>
-
+#include <iostream>
+#include <iomanip>
 TEST(GeneratorTest, TestLE) {
-    Generator<SHA512> g("Key", "Info");
+    Generator<HKDF_HMAC<SHA512>> g("Key", "Info");
 
     // Expect LittleEndian
     EXPECT_EQ(g(), 0xa2ab0569/*0x339eeec6*/);

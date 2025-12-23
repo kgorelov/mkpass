@@ -11,8 +11,10 @@ set(SOURCES
   src/compose.cpp
   src/tui.cpp
   src/mkpass.cpp
+  src/hkdf_argon2.cpp
 )
 add_library(cpp_part STATIC ${SOURCES})
+target_include_directories(cpp_part PUBLIC src)
 if (MSVC)
     target_compile_options(cpp_part PRIVATE /std:c++20)
 else()
@@ -35,6 +37,19 @@ endif()
 # A pure C SHA512 implementation library
 add_library(sha512 STATIC src/sha512.c)
 
+
+# Argon2 library
+set(ARGON2_SOURCES
+  src/argon2/argon2.c
+  src/argon2/core.c
+  src/argon2/ref.c
+  src/argon2/blake2/blake2b.c
+  src/argon2/thread.c
+  src/argon2/encoding.c
+)
+add_library(argon2 STATIC ${ARGON2_SOURCES})
+
+
 ################################################################################
 # Main mkpass executable
 ################################################################################
@@ -49,6 +64,7 @@ endif()
 target_link_libraries(mkpass PRIVATE
   cpp_part
   sha512
+  argon2
 )
 
 ################################################################################
@@ -61,6 +77,7 @@ set(TEST_SOURCES
   src/generator_ut.cpp
   src/uniform_ut.cpp
   src/compose_ut.cpp
+  src/hkdf_argon2_ut.cpp
 )
 find_package(GTest REQUIRED)
 add_executable(mkpass_tests ${TEST_SOURCES})
@@ -73,6 +90,7 @@ endif()
 target_link_libraries(mkpass_tests
   cpp_part
   sha512
+  argon2
   GTest::GTest
   GTest::Main
 )

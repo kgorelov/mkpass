@@ -7,14 +7,15 @@
 
 enum class Algorithm {
     Modern,
-    Old
+    Old,
+    Argon2
 };
 
 struct context {
     std::string password;
     std::string service;
     std::vector<std::string> char_classes;
-    Algorithm algorithm = Algorithm::Modern;
+    Algorithm algorithm = Algorithm::Argon2;
 
     bool is_gui = false;
     //std::optional<unsigned> length;
