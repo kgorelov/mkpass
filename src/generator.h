@@ -19,6 +19,7 @@ inline uint32_t htole32(uint32_t x) {
 
 #include "digest.h"
 #include "hkdf.h"
+#include "hkdf_hmac.h"
 
 class GeneratorInterface {
 public:
@@ -34,7 +35,7 @@ public:
  * @class Generator
  * @brief This class implements a pseudo-random number generator.
  */
-template <typename HKDF>
+template <HKDF HKDF>
 class Generator : public GeneratorInterface {
 public:
     using result_type = std::uint32_t;

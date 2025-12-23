@@ -1,7 +1,8 @@
 #include "mkpass.h"
 #include "compose.h"
 #include "generator.h"
-#include "sha512.h"
+#include "hkdf_hmac.h"
+#include "hkdf_argon2.h"
 #include <stdexcept>
 
 std::string MkPass(const context& ctx) {

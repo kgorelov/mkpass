@@ -11,6 +11,7 @@ set(SOURCES
   src/compose.cpp
   src/tui.cpp
   src/mkpass.cpp
+  src/hkdf_argon2.cpp
 )
 add_library(cpp_part STATIC ${SOURCES})
 target_include_directories(cpp_part PUBLIC src)

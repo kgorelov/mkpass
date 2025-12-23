@@ -1,5 +1,5 @@
 #include "generator.h"
-#include "sha512.h"
+#include "hkdf_hmac.h"
 #include "uniform.h"
 #include <gtest/gtest.h>
 #include <cstdlib>

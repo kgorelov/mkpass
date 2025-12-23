@@ -1,5 +1,5 @@
 #include "generator.h"
-#include "hkdf.h"
+#include "hkdf_argon2.h"
 #include <gtest/gtest.h>
 #include <iostream>
 #include <iomanip>

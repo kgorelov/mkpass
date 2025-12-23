@@ -1,6 +1,8 @@
 #include "generator.h"
+#include "hkdf_hmac.h"
 #include <gtest/gtest.h>
-
+#include <iostream>
+#include <iomanip>
 TEST(GeneratorTest, TestLE) {
     Generator<HKDF_HMAC<SHA512>> g("Key", "Info");
 
