@@ -5,7 +5,7 @@
 #include <cstdlib>
 
 TEST(UniformTest, TestDistrubution) {
-    Generator<SHA512> g("Key", "Info");
+    Generator<HKDF_HMAC<SHA512>> g("Key", "Info");
     UniformDistribution ud(0, 25);
     EXPECT_EQ(ud(g), 19);
     EXPECT_EQ(ud(g), 15);
@@ -13,7 +13,7 @@ TEST(UniformTest, TestDistrubution) {
 }
 
 TEST(UniformTest, TestDistrubution2) {
-    Generator<SHA512> g("Key", "Info");
+    Generator<HKDF_HMAC<SHA512>> g("Key", "Info");
     UniformDistribution ud(0, 1);
     EXPECT_EQ(ud(g), 1);
     EXPECT_EQ(ud(g), 1);
@@ -21,21 +21,21 @@ TEST(UniformTest, TestDistrubution2) {
 }
 
 TEST(UniformTest, TestDistrubution3) {
-    Generator<SHA512> g("Key", "Info");
+    Generator<HKDF_HMAC<SHA512>> g("Key", "Info");
     UniformDistribution ud(0, 0);
     EXPECT_EQ(ud(g), 0);
     EXPECT_EQ(ud(g), 0);
 }
 
 TEST(UniformTest, TestDistrubution4) {
-    Generator<SHA512> g("Key", "Info");
+    Generator<HKDF_HMAC<SHA512>> g("Key", "Info");
     UniformDistribution ud(1, 1);
     EXPECT_EQ(ud(g), 1);
     EXPECT_EQ(ud(g), 1);
 }
 
 TEST(UniformTest, TestBaskets) {
-    Generator<SHA512> g("Key", "Info");
+    Generator<HKDF_HMAC<SHA512>> g("Key", "Info");
     UniformDistribution ud(0, 9);
     std::map<unsigned, unsigned> baskets;
     for (unsigned i = 0; i < 100000; ++i) {

@@ -18,7 +18,7 @@ inline uint32_t htole32(uint32_t x) {
 #endif
 
 #include "digest.h"
-#include "hmac.h"
+#include "hkdf.h"
 
 class GeneratorInterface {
 public:
@@ -34,7 +34,7 @@ public:
  * @class Generator
  * @brief This class implements a pseudo-random number generator.
  */
-template <HashCalculator HC>
+template <typename HKDF>
 class Generator : public GeneratorInterface {
 public:
     using result_type = std::uint32_t;
@@ -95,7 +95,7 @@ private:
     void Extract() {
         std::vector<uint8_t> combined(info_.begin(), info_.end());
         combined.push_back(static_cast<uint8_t>(extend_counter_));
-        digest_ = HMAC<HC>(key_, combined);
+        digest_ = HKDF()(key_, combined);
     }
 
     // T(0) = empty
@@ -108,7 +108,7 @@ private:
         std::vector<uint8_t> combined(digest_.begin(), digest_.end());
         combined.insert(combined.end(), info_.begin(), info_.end());
         combined.push_back(static_cast<uint8_t>(extend_counter_));
-        digest_ = HMAC<HC>(key_, combined);
+        digest_ = HKDF()(key_, combined);
     }
 
 private:
@@ -116,11 +116,12 @@ private:
     std::span<const uint8_t> info_;
     size_t index_;
     uint8_t extend_counter_;
-    HC::value_type digest_;
+    typename HKDF::value_type digest_;
 };
 
 #include "sha512.h"
 
 // Concept check
-static_assert(std::uniform_random_bit_generator<Generator<SHA512>>,
+static_assert(std::uniform_random_bit_generator<Generator<HKDF_HMAC<SHA512>>>,
               "Generator does not meet UniformRandomBitGenerator requirements");
+
