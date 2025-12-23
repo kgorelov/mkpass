@@ -5,6 +5,7 @@
 #include "compose.h"
 #include "generator.h"
 #include "hkdf_hmac.h"
+#include "hkdf_argon2.h"
 #include <gtest/gtest.h>
 
 
@@ -44,6 +45,13 @@ TEST(ComposeTest, TestCompose8) {
     auto classes = {UppercaseLetters, LowercaseLetters, Digits, Symbols};
     auto p = ComposePassword(g, classes, 8);
     EXPECT_EQ(p, "xn/T-d#4");
+}
+
+TEST(ComposeTest, TestComposeArgon2) {
+    Generator<HKDF_Argon2> g("password", "service");
+    auto classes = {UppercaseLetters, LowercaseLetters, Digits, Symbols};
+    auto p = ComposePassword(g, classes, 16);
+    EXPECT_EQ(p, "ijR-U#=/+S>[-F0,");
 }
 
 
