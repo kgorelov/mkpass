@@ -16,7 +16,7 @@ HKDF_Argon2::value_type HKDF_Argon2::operator()(std::span<const uint8_t> key, st
     // Argon2 parameters
     const uint32_t t_cost = 3;
     const uint32_t m_cost = 1 << 16; // 65536 KiB = 64 MiB
-    const uint32_t parallelism = 4;
+    const uint32_t parallelism = 1;
     const uint32_t hash_len = 256;
 
     std::vector<uint8_t> digest(hash_len);
