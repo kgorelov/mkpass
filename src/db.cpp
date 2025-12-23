@@ -3,12 +3,17 @@
 #include <sqlite3.h>
 #include <stdexcept>
 #include <string>
-#include <wordexp.h>
 #include <iostream>
+
+#ifdef _WIN32
+#include <windows.h>
+#include <shlobj.h>
+#include <KnownFolders.h>
+#else
+#include <wordexp.h>
+#endif
 
 namespace mkpass {
-
-#include <iostream>
 
 void ConfigDB::open_db(const std::string &db_path) {
     if (sqlite3_open(db_path.c_str(), &db) != SQLITE_OK) {
@@ -18,6 +23,16 @@ void ConfigDB::open_db(const std::string &db_path) {
 }
 
 ConfigDB::ConfigDB() : db(nullptr) {
+#ifdef _WIN32
+    PWSTR path = NULL;
+    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Profile, 0, NULL, &path))) {
+        std::wstring wpath(path);
+        CoTaskMemFree(path);
+        std::string db_path(wpath.begin(), wpath.end());
+        db_path += "\\.mkpass.db";
+        open_db(db_path);
+    }
+#else
     wordexp_t p;
     if (wordexp("~/.mkpass.db", &p, 0) != 0) {
         // Don't throw, just ignore.
@@ -26,7 +41,9 @@ ConfigDB::ConfigDB() : db(nullptr) {
     std::string db_path = p.we_wordv[0];
     wordfree(&p);
     open_db(db_path);
+#endif
 }
+
 
 ConfigDB::ConfigDB(const std::string &db_path) : db(nullptr) {
     open_db(db_path);
