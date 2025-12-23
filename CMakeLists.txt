@@ -76,7 +76,7 @@ set(TEST_SOURCES
   src/generator_ut.cpp
   src/uniform_ut.cpp
   src/compose_ut.cpp
-  src/argon2_generator_ut.cpp
+  src/hkdf_argon2_ut.cpp
 )
 find_package(GTest REQUIRED)
 add_executable(mkpass_tests ${TEST_SOURCES})
