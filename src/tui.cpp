@@ -14,6 +14,7 @@
 #include "tui.h"
 #include "compose.h"
 #include "context.h"
+#include "db.h"
 
 Algorithm AskForAlgorithm() {
     std::map<char, Algorithm> choices = {
@@ -74,7 +75,12 @@ std::vector<std::string> AskForCharClasses() {
     return result;
 }
 
+#include "db.h"
+
 int run_tui() {
+    mkpass::ConfigDB db;
+    auto snames = db.get_all_snames();
+
     // Input Master Password
     std::cerr << "Enter Master Password: ";
     std::string pwd = InputPassword();
@@ -98,9 +104,12 @@ int run_tui() {
 
     // Input Service
     std::string service;
+    std::cerr << "Available services:\n";
+    for (auto const& [name, len] : snames) {
+        std::cerr << "- " << name << "\n";
+    }
     std::cerr << "Service name: ";
-    std::cin >> service;
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    std::getline(std::cin, service);
 
     auto algorithm = AskForAlgorithm();
     std::vector<std::string> char_classes;
@@ -110,8 +119,18 @@ int run_tui() {
 
     // Input length
     unsigned length = 0;
-    std::cerr << "Length: ";
-    std::cin >> length;
+    if (snames.count(service)) {
+        length = snames[service];
+        std::cerr << "Length [" << length << "]: ";
+        std::string length_str;
+        std::getline(std::cin, length_str);
+        if (!length_str.empty()) {
+            length = std::stoul(length_str);
+        }
+    } else {
+        std::cerr << "Length: ";
+        std::cin >> length;
+    }
 
     // Get the result to stdout
     std::cout << MkPass({

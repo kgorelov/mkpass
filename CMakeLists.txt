@@ -12,6 +12,7 @@ set(SOURCES
   src/tui.cpp
   src/mkpass.cpp
   src/hkdf_argon2.cpp
+  src/db.cpp
 )
 add_library(cpp_part STATIC ${SOURCES})
 target_include_directories(cpp_part PUBLIC src)
@@ -32,6 +33,9 @@ if(OPENSSL_SHA512)
     OpenSSL::Crypto
   )
 endif()
+
+find_package(SQLite3 REQUIRED)
+target_link_libraries(cpp_part PUBLIC SQLite::SQLite3)
 
 
 # A pure C SHA512 implementation library
@@ -78,6 +82,7 @@ set(TEST_SOURCES
   src/uniform_ut.cpp
   src/compose_ut.cpp
   src/hkdf_argon2_ut.cpp
+  src/db_ut.cpp
 )
 find_package(GTest REQUIRED)
 add_executable(mkpass_tests ${TEST_SOURCES})
