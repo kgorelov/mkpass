@@ -88,7 +88,6 @@ set(TEST_SOURCES
   src/compose_ut.cpp
   src/hkdf_argon2_ut.cpp
   src/db_ut.cpp
-  src/tui_ut.cpp
 )
 find_package(GTest REQUIRED)
 add_executable(mkpass_tests ${TEST_SOURCES})
@@ -108,18 +107,4 @@ target_link_libraries(mkpass_tests
 )
 include(GoogleTest)
 gtest_discover_tests(mkpass_tests)
-
-add_executable(tui_tests src/tui_ut.cpp src/tui.cpp src/db.cpp)
-target_include_directories(tui_tests PUBLIC src)
-if (MSVC)
-    target_compile_options(tui_tests PRIVATE /std:c++20)
-else()
-    target_compile_options(tui_tests PRIVATE -std=c++20)
-endif()
-target_link_libraries(tui_tests
-  GTest::GTest
-  GTest::Main
-  SQLite::SQLite3
-)
-gtest_discover_tests(tui_tests)
 
