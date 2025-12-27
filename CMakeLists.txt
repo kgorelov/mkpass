@@ -15,7 +15,7 @@ set(SOURCES
   src/db.cpp
 )
 add_library(cpp_part STATIC ${SOURCES})
-target_include_directories(cpp_part PUBLIC src)
+target_include_directories(cpp_part PUBLIC src src/linenoise-ng)
 if (MSVC)
     target_compile_options(cpp_part PRIVATE /std:c++20)
 else()
@@ -36,6 +36,10 @@ endif()
 
 find_package(SQLite3 REQUIRED)
 target_link_libraries(cpp_part PUBLIC SQLite::SQLite3)
+
+# Linenoise-ng library
+add_library(linenoise STATIC src/linenoise-ng/linenoise.cpp src/linenoise-ng/ConvertUTF.cpp src/linenoise-ng/wcwidth.cpp)
+target_include_directories(linenoise PUBLIC src/linenoise-ng)
 
 
 # A pure C SHA512 implementation library
@@ -69,6 +73,7 @@ target_link_libraries(mkpass PRIVATE
   cpp_part
   sha512
   argon2
+  linenoise
 )
 
 ################################################################################
@@ -83,6 +88,7 @@ set(TEST_SOURCES
   src/compose_ut.cpp
   src/hkdf_argon2_ut.cpp
   src/db_ut.cpp
+  src/tui_ut.cpp
 )
 find_package(GTest REQUIRED)
 add_executable(mkpass_tests ${TEST_SOURCES})
@@ -96,8 +102,24 @@ target_link_libraries(mkpass_tests
   cpp_part
   sha512
   argon2
+  linenoise
   GTest::GTest
   GTest::Main
 )
 include(GoogleTest)
 gtest_discover_tests(mkpass_tests)
+
+add_executable(tui_tests src/tui_ut.cpp src/tui.cpp src/db.cpp)
+target_include_directories(tui_tests PUBLIC src)
+if (MSVC)
+    target_compile_options(tui_tests PRIVATE /std:c++20)
+else()
+    target_compile_options(tui_tests PRIVATE -std=c++20)
+endif()
+target_link_libraries(tui_tests
+  GTest::GTest
+  GTest::Main
+  SQLite::SQLite3
+)
+gtest_discover_tests(tui_tests)
+

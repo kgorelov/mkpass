@@ -15,6 +15,7 @@
 #include "compose.h"
 #include "context.h"
 #include "db.h"
+#include "linenoise.h"
 
 Algorithm AskForAlgorithm() {
     std::map<char, Algorithm> choices = {
@@ -77,9 +78,24 @@ std::vector<std::string> AskForCharClasses() {
 
 #include "db.h"
 
+#include "linenoise.h"
+
+std::vector<std::string> sname_keys;
+
+void completion(const char *buf, linenoiseCompletions *lc) {
+    for (const auto &s : sname_keys) {
+        if (s.rfind(buf, 0) == 0) {
+            linenoiseAddCompletion(lc, s.c_str());
+        }
+    }
+}
+
 int run_tui() {
     mkpass::ConfigDB db;
     auto snames = db.get_all_snames();
+    for (auto const& [name, len] : snames) {
+        sname_keys.push_back(name);
+    }
 
     // Input Master Password
     std::cerr << "Enter Master Password: ";
@@ -103,13 +119,10 @@ int run_tui() {
     }
 
     // Input Service
-    std::string service;
-    std::cerr << "Available services:\n";
-    for (auto const& [name, len] : snames) {
-        std::cerr << "- " << name << "\n";
-    }
-    std::cerr << "Service name: ";
-    std::getline(std::cin, service);
+    linenoiseSetCompletionCallback(completion);
+    char *service_c_str = linenoise("Service name: ");
+    std::string service(service_c_str);
+    free(service_c_str);
 
     auto algorithm = AskForAlgorithm();
     std::vector<std::string> char_classes;
