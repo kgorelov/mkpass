@@ -101,6 +101,8 @@ void trim(std::string &s) {
 }
 
 
+#include <sqlite3.h>
+
 TEST(E2ETest, SimpleTest) {
     std::string input = "master_password\nmaster_password\n1\nservice_name\n16\n";
     ProcessOutput output = exec_with_input("./mkpass", input);
@@ -113,14 +115,47 @@ TEST(E2ETest, DatabasePath) {
     const char* db_path = "/tmp/mkpass-e2e-test.db";
     setenv("MKPASS_DB_PATH", db_path, 1);
 
-    std::string input = "master_password\nmaster_password\n1\nservice_name\n16\n";
+    // Create a dummy database for testing
+    sqlite3 *db;
+    sqlite3_open(db_path, &db);
+    const char *sql =
+        "CREATE TABLE snames (name TEXT PRIMARY KEY, length INTEGER);"
+        "INSERT INTO snames VALUES ('github.com', 10);"
+        "INSERT INTO snames VALUES ('gitlab.com', 12);";
+    char *err_msg = 0;
+    sqlite3_exec(db, sql, 0, 0, &err_msg);
+    sqlite3_close(db);
+
+    std::string input = "master_password\nmaster_password\n1\ngit\t\t\n16\n";
     ProcessOutput output = exec_with_input("./mkpass", input);
     trim(output.std_out);
     EXPECT_EQ(output.exit_code, 0);
     EXPECT_EQ(output.std_out.length(), 16);
 
-    // Check that the database file was created
-    ASSERT_EQ(access(db_path, F_OK), 0);
+    unsetenv("MKPASS_DB_PATH");
+    remove(db_path);
+}
+
+TEST(E2ETest, DatabasePathWithUsernames) {
+    const char* db_path = "/tmp/mkpass-e2e-test-2.db";
+    setenv("MKPASS_DB_PATH", db_path, 1);
+
+    // Create a dummy database for testing
+    sqlite3 *db;
+    sqlite3_open(db_path, &db);
+    const char *sql =
+        "CREATE TABLE snames (name TEXT PRIMARY KEY, length INTEGER);"
+        "INSERT INTO snames VALUES ('user@github.com', 15);"
+        "INSERT INTO snames VALUES ('user@gitlab.com', 18);";
+    char *err_msg = 0;
+    sqlite3_exec(db, sql, 0, 0, &err_msg);
+    sqlite3_close(db);
+
+    std::string input = "master_password\nmaster_password\n1\nuser@git\t\t\n20\n";
+    ProcessOutput output = exec_with_input("./mkpass", input);
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_EQ(output.std_out.length(), 20);
 
     unsetenv("MKPASS_DB_PATH");
     remove(db_path);

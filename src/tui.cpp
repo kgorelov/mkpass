@@ -134,15 +134,18 @@ int run_tui() {
     unsigned length = 0;
     if (snames.count(service)) {
         length = snames[service];
-        std::cerr << "Length [" << length << "]: ";
-        std::string length_str;
-        std::getline(std::cin, length_str);
+        std::string prompt = "Length [" + std::to_string(length) + "]: ";
+        char *length_c_str = linenoise(prompt.c_str());
+        std::string length_str(length_c_str);
+        free(length_c_str);
         if (!length_str.empty()) {
             length = std::stoul(length_str);
         }
     } else {
-        std::cerr << "Length: ";
-        std::cin >> length;
+        char *length_c_str = linenoise("Length: ");
+        std::string length_str(length_c_str);
+        free(length_c_str);
+        length = std::stoul(length_str);
     }
 
     // Get the result to stdout
