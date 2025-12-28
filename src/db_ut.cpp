@@ -50,3 +50,18 @@ TEST(ConfigDB, NonExistentDB) {
     auto snames = db.get_all_snames();
     ASSERT_TRUE(snames.empty());
 }
+
+TEST(ConfigDB, EnvVariable) {
+    const char* db_path = "/tmp/mkpass-test-env.db";
+    setenv("MKPASS_DB_PATH", db_path, 1);
+
+    mkpass::ConfigDB db;
+    auto snames = db.get_all_snames();
+    ASSERT_TRUE(snames.empty());
+
+    // Check that the database file was created
+    ASSERT_EQ(access(db_path, F_OK), 0);
+
+    unsetenv("MKPASS_DB_PATH");
+    remove(db_path);
+}

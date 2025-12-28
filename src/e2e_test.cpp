@@ -108,3 +108,20 @@ TEST(E2ETest, SimpleTest) {
     EXPECT_EQ(output.exit_code, 0);
     EXPECT_EQ(output.std_out.length(), 16);
 }
+
+TEST(E2ETest, DatabasePath) {
+    const char* db_path = "/tmp/mkpass-e2e-test.db";
+    setenv("MKPASS_DB_PATH", db_path, 1);
+
+    std::string input = "master_password\nmaster_password\n1\nservice_name\n16\n";
+    ProcessOutput output = exec_with_input("./mkpass", input);
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_EQ(output.std_out.length(), 16);
+
+    // Check that the database file was created
+    ASSERT_EQ(access(db_path, F_OK), 0);
+
+    unsetenv("MKPASS_DB_PATH");
+    remove(db_path);
+}

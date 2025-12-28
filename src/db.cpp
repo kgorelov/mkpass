@@ -13,6 +13,8 @@
 #include <wordexp.h>
 #endif
 
+#include <cstdlib>
+
 namespace mkpass {
 
 void ConfigDB::open_db(const std::string &db_path) {
@@ -23,6 +25,10 @@ void ConfigDB::open_db(const std::string &db_path) {
 }
 
 ConfigDB::ConfigDB() : db(nullptr) {
+    if (const char* db_path_env = std::getenv("MKPASS_DB_PATH")) {
+        open_db(db_path_env);
+        return;
+    }
 #ifdef _WIN32
     PWSTR path = NULL;
     if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Profile, 0, NULL, &path))) {
