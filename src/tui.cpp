@@ -3,6 +3,7 @@
 #include <vector>
 #include <map>
 #include <limits>
+#include <stdexcept>
 
 #if defined(_WIN32)
 #include "win32_term.h"
@@ -91,6 +92,15 @@ void completion(const char *buf, linenoiseCompletions *lc) {
     }
 }
 
+int run_tui_safe() {
+    try {
+        return run_tui();
+    } catch (const std::exception &e) {
+        // This happens on Ctrl+C
+        return 130;
+    }
+}
+
 int run_tui() {
     mkpass::ConfigDB db;
     auto snames = db.get_all_snames();
@@ -122,6 +132,9 @@ int run_tui() {
     // Input Service
     linenoiseSetCompletionCallback(completion);
     char *service_c_str = linenoise("Service name: ");
+    if (service_c_str == nullptr) {
+        return 130;
+    }
     std::string service(service_c_str);
     free(service_c_str);
 
@@ -137,6 +150,9 @@ int run_tui() {
         length = snames[service];
         std::string prompt = "Length [" + std::to_string(length) + "]: ";
         char *length_c_str = linenoise(prompt.c_str());
+        if (length_c_str == nullptr) {
+            return 130;
+        }
         std::string length_str(length_c_str);
         free(length_c_str);
         if (!length_str.empty()) {
@@ -144,6 +160,9 @@ int run_tui() {
         }
     } else {
         char *length_c_str = linenoise("Length: ");
+        if (length_c_str == nullptr) {
+            return 130;
+        }
         std::string length_str(length_c_str);
         free(length_c_str);
         length = std::stoul(length_str);

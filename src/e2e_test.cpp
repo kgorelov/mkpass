@@ -186,3 +186,9 @@ TEST(E2ETest, AutocompleteBug) {
     unsetenv("MKPASS_DB_PATH");
     remove(db_path);
 }
+
+TEST(E2ETest, CtrlCAtServiceName) {
+    std::string input = "master_password\nmaster_password\n\x03";
+    ProcessOutput output = exec_with_input("./mkpass", input);
+    EXPECT_EQ(output.exit_code, 130);
+}
