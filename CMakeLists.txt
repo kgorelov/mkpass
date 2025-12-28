@@ -108,3 +108,16 @@ target_link_libraries(mkpass_tests
 include(GoogleTest)
 gtest_discover_tests(mkpass_tests)
 
+add_executable(e2e_tests src/e2e_test.cpp)
+if (MSVC)
+    target_compile_options(e2e_tests PRIVATE /std:c++20)
+else()
+    target_compile_options(e2e_tests PRIVATE -std=c++20)
+endif()
+target_link_libraries(e2e_tests
+  cpp_part
+  GTest::GTest
+  GTest::Main
+)
+gtest_discover_tests(e2e_tests)
+
