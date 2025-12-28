@@ -79,6 +79,7 @@ std::vector<std::string> AskForCharClasses() {
 #include "db.h"
 
 #include "linenoise.h"
+#include <fstream>
 
 std::vector<std::string> sname_keys;
 

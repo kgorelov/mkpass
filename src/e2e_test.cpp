@@ -160,3 +160,29 @@ TEST(E2ETest, DatabasePathWithUsernames) {
     unsetenv("MKPASS_DB_PATH");
     remove(db_path);
 }
+
+TEST(E2ETest, AutocompleteBug) {
+    const char* db_path = "/tmp/mkpass-e2e-test-3.db";
+    setenv("MKPASS_DB_PATH", db_path, 1);
+
+    // Create a dummy database for testing
+    sqlite3 *db;
+    sqlite3_open(db_path, &db);
+    const char *sql =
+        "CREATE TABLE snames (name TEXT PRIMARY KEY, length INTEGER);"
+        "INSERT INTO snames VALUES ('user@github.com', 15);"
+        "INSERT INTO snames VALUES ('user@gitlab.com', 18);"
+        "INSERT INTO snames VALUES ('google.com', 20);";
+    char *err_msg = 0;
+    sqlite3_exec(db, sql, 0, 0, &err_msg);
+    sqlite3_close(db);
+
+    std::string input = "master_password\nmaster_password\n1\nuser@\t\t\n20\n";
+    ProcessOutput output = exec_with_input("./mkpass", input);
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_EQ(output.std_out.length(), 20);
+
+    unsetenv("MKPASS_DB_PATH");
+    remove(db_path);
+}
