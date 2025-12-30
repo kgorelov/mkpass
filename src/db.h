@@ -8,6 +8,14 @@ struct sqlite3;
 
 namespace mkpass {
 
+
+struct ServiceEntry {
+    std::string service_name;
+    unsigned algorithm_id;
+    unsigned length;
+};
+
+
 class ConfigDB {
 public:
     ConfigDB();

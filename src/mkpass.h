@@ -2,4 +2,4 @@
 
 #include "context.h"
 
-std::string MkPass(const context& ctx);
+std::string MkPass(const Context& ctx);

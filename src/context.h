@@ -1,17 +1,12 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "algorithms.h"
 
 // TODO: an option to omit known info (from DB, cmd options or env)
 // cmd and ENV always ovverride unless cmd option "explicit" is given
 
-enum class Algorithm {
-    Modern,
-    Old,
-    Argon2
-};
-
-struct context {
+struct Context {
     std::string password;
     std::string service;
     std::vector<std::string> char_classes;

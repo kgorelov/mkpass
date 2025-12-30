@@ -4,6 +4,8 @@
 #include <map>
 #include <limits>
 #include <stdexcept>
+//#include <fstream>
+
 
 #if defined(_WIN32)
 #include "win32_term.h"
@@ -15,6 +17,7 @@
 #include "tui.h"
 #include "compose.h"
 #include "context.h"
+#include "character_classes.h"
 #include "db.h"
 #include "linenoise.h"
 
@@ -77,10 +80,6 @@ std::vector<std::string> AskForCharClasses() {
     return result;
 }
 
-#include "db.h"
-
-#include "linenoise.h"
-#include <fstream>
 
 std::vector<std::string> sname_keys;
 
@@ -103,6 +102,7 @@ int run_tui_safe() {
 
 int run_tui() {
     mkpass::ConfigDB db;
+
     auto snames = db.get_all_snames();
     for (auto const& [name, len] : snames) {
         sname_keys.push_back(name);

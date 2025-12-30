@@ -1,14 +1,9 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "character_classes.h"
 
 class GeneratorInterface;
-
-const std::string LowercaseLetters = "abcdefghijklmnopqrstuvwxyz";
-const std::string UppercaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const std::string Digits = "0123456789";
-const std::string Symbols = "!@#$%^&*()-_=+[]{};:,.<>?/";
-
 
 std::string ComposePassword(
     GeneratorInterface& generator,

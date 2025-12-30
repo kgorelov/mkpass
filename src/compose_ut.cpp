@@ -6,6 +6,7 @@
 #include "generator.h"
 #include "hkdf_hmac.h"
 #include "hkdf_argon2.h"
+#include "character_classes.h"
 #include <gtest/gtest.h>
 
 

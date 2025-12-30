@@ -3,9 +3,10 @@
 #include "generator.h"
 #include "hkdf_hmac.h"
 #include "hkdf_argon2.h"
+#include "character_classes.h"
 #include <stdexcept>
 
-std::string MkPass(const context& ctx) {
+std::string MkPass(const Context& ctx) {
     switch (ctx.algorithm) {
         case Algorithm::Argon2:
         {
