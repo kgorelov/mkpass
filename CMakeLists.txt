@@ -34,8 +34,10 @@ if(OPENSSL_SHA512)
   )
 endif()
 
+set(BUILD_SHARED_LIBS OFF)   # Prefer static libs globally
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")  # Only static
 find_package(SQLite3 REQUIRED)
-target_link_libraries(cpp_part PUBLIC SQLite::SQLite3)
+target_link_libraries(cpp_part PRIVATE SQLite::SQLite3)
 
 # Linenoise-ng library
 add_library(linenoise STATIC src/linenoise-ng/linenoise.cpp src/linenoise-ng/ConvertUTF.cpp src/linenoise-ng/wcwidth.cpp)
