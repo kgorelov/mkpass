@@ -171,4 +171,26 @@ void ConfigDB::save_service_entry(const ServiceEntry& entry) {
     sqlite3_finalize(stmt);
 }
 
+std::vector<std::string> ConfigDB::get_all_service_names() {
+    std::vector<std::string> names;
+    if (!db) {
+        return names;
+    }
+
+    sqlite3_stmt *stmt;
+    const char *sql = "SELECT name FROM service_entries";
+
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+        return names;
+    }
+
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        const unsigned char *name = sqlite3_column_text(stmt, 0);
+        names.push_back(reinterpret_cast<const char*>(name));
+    }
+
+    sqlite3_finalize(stmt);
+    return names;
+}
+
 } // namespace mkpass

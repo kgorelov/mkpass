@@ -20,6 +20,7 @@
 #include "character_classes.h"
 #include "db.h"
 #include "linenoise.h"
+#include <set>
 
 Algorithm AskForAlgorithm(Algorithm default_algorithm) {
     std::map<char, Algorithm> choices = {
@@ -120,7 +121,17 @@ int run_tui() {
     mkpass::ConfigDB db;
 
     auto snames = db.get_all_snames();
+    auto service_names = db.get_all_service_names();
+
+    std::set<std::string> unique_snames;
+    for (const auto& name : service_names) {
+        unique_snames.insert(name);
+    }
     for (auto const& [name, len] : snames) {
+        unique_snames.insert(name);
+    }
+
+    for (const auto& name : unique_snames) {
         sname_keys.push_back(name);
     }
 
