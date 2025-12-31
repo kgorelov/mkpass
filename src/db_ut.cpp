@@ -44,28 +44,20 @@ protected:
     }
 };
 
-TEST_F(ConfigDBTest, GetAllSnames) {
-    mkpass::ConfigDB db(db_path);
-    auto snames = db.get_all_snames();
-    ASSERT_EQ(snames.size(), 2);
-    EXPECT_EQ(snames["github.com"], 10);
-    EXPECT_EQ(snames["google.com"], 12);
-}
-
 TEST_F(ConfigDBTest, GetAllServiceNames) {
     mkpass::ConfigDB db(db_path);
     auto service_names = db.get_all_service_names();
-    ASSERT_EQ(service_names.size(), 2);
-    EXPECT_EQ(service_names[0], "user@github.com");
-    EXPECT_EQ(service_names[1], "gitlab.com");
+    ASSERT_EQ(service_names.size(), 4);
+    EXPECT_EQ(service_names.count("github.com"), 1);
+    EXPECT_EQ(service_names.count("google.com"), 1);
+    EXPECT_EQ(service_names.count("user@github.com"), 1);
+    EXPECT_EQ(service_names.count("gitlab.com"), 1);
 }
 
 TEST(ConfigDB, NonExistentDB) {
     mkpass::ConfigDB db("non-existent-db.db");
-    auto snames = db.get_all_snames();
-    ASSERT_TRUE(snames.empty());
-    auto service_names = db.get_all_service_names();
-    ASSERT_TRUE(service_names.empty());
+    auto names = db.get_all_service_names();
+    ASSERT_TRUE(names.empty());
 }
 
 TEST(ConfigDB, EnvVariable) {
@@ -73,7 +65,7 @@ TEST(ConfigDB, EnvVariable) {
     setenv("MKPASS_DB_PATH", db_path, 1);
 
     mkpass::ConfigDB db;
-    auto snames = db.get_all_snames();
+    auto snames = db.get_all_service_names();
     ASSERT_TRUE(snames.empty());
 
     // Check that the database file was created

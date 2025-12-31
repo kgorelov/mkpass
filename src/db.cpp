@@ -105,31 +105,58 @@ ConfigDB::~ConfigDB() {
     }
 }
 
-std::map<std::string, int> ConfigDB::get_all_snames() {
-    std::map<std::string, int> snames;
+std::set<std::string> ConfigDB::get_service_names(const std::string& table_name) {
+    std::set<std::string> names;
+
     if (!db) {
-        return snames;
+        return names;
     }
 
     sqlite3_stmt *stmt;
-    const char *sql = "SELECT name, length FROM snames";
+    std::string sql = "SELECT name FROM " + table_name;
 
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
-        // Table probably doesn't exist, just return empty map.
-        return snames;
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        // Table probably doesn't exist, just return empty set.
+        return names;
     }
 
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         const unsigned char *name = sqlite3_column_text(stmt, 0);
-        int length = sqlite3_column_int(stmt, 1);
-        snames[reinterpret_cast<const char*>(name)] = length;
+        names.insert(reinterpret_cast<const char*>(name));
     }
 
     sqlite3_finalize(stmt);
-    return snames;
+    return names;
 }
 
-std::optional<ServiceEntry> ConfigDB::get_service_entry(const std::string& service_name) {
+std::optional<ServiceEntry> ConfigDB::get_new_service_entry(const std::string& service_name) {
+    if (!db) {
+        return std::nullopt;
+    }
+
+    sqlite3_stmt *stmt;
+    const char *sql = "SELECT name, length FROM snames WHERE name = ?";
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+        return std::nullopt;
+    }
+
+    sqlite3_bind_text(stmt, 1, service_name.c_str(), -1, SQLITE_STATIC);
+
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        ServiceEntry entry;
+        entry.service_name = service_name;
+        entry.algorithm = Algorithm::Old;
+        entry.length = sqlite3_column_int(stmt, 1);
+        entry.char_classes = {};
+        sqlite3_finalize(stmt);
+        return entry;
+    }
+
+    sqlite3_finalize(stmt);
+    return std::nullopt;
+}
+
+std::optional<ServiceEntry> ConfigDB::get_old_service_entry(const std::string& service_name) {
     if (!db) {
         return std::nullopt;
     }
@@ -156,6 +183,14 @@ std::optional<ServiceEntry> ConfigDB::get_service_entry(const std::string& servi
     return std::nullopt;
 }
 
+std::optional<ServiceEntry> ConfigDB::get_service_entry(const std::string& service_name) {
+    auto entry = get_new_service_entry(service_name);
+    if (!entry) {
+        return get_old_service_entry(service_name);
+    }
+    return entry;
+}
+
 void ConfigDB::save_service_entry(const ServiceEntry& entry) {
     if (!db) {
         return;
@@ -176,25 +211,9 @@ void ConfigDB::save_service_entry(const ServiceEntry& entry) {
     sqlite3_finalize(stmt);
 }
 
-std::vector<std::string> ConfigDB::get_all_service_names() {
-    std::vector<std::string> names;
-    if (!db) {
-        return names;
-    }
-
-    sqlite3_stmt *stmt;
-    const char *sql = "SELECT name FROM service_entries";
-
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
-        return names;
-    }
-
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
-        const unsigned char *name = sqlite3_column_text(stmt, 0);
-        names.push_back(reinterpret_cast<const char*>(name));
-    }
-
-    sqlite3_finalize(stmt);
+std::set<std::string> ConfigDB::get_all_service_names() {
+    std::set<std::string> names = get_service_names("snames");
+    names.merge(get_service_names("service_entries"));
     return names;
 }
 

@@ -98,10 +98,10 @@ std::vector<CharacterClass> AskForCharClasses(const std::vector<CharacterClass>&
 }
 
 
-std::vector<std::string> sname_keys;
+std::set<std::string> service_names;
 
 void completion(const char *buf, linenoiseCompletions *lc) {
-    for (const auto &s : sname_keys) {
+    for (const auto &s : service_names) {
         if (s.rfind(buf, 0) == 0) {
             linenoiseAddCompletion(lc, s.c_str());
         }
@@ -119,21 +119,7 @@ int run_tui_safe() {
 
 int run_tui() {
     mkpass::ConfigDB db;
-
-    auto snames = db.get_all_snames();
-    auto service_names = db.get_all_service_names();
-
-    std::set<std::string> unique_snames;
-    for (const auto& name : service_names) {
-        unique_snames.insert(name);
-    }
-    for (auto const& [name, len] : snames) {
-        unique_snames.insert(name);
-    }
-
-    for (const auto& name : unique_snames) {
-        sname_keys.push_back(name);
-    }
+    service_names = db.get_all_service_names();
 
     // Input Master Password
     std::cerr << "Enter Master Password: ";
@@ -170,8 +156,6 @@ int run_tui() {
     Algorithm default_algorithm = Algorithm::Argon2;
     if (db_entry) {
         default_algorithm = db_entry->algorithm;
-    } else if (snames.count(service)) {
-        default_algorithm = Algorithm::Old;
     }
 
     auto algorithm = AskForAlgorithm(default_algorithm);
@@ -193,8 +177,6 @@ int run_tui() {
     unsigned length = 0;
     if (db_entry) {
         length = db_entry->length;
-    } else if (snames.count(service)) {
-        length = snames[service];
     }
 
     if (length > 0) {
