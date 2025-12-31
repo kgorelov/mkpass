@@ -3,6 +3,10 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <optional>
+
+#include "algorithms.h"
+#include "character_classes.h"
 
 struct sqlite3;
 
@@ -11,8 +15,9 @@ namespace mkpass {
 
 struct ServiceEntry {
     std::string service_name;
-    unsigned algorithm_id;
+    Algorithm algorithm;
     unsigned length;
+    std::vector<CharacterClass> char_classes;
 };
 
 
@@ -23,6 +28,8 @@ public:
     ~ConfigDB();
 
     std::map<std::string, int> get_all_snames();
+    std::optional<ServiceEntry> get_service_entry(const std::string& service_name);
+    void save_service_entry(const ServiceEntry& entry);
 
 private:
     void open_db(const std::string &db_path);

@@ -52,7 +52,7 @@ Algorithm AskForAlgorithm(Algorithm default_algorithm) {
     return Algorithm::Argon2;
 }
 
-std::vector<CharacterClass> AskForCharClasses() {
+std::vector<CharacterClass> AskForCharClasses(const std::vector<CharacterClass>& default_char_classes) {
     struct Choice {
         std::string name;
         CharacterClass value;
@@ -63,17 +63,28 @@ std::vector<CharacterClass> AskForCharClasses() {
         {'3', {"Digits", CharacterClass::DIGITS}},
         {'4', {"Symbols", CharacterClass::SYMBOLS}}
     };
+    std::map<CharacterClass, char> cc_to_char = {
+        {CharacterClass::LOWERCASE, '1'},
+        {CharacterClass::UPPERCASE, '2'},
+        {CharacterClass::DIGITS, '3'},
+        {CharacterClass::SYMBOLS, '4'}
+    };
+
+    std::string default_choice_str;
+    for (const auto& cc : default_char_classes) {
+        default_choice_str += cc_to_char[cc];
+    }
 
     std::cerr << "Choose character classes:\n";
     for (auto const& [key, val] : choices) {
         std::cerr << key << ". " << val.name << "\n";
     }
-    std::cerr << "Your choice (e.g. 123) [1234]: ";
+    std::cerr << "Your choice (e.g. 123) [" << default_choice_str << "]: ";
     std::string choice;
     std::getline(std::cin, choice);
 
     if (choice.empty()) {
-        choice = "1234";
+        return default_char_classes;
     }
 
     std::vector<CharacterClass> result;
@@ -143,21 +154,39 @@ int run_tui() {
     std::string service(service_c_str);
     free(service_c_str);
 
+    auto db_entry = db.get_service_entry(service);
+
     Algorithm default_algorithm = Algorithm::Argon2;
-    if (snames.count(service)) {
+    if (db_entry) {
+        default_algorithm = db_entry->algorithm;
+    } else if (snames.count(service)) {
         default_algorithm = Algorithm::Old;
     }
 
     auto algorithm = AskForAlgorithm(default_algorithm);
     std::vector<CharacterClass> char_classes;
     if (algorithm != Algorithm::Old) {
-        char_classes = AskForCharClasses();
+        std::vector<CharacterClass> default_char_classes = {
+            CharacterClass::LOWERCASE,
+            CharacterClass::UPPERCASE,
+            CharacterClass::DIGITS,
+            CharacterClass::SYMBOLS
+        };
+        if (db_entry) {
+            default_char_classes = db_entry->char_classes;
+        }
+        char_classes = AskForCharClasses(default_char_classes);
     }
 
     // Input length
     unsigned length = 0;
-    if (snames.count(service)) {
+    if (db_entry) {
+        length = db_entry->length;
+    } else if (snames.count(service)) {
         length = snames[service];
+    }
+
+    if (length > 0) {
         std::string prompt = "Length [" + std::to_string(length) + "]: ";
         char *length_c_str = linenoise(prompt.c_str());
         if (length_c_str == nullptr) {
@@ -178,13 +207,18 @@ int run_tui() {
         length = std::stoul(length_str);
     }
 
+    Context ctx = {
+        .password = pwd,
+        .service = service,
+        .char_classes = char_classes,
+        .algorithm = algorithm,
+        .length = length
+    };
+
     // Get the result to stdout
-    std::cout << MkPass({
-            .password = pwd,
-            .service = service,
-            .char_classes = char_classes,
-            .algorithm = algorithm,
-            .length = length
-        }) << std::endl;
+    std::cout << MkPass(ctx) << std::endl;
+
+    db.save_service_entry({service, algorithm, length, char_classes});
+
     return 0;
 }
