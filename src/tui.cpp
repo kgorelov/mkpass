@@ -47,16 +47,16 @@ Algorithm AskForAlgorithm() {
     return Algorithm::Argon2;
 }
 
-std::vector<std::string> AskForCharClasses() {
+std::vector<CharacterClass> AskForCharClasses() {
     struct Choice {
         std::string name;
-        std::string value;
+        CharacterClass value;
     };
     std::map<char, Choice> choices = {
-        {'1', {"Lowercase Letters", LowercaseLetters}},
-        {'2', {"Uppercase Letters", UppercaseLetters}},
-        {'3', {"Digits", Digits}},
-        {'4', {"Symbols", Symbols}}
+        {'1', {"Lowercase Letters", CharacterClass::LOWERCASE}},
+        {'2', {"Uppercase Letters", CharacterClass::UPPERCASE}},
+        {'3', {"Digits", CharacterClass::DIGITS}},
+        {'4', {"Symbols", CharacterClass::SYMBOLS}}
     };
 
     std::cerr << "Choose character classes:\n";
@@ -71,7 +71,7 @@ std::vector<std::string> AskForCharClasses() {
         choice = "1234";
     }
 
-    std::vector<std::string> result;
+    std::vector<CharacterClass> result;
     for (char c : choice) {
         if (choices.count(c)) {
             result.push_back(choices[c].value);
@@ -139,8 +139,8 @@ int run_tui() {
     free(service_c_str);
 
     auto algorithm = AskForAlgorithm();
-    std::vector<std::string> char_classes;
-    if (algorithm == Algorithm::Modern) {
+    std::vector<CharacterClass> char_classes;
+    if (algorithm != Algorithm::Old) {
         char_classes = AskForCharClasses();
     }
 
