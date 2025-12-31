@@ -21,23 +21,28 @@
 #include "db.h"
 #include "linenoise.h"
 
-Algorithm AskForAlgorithm() {
+Algorithm AskForAlgorithm(Algorithm default_algorithm) {
     std::map<char, Algorithm> choices = {
         {'1', Algorithm::Argon2},
         {'2', Algorithm::Modern},
         {'3', Algorithm::Old}
+    };
+    std::map<Algorithm, char> algo_to_char = {
+        {Algorithm::Argon2, '1'},
+        {Algorithm::Modern, '2'},
+        {Algorithm::Old, '3'}
     };
 
     std::cerr << "Choose algorithm:\n";
     std::cerr << "1. Password (Argon2)\n";
     std::cerr << "2. Password (SHA512 HMAC)\n";
     std::cerr << "3. OldPassword\n";
-    std::cerr << "Your choice (e.g. 1) [1]: ";
+    std::cerr << "Your choice (e.g. 1) [" << algo_to_char[default_algorithm] << "]: ";
     std::string choice;
     std::getline(std::cin, choice);
 
     if (choice.empty()) {
-        choice = "1";
+        return default_algorithm;
     }
 
     if (choices.count(choice[0])) {
@@ -138,7 +143,12 @@ int run_tui() {
     std::string service(service_c_str);
     free(service_c_str);
 
-    auto algorithm = AskForAlgorithm();
+    Algorithm default_algorithm = Algorithm::Argon2;
+    if (snames.count(service)) {
+        default_algorithm = Algorithm::Old;
+    }
+
+    auto algorithm = AskForAlgorithm(default_algorithm);
     std::vector<CharacterClass> char_classes;
     if (algorithm != Algorithm::Old) {
         char_classes = AskForCharClasses();
