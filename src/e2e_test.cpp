@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <array>
 #include <algorithm>
+#include <sqlite3.h>
 
 struct ProcessOutput {
     std::string std_out;
@@ -101,10 +102,8 @@ void trim(std::string &s) {
 }
 
 
-#include <sqlite3.h>
-
 TEST(E2ETest, SimpleTest) {
-    std::string input = "master_password\nmaster_password\n1\nservice_name\n16\n";
+    std::string input = "master_password\nmaster_password\nservice_name\n1\n1234\n16\n";
     ProcessOutput output = exec_with_input("./mkpass", input);
     trim(output.std_out);
     EXPECT_EQ(output.exit_code, 0);
@@ -126,7 +125,7 @@ TEST(E2ETest, DatabasePath) {
     sqlite3_exec(db, sql, 0, 0, &err_msg);
     sqlite3_close(db);
 
-    std::string input = "master_password\nmaster_password\n1\ngit\t\t\n16\n";
+    std::string input = "master_password\nmaster_password\ngit\t\t\n1\n1234\n16\n";
     ProcessOutput output = exec_with_input("./mkpass", input);
     trim(output.std_out);
     EXPECT_EQ(output.exit_code, 0);
@@ -151,7 +150,7 @@ TEST(E2ETest, DatabasePathWithUsernames) {
     sqlite3_exec(db, sql, 0, 0, &err_msg);
     sqlite3_close(db);
 
-    std::string input = "master_password\nmaster_password\n1\nuser@git\t\t\n20\n";
+    std::string input = "master_password\nmaster_password\nuser@git\t\t\n1\n1234\n20\n";
     ProcessOutput output = exec_with_input("./mkpass", input);
     trim(output.std_out);
     EXPECT_EQ(output.exit_code, 0);
@@ -177,7 +176,7 @@ TEST(E2ETest, AutocompleteBug) {
     sqlite3_exec(db, sql, 0, 0, &err_msg);
     sqlite3_close(db);
 
-    std::string input = "master_password\nmaster_password\n1\nuser@\t\t\n20\n";
+    std::string input = "master_password\nmaster_password\nuser@\t\t\n1\n1234\n20\n";
     ProcessOutput output = exec_with_input("./mkpass", input);
     trim(output.std_out);
     EXPECT_EQ(output.exit_code, 0);
