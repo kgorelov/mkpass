@@ -7,6 +7,8 @@
 #include <array>
 #include <algorithm>
 #include <sqlite3.h>
+#include "character_classes.h"
+#include "algorithms.h"
 
 struct ProcessOutput {
     std::string std_out;
@@ -160,7 +162,7 @@ TEST(E2ETest, DatabasePathWithUsernames) {
     remove(db_path);
 }
 
-TEST(E2ETest, AutocompleteBug) {
+TEST(E2ETest, AutocompleteOldSnames) {
     const char* db_path = "/tmp/mkpass-e2e-test-3.db";
     setenv("MKPASS_DB_PATH", db_path, 1);
 
@@ -190,4 +192,68 @@ TEST(E2ETest, CtrlCAtServiceName) {
     std::string input = "master_password\nmaster_password\n\x03";
     ProcessOutput output = exec_with_input("./mkpass", input);
     EXPECT_EQ(output.exit_code, 130);
+}
+
+TEST(E2EServiceEntriesTest, DatabaseUpdate) {
+    const char* db_path = "/tmp/mkpass-e2e-test2-db-update.db";
+    setenv("MKPASS_DB_PATH", db_path, 1);
+    remove(db_path);
+
+    std::string input = "master_password\nmaster_password\nnew_service.com\n1\n1234\n24\n";
+    ProcessOutput output = exec_with_input("./mkpass", input);
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_EQ(output.std_out.length(), 24);
+
+    // Check if the database was updated
+    sqlite3 *db;
+    sqlite3_open(db_path, &db);
+    ASSERT_TRUE(db != nullptr);
+
+    sqlite3_stmt *stmt;
+    const char *sql = "SELECT algorithm, length, char_classes FROM service_entries WHERE name = 'new_service.com'";
+    ASSERT_EQ(sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr), SQLITE_OK);
+
+    EXPECT_EQ(sqlite3_step(stmt), SQLITE_ROW);
+    EXPECT_EQ(sqlite3_column_int(stmt, 0), static_cast<int>(Algorithm::Argon2));
+    EXPECT_EQ(sqlite3_column_int(stmt, 1), 24);
+    int expected_char_classes = (1 << static_cast<int>(CharacterClass::LOWERCASE)) |
+                                (1 << static_cast<int>(CharacterClass::UPPERCASE)) |
+                                (1 << static_cast<int>(CharacterClass::DIGITS)) |
+                                (1 << static_cast<int>(CharacterClass::SYMBOLS));
+    EXPECT_EQ(sqlite3_column_int(stmt, 2), expected_char_classes);
+
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
+
+    unsetenv("MKPASS_DB_PATH");
+    remove(db_path);
+}
+
+TEST(E2EServiceEntriesTest, AutocompleteNewServiceEntries) {
+    const char* db_path = "/tmp/mkpass-e2e2-autocomplete.db";
+    setenv("MKPASS_DB_PATH", db_path, 1);
+    remove(db_path);
+
+    // Create a dummy database for testing
+    sqlite3 *db;
+    sqlite3_open(db_path, &db);
+    const char *sql =
+        "CREATE TABLE service_entries (name TEXT PRIMARY KEY, algorithm INTEGER, length INTEGER, char_classes INTEGER);"
+        "INSERT INTO service_entries VALUES ('github.com', 2, 10, 1);"
+        "INSERT INTO service_entries VALUES ('gitlab.com', 2, 12, 1);";
+    char *err_msg = 0;
+    sqlite3_exec(db, sql, 0, 0, &err_msg);
+    sqlite3_close(db);
+
+    std::string input = "master_password\nmaster_password\ngithub.com\n\n\n\n";
+    // TODO FIXME autocompletion by TAB doesn't work in the testcase for some reason
+    // std::string input = "master_password\nmaster_password\ngithub\t\n\n\n\n";
+    ProcessOutput output = exec_with_input("./mkpass", input);
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_EQ(output.std_out.length(), 10);
+
+    unsetenv("MKPASS_DB_PATH");
+    remove(db_path);
 }

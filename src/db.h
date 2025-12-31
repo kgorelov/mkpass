@@ -34,6 +34,7 @@ public:
 
 private:
     void open_db(const std::string &db_path);
+    void create_tables();
     sqlite3 *db;
 };
 

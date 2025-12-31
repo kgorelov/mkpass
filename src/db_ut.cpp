@@ -27,6 +27,13 @@ protected:
             "INSERT INTO snames VALUES ('google.com', 12);";
         char *err_msg = 0;
         sqlite3_exec(db, sql, 0, 0, &err_msg);
+
+        const char *sql2 =
+            "CREATE TABLE service_entries (name TEXT PRIMARY KEY, algorithm INTEGER, length INTEGER, char_classes INTEGER);"
+            "INSERT INTO service_entries VALUES ('user@github.com', 2, 10, 1);"
+            "INSERT INTO service_entries VALUES ('gitlab.com', 2, 12, 1);";
+        sqlite3_exec(db, sql2, 0, 0, &err_msg);
+
         sqlite3_close(db);
     }
 
@@ -45,10 +52,20 @@ TEST_F(ConfigDBTest, GetAllSnames) {
     EXPECT_EQ(snames["google.com"], 12);
 }
 
+TEST_F(ConfigDBTest, GetAllServiceNames) {
+    mkpass::ConfigDB db(db_path);
+    auto service_names = db.get_all_service_names();
+    ASSERT_EQ(service_names.size(), 2);
+    EXPECT_EQ(service_names[0], "user@github.com");
+    EXPECT_EQ(service_names[1], "gitlab.com");
+}
+
 TEST(ConfigDB, NonExistentDB) {
     mkpass::ConfigDB db("non-existent-db.db");
     auto snames = db.get_all_snames();
     ASSERT_TRUE(snames.empty());
+    auto service_names = db.get_all_service_names();
+    ASSERT_TRUE(service_names.empty());
 }
 
 TEST(ConfigDB, EnvVariable) {

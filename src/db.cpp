@@ -54,6 +54,19 @@ void ConfigDB::open_db(const std::string &db_path) {
     }
 }
 
+void ConfigDB::create_tables() {
+    if (!db) {
+        return;
+    }
+
+    const char *sql = "CREATE TABLE IF NOT EXISTS service_entries (name TEXT PRIMARY KEY, algorithm INTEGER, length INTEGER, char_classes INTEGER);";
+    char *err_msg = nullptr;
+    if (sqlite3_exec(db, sql, 0, 0, &err_msg) != SQLITE_OK) {
+        std::cerr << "Failed to create table: " << err_msg << std::endl;
+        sqlite3_free(err_msg);
+    }
+}
+
 ConfigDB::ConfigDB() : db(nullptr) {
     if (const char* db_path_env = std::getenv("MKPASS_DB_PATH")) {
         open_db(db_path_env);
@@ -77,21 +90,13 @@ ConfigDB::ConfigDB() : db(nullptr) {
 #endif
     }
 
-    if (!db) {
-        return;
-    }
-
-    const char *sql = "CREATE TABLE IF NOT EXISTS service_entries (name TEXT PRIMARY KEY, algorithm INTEGER, length INTEGER, char_classes INTEGER);";
-    char *err_msg = nullptr;
-    if (sqlite3_exec(db, sql, 0, 0, &err_msg) != SQLITE_OK) {
-        std::cerr << "Failed to create table: " << err_msg << std::endl;
-        sqlite3_free(err_msg);
-    }
+    create_tables();
 }
 
 
 ConfigDB::ConfigDB(const std::string &db_path) : db(nullptr) {
     open_db(db_path);
+    create_tables();
 }
 
 ConfigDB::~ConfigDB() {
