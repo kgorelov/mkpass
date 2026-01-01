@@ -27,6 +27,12 @@ SHA512::value_type SHA512::Finalize() {
     return result;
 }
 
+void SLOW_SHA512::Update(std::span<const uint8_t> inp) {
+    for (unsigned i = 0; i < 1000000; ++i) {
+        SHA512::Update(inp);
+    }
+}
+
 
 #else
 #include <openssl/evp.h>
@@ -36,6 +42,10 @@ void SHA512::Update(std::span<const uint8_t> inp) {
 }
 
 value_type SHA512::Finalize() {
+    throw std::runtime_error("not implemented");
+}
+
+void SLOW_SHA512::Update(std::span<const uint8_t> inp) {
     throw std::runtime_error("not implemented");
 }
 

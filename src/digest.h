@@ -55,3 +55,9 @@ struct SHA512
 
     void* state_ptr_ = nullptr;
 };
+
+struct SLOW_SHA512: public SHA512
+{
+    using value_type = SHA512::value_type;
+    void Update(std::span<const uint8_t> inp);
+};
