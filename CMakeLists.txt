@@ -1,6 +1,10 @@
 cmake_minimum_required (VERSION 3.10)
 project (mkpass)
 
+option(WITH_GUI "Build with Qt GUI" ON)
+
+set(CMAKE_AUTOMOC ON)
+
 ################################################################################
 # Libraries
 ################################################################################
@@ -65,6 +69,24 @@ add_library(argon2 STATIC ${ARGON2_SOURCES})
 ################################################################################
 
 add_executable(mkpass src/main.cpp)
+if(WITH_GUI)
+  # set(OPENGL_opengl_LIBRARY "/usr/lib/x86_64-linux-gnu/libGL.so")
+  # set(OPENGL_glx_LIBRARY "/usr/lib/x86_64-linux-gnu/libGLX.so")
+  # set(QT_QPA_DEFAULT_PLATFORM eglfs)
+  # set(OpenGL_GL_PREFERENCE GLVND)
+  # find_package(Qt6 REQUIRED COMPONENTS Widgets Concurrent)
+  find_package(Qt5 REQUIRED COMPONENTS Widgets Concurrent)
+  set(GUI_SOURCES
+    src/gui.cpp
+  )
+  add_library(gui_part STATIC ${GUI_SOURCES})
+  #target_link_libraries(gui_part PUBLIC Qt6::Widgets)
+  # target_link_libraries(gui_part PRIVATE Qt5::Widgets Qt5::Concurrent)
+  target_link_libraries(gui_part PUBLIC Qt5::Widgets Qt5::Concurrent)
+  target_include_directories(gui_part PUBLIC src)
+  target_compile_definitions(mkpass PRIVATE WITH_GUI)
+endif()
+
 if (MSVC)
     target_compile_options(mkpass PRIVATE /std:c++20)
 else()
@@ -77,6 +99,9 @@ target_link_libraries(mkpass PRIVATE
   argon2
   linenoise
 )
+if(WITH_GUI)
+  target_link_libraries(mkpass PRIVATE gui_part)
+endif()
 
 ################################################################################
 # Testing support
@@ -122,4 +147,3 @@ target_link_libraries(e2e_tests
   GTest::Main
 )
 gtest_discover_tests(e2e_tests)
-
