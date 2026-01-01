@@ -208,6 +208,13 @@ void MainWindow::updateCharacterClassesState() {
     symbolsCheckBox->setEnabled(enabled);
 }
 
+void MainWindow::closeEvent(QCloseEvent *event) {
+    QApplication::clipboard()->clear();
+    QApplication::clipboard()->clear(QClipboard::Selection);
+    QApplication::clipboard()->setText("");
+    QMainWindow::closeEvent(event);
+}
+
 int run_gui(int argc, char *argv[]) {
     QApplication app(argc, argv);
     MainWindow win;

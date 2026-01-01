@@ -2,6 +2,7 @@
 
 #include <QMainWindow>
 #include <QFutureWatcher>
+#include <QCloseEvent>
 
 class QLineEdit;
 class QCheckBox;
@@ -17,6 +18,9 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+protected:
+    void closeEvent(QCloseEvent *event) override;
+
 private slots:
     void generatePassword();
     void generationFinished();
@@ -29,7 +33,6 @@ private:
 
     QLineEdit *masterPasswordLineEdit;
     QLineEdit *repeatPasswordLineEdit;
-    QGroupBox *repeatPasswordGroupBox;
     QLineEdit *serviceLineEdit;
     QComboBox *algorithmComboBox;
     QCheckBox *upperCaseCheckBox;
