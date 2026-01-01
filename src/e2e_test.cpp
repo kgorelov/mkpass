@@ -240,8 +240,8 @@ TEST(E2EServiceEntriesTest, AutocompleteNewServiceEntries) {
     sqlite3_open(db_path, &db);
     const char *sql =
         "CREATE TABLE service_entries (name TEXT PRIMARY KEY, algorithm INTEGER, length INTEGER, char_classes INTEGER);"
-        "INSERT INTO service_entries VALUES ('github.com', 2, 10, 1);"
-        "INSERT INTO service_entries VALUES ('gitlab.com', 2, 12, 1);";
+        "INSERT INTO service_entries VALUES ('github.com', 1, 10, 1);"
+        "INSERT INTO service_entries VALUES ('gitlab.com', 1, 12, 1);";
     char *err_msg = 0;
     sqlite3_exec(db, sql, 0, 0, &err_msg);
     sqlite3_close(db);
