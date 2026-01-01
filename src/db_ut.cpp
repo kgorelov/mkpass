@@ -30,7 +30,7 @@ protected:
 
         const char *sql2 =
             "CREATE TABLE service_entries (name TEXT PRIMARY KEY, algorithm INTEGER, length INTEGER, char_classes INTEGER);"
-            "INSERT INTO service_entries VALUES ('user@github.com', 1, 10, 1);"
+            "INSERT INTO service_entries VALUES ('user@github.com', 1, 11, 1);"
             "INSERT INTO service_entries VALUES ('gitlab.com', 1, 12, 1);";
         sqlite3_exec(db, sql2, 0, 0, &err_msg);
 
@@ -52,6 +52,30 @@ TEST_F(ConfigDBTest, GetAllServiceNames) {
     EXPECT_EQ(service_names.count("google.com"), 1);
     EXPECT_EQ(service_names.count("user@github.com"), 1);
     EXPECT_EQ(service_names.count("gitlab.com"), 1);
+}
+
+TEST_F(ConfigDBTest, GetServiceRecordOld) {
+    mkpass::ConfigDB db(db_path);
+
+    auto rec = db.get_service_entry("github.com");
+    EXPECT_EQ(static_cast<bool>(rec), true);
+    EXPECT_EQ(rec->service_name, "github.com");
+    EXPECT_EQ(rec->algorithm, Algorithm::Old);
+    EXPECT_EQ(rec->length, 10);
+    std::vector<CharacterClass> cs{};
+    EXPECT_EQ(rec->char_classes, cs);
+}
+
+TEST_F(ConfigDBTest, GetServiceRecordNew) {
+    mkpass::ConfigDB db(db_path);
+
+    auto rec = db.get_service_entry("user@github.com");
+    EXPECT_EQ(static_cast<bool>(rec), true);
+    EXPECT_EQ(rec->service_name, "user@github.com");
+    EXPECT_EQ(rec->algorithm, Algorithm::Argon2);
+    EXPECT_EQ(rec->length, 11);
+    std::vector<CharacterClass> cs{CharacterClass::LOWERCASE};
+    EXPECT_EQ(rec->char_classes, cs);
 }
 
 TEST(ConfigDB, NonExistentDB) {

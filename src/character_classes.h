@@ -9,10 +9,10 @@ const std::string Symbols = "!@#$%^&*()-_=+[]{};:,.<>?/";
 #include <string>
 
 enum class CharacterClass {
-    LOWERCASE,
-    UPPERCASE,
-    DIGITS,
-    SYMBOLS
+    LOWERCASE = 0,
+    UPPERCASE = 1,
+    DIGITS = 2,
+    SYMBOLS = 3
 };
 
 // TODO: define an enum here
