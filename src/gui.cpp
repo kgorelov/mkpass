@@ -56,15 +56,9 @@ void MainWindow::setupUI() {
     masterPasswordLineEdit->setEchoMode(QLineEdit::Password);
     formLayout->addRow("Master Password:", masterPasswordLineEdit);
 
-    repeatPasswordGroupBox = new QGroupBox("Repeat Master Password");
-    repeatPasswordGroupBox->setCheckable(true);
-    repeatPasswordGroupBox->setChecked(false);
-    QVBoxLayout *repeatPasswordLayout = new QVBoxLayout;
     repeatPasswordLineEdit = new QLineEdit;
     repeatPasswordLineEdit->setEchoMode(QLineEdit::Password);
-    repeatPasswordLayout->addWidget(repeatPasswordLineEdit);
-    repeatPasswordGroupBox->setLayout(repeatPasswordLayout);
-    formLayout->addRow(repeatPasswordGroupBox);
+    formLayout->addRow("Repeat Password:", repeatPasswordLineEdit);
 
     serviceLineEdit = new QLineEdit;
     formLayout->addRow("Service:", serviceLineEdit);
@@ -110,6 +104,9 @@ void MainWindow::setupUI() {
 
     connect(closeButton, &QPushButton::clicked, this, &MainWindow::close);
     connect(generateButton, &QPushButton::clicked, this, &MainWindow::generatePassword);
+
+    connect(masterPasswordLineEdit, &QLineEdit::textChanged, this, &MainWindow::checkPasswords);
+    connect(repeatPasswordLineEdit, &QLineEdit::textChanged, this, &MainWindow::checkPasswords);
 }
 
 void MainWindow::generatePassword() {
@@ -172,6 +169,31 @@ void MainWindow::serviceChanged(const QString &service) {
             if (cc == CharacterClass::DIGITS) digitsCheckBox->setChecked(true);
             if (cc == CharacterClass::SYMBOLS) symbolsCheckBox->setChecked(true);
         }
+    }
+}
+
+void MainWindow::checkPasswords() {
+    QString masterPassword = masterPasswordLineEdit->text();
+    QString repeatPassword = repeatPasswordLineEdit->text();
+
+    if (repeatPassword.isEmpty()) {
+        masterPasswordLineEdit->setStyleSheet("");
+        repeatPasswordLineEdit->setStyleSheet("");
+        generateButton->setEnabled(true);
+        statusBar()->clearMessage();
+        return;
+    }
+
+    if (masterPassword == repeatPassword) {
+        masterPasswordLineEdit->setStyleSheet("background-color: green");
+        repeatPasswordLineEdit->setStyleSheet("background-color: green");
+        generateButton->setEnabled(true);
+        statusBar()->clearMessage();
+    } else {
+        masterPasswordLineEdit->setStyleSheet("background-color: red");
+        repeatPasswordLineEdit->setStyleSheet("background-color: red");
+        generateButton->setEnabled(false);
+        statusBar()->showMessage("Error: passwords don't match");
     }
 }
 
