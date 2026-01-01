@@ -129,7 +129,7 @@ std::set<std::string> ConfigDB::get_service_names(const std::string& table_name)
     return names;
 }
 
-std::optional<ServiceEntry> ConfigDB::get_new_service_entry(const std::string& service_name) {
+std::optional<ServiceEntry> ConfigDB::get_old_service_entry(const std::string& service_name) {
     if (!db) {
         return std::nullopt;
     }
@@ -156,7 +156,7 @@ std::optional<ServiceEntry> ConfigDB::get_new_service_entry(const std::string& s
     return std::nullopt;
 }
 
-std::optional<ServiceEntry> ConfigDB::get_old_service_entry(const std::string& service_name) {
+std::optional<ServiceEntry> ConfigDB::get_new_service_entry(const std::string& service_name) {
     if (!db) {
         return std::nullopt;
     }
