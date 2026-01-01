@@ -107,6 +107,7 @@ void MainWindow::setupUI() {
 
     connect(masterPasswordLineEdit, &QLineEdit::textChanged, this, &MainWindow::checkPasswords);
     connect(repeatPasswordLineEdit, &QLineEdit::textChanged, this, &MainWindow::checkPasswords);
+    connect(algorithmComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::updateCharacterClassesState);
 }
 
 void MainWindow::generatePassword() {
@@ -195,6 +196,16 @@ void MainWindow::checkPasswords() {
         generateButton->setEnabled(false);
         statusBar()->showMessage("Error: passwords don't match");
     }
+}
+
+void MainWindow::updateCharacterClassesState() {
+    Algorithm algorithm = static_cast<Algorithm>(algorithmComboBox->currentData().toInt());
+    bool enabled = algorithm != Algorithm::Old;
+
+    upperCaseCheckBox->setEnabled(enabled);
+    lowerCaseCheckBox->setEnabled(enabled);
+    digitsCheckBox->setEnabled(enabled);
+    symbolsCheckBox->setEnabled(enabled);
 }
 
 int run_gui(int argc, char *argv[]) {

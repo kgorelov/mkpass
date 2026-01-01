@@ -22,6 +22,7 @@ private slots:
     void generationFinished();
     void serviceChanged(const QString &service);
     void checkPasswords();
+    void updateCharacterClassesState();
 
 private:
     void setupUI();
