@@ -25,12 +25,12 @@
 Algorithm AskForAlgorithm(Algorithm default_algorithm) {
     std::map<char, Algorithm> choices = {
         {'1', Algorithm::Argon2},
-        {'2', Algorithm::Modern},
+        {'2', Algorithm::SlowSha512},
         {'3', Algorithm::Old}
     };
     std::map<Algorithm, char> algo_to_char = {
         {Algorithm::Argon2, '1'},
-        {Algorithm::Modern, '2'},
+        {Algorithm::SlowSha512, '2'},
         {Algorithm::Old, '3'}
     };
 

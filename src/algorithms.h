@@ -1,7 +1,7 @@
 #pragma once
 
 enum class Algorithm {
-    Modern,
+    SlowSha512,
     Old,
     Argon2
 };

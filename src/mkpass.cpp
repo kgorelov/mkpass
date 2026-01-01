@@ -37,9 +37,9 @@ std::string MkPass(const Context& ctx) {
             }
             return ComposePassword(g, std::move(char_classes), ctx.length);
         }
-        case Algorithm::Modern:
+        case Algorithm::SlowSha512:
         {
-            Generator<HKDF_HMAC<SHA512>> g(ctx.password, ctx.service);
+            Generator<HKDF_HMAC<SLOW_SHA512>> g(ctx.password, ctx.service);
             if (ctx.char_classes.empty()) {
                 return ComposePassword(g, {UppercaseLetters, LowercaseLetters, Digits, Symbols}, ctx.length);
             }
