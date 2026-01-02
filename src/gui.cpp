@@ -189,7 +189,12 @@ void MainWindow::checkPasswords() {
         masterPasswordLineEdit->setStyleSheet("background-color: green");
         repeatPasswordLineEdit->setStyleSheet("background-color: green");
         generateButton->setEnabled(true);
-        statusBar()->clearMessage();
+        statusBar()->showMessage("OK: Passwords match.");
+    } else if (masterPassword.startsWith(repeatPassword)) {
+        masterPasswordLineEdit->setStyleSheet("");
+        repeatPasswordLineEdit->setStyleSheet("");
+        generateButton->setEnabled(false);
+        statusBar()->showMessage("Warning: passwords don't match");
     } else {
         masterPasswordLineEdit->setStyleSheet("background-color: red");
         repeatPasswordLineEdit->setStyleSheet("background-color: red");
