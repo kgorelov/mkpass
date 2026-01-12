@@ -3,6 +3,7 @@
 #include "context.h"
 #include "character_classes.h"
 #include "db.h"
+#include "password_dialog.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -131,8 +132,9 @@ void MainWindow::generatePassword() {
 
 void MainWindow::generationFinished() {
     generatedPassword = generationWatcher->result();
-    QApplication::clipboard()->setText(QString::fromStdString(generatedPassword));
-    statusBar()->showMessage("Generated. Copied to clipboard.");
+    PasswordDialog dialog(QString::fromStdString(generatedPassword), this);
+    dialog.exec();
+    statusBar()->showMessage("Generated.");
     generateButton->setEnabled(true);
 
     mkpass::ConfigDB db;

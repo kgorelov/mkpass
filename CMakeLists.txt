@@ -78,6 +78,8 @@ if(WITH_GUI)
   find_package(Qt5 REQUIRED COMPONENTS Widgets Concurrent)
   set(GUI_SOURCES
     src/gui.cpp
+    src/password_dialog.cpp
+    src/icons.qrc
   )
   add_library(gui_part STATIC ${GUI_SOURCES})
   #target_link_libraries(gui_part PUBLIC Qt6::Widgets)
