@@ -5,6 +5,8 @@
 class QLineEdit;
 class QPushButton;
 
+class QLabel;
+
 class PasswordDialog : public QDialog {
     Q_OBJECT
 
@@ -14,14 +16,17 @@ public:
 private slots:
     void togglePasswordVisibility();
     void copyPasswordToClipboard();
+    void generateQrCode();
 
 private:
     void setupUI();
 
     QLineEdit *passwordLineEdit;
     QPushButton *showHideButton;
+    QPushButton *qrCodeButton;
     QPushButton *copyButton;
     QPushButton *closeButton;
+    QLabel *qrCodeLabel;
 
     QString generatedPassword;
 };

@@ -1,4 +1,5 @@
 #include "password_dialog.h"
+#include "qrcode/qrcodegen.hpp"
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -7,6 +8,9 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QIcon>
+#include <QLabel>
+#include <QPainter>
+#include <QImage>
 
 PasswordDialog::PasswordDialog(const QString &password, QWidget *parent)
     : QDialog(parent), generatedPassword(password) {
@@ -31,7 +35,16 @@ void PasswordDialog::setupUI() {
     connect(showHideButton, &QPushButton::clicked, this, &PasswordDialog::togglePasswordVisibility);
     passwordLayout->addWidget(showHideButton);
 
+    qrCodeButton = new QPushButton;
+    qrCodeButton->setIcon(QIcon::fromTheme("view-grid", QIcon(":/icons/qr.svg"))); // You need to add a qr.svg icon
+    connect(qrCodeButton, &QPushButton::clicked, this, &PasswordDialog::generateQrCode);
+    passwordLayout->addWidget(qrCodeButton);
+
     mainLayout->addLayout(passwordLayout);
+
+    qrCodeLabel = new QLabel;
+    qrCodeLabel->setAlignment(Qt::AlignCenter);
+    mainLayout->addWidget(qrCodeLabel);
 
     QHBoxLayout *buttonLayout = new QHBoxLayout;
     copyButton = new QPushButton("Copy");
@@ -57,4 +70,18 @@ void PasswordDialog::togglePasswordVisibility() {
 
 void PasswordDialog::copyPasswordToClipboard() {
     QApplication::clipboard()->setText(generatedPassword);
+}
+
+void PasswordDialog::generateQrCode() {
+    qrcodegen::QrCode qr = qrcodegen::QrCode::encodeText(generatedPassword.toStdString().c_str(), qrcodegen::QrCode::Ecc::MEDIUM);
+
+    int size = qr.getSize();
+    QImage image(size, size, QImage::Format_Mono);
+    for (int y = 0; y < size; y++) {
+        for (int x = 0; x < size; x++) {
+            image.setPixel(x, y, qr.getModule(x, y) ? 0 : 1);
+        }
+    }
+
+    qrCodeLabel->setPixmap(QPixmap::fromImage(image.scaled(200, 200, Qt::KeepAspectRatio, Qt::FastTransformation)));
 }
