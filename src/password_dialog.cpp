@@ -16,6 +16,7 @@ PasswordDialog::PasswordDialog(const QString &password, QWidget *parent)
 void PasswordDialog::setupUI() {
     setWindowTitle("Generated Password");
     setModal(true);
+    setMinimumWidth(400);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
