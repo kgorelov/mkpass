@@ -4,6 +4,7 @@
 
 #ifdef WITH_GUI
 #include "gui.h"
+#include <QtGlobal>
 #endif
 
 int main(int argc, char *argv[]) {
@@ -16,6 +17,7 @@ int main(int argc, char *argv[]) {
 
     if (runGui) {
 #ifdef WITH_GUI
+        Q_INIT_RESOURCE(icons);
         return run_gui(argc, argv);
 #else
         std::cerr << "ERROR: GUI not available. Please compile with GUI support." << std::endl;

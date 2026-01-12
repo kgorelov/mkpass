@@ -79,8 +79,8 @@ if(WITH_GUI)
   set(GUI_SOURCES
     src/gui.cpp
     src/password_dialog.cpp
-    src/icons.qrc
   )
+  qt5_add_resources(GUI_SOURCES src/icons.qrc)
   add_library(gui_part STATIC ${GUI_SOURCES})
   #target_link_libraries(gui_part PUBLIC Qt6::Widgets)
   # target_link_libraries(gui_part PRIVATE Qt5::Widgets Qt5::Concurrent)
