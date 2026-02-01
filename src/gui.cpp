@@ -71,16 +71,16 @@ void MainWindow::setupUI() {
     formLayout->addRow("Algorithm:", algorithmComboBox);
 
     QHBoxLayout *characterClassesLayout = new QHBoxLayout;
-    upperCaseCheckBox = new QCheckBox("Upper-case");
     lowerCaseCheckBox = new QCheckBox("Lower-case");
+    upperCaseCheckBox = new QCheckBox("Upper-case");
     digitsCheckBox = new QCheckBox("Digits");
     symbolsCheckBox = new QCheckBox("Symbols");
-    upperCaseCheckBox->setChecked(true);
     lowerCaseCheckBox->setChecked(true);
+    upperCaseCheckBox->setChecked(true);
     digitsCheckBox->setChecked(true);
     symbolsCheckBox->setChecked(true);
-    characterClassesLayout->addWidget(upperCaseCheckBox);
     characterClassesLayout->addWidget(lowerCaseCheckBox);
+    characterClassesLayout->addWidget(upperCaseCheckBox);
     characterClassesLayout->addWidget(digitsCheckBox);
     characterClassesLayout->addWidget(symbolsCheckBox);
     formLayout->addRow("Character Classes:", characterClassesLayout);
@@ -121,8 +121,8 @@ void MainWindow::generatePassword() {
     ctx.length = lengthSpinBox->value();
     ctx.algorithm = static_cast<Algorithm>(algorithmComboBox->currentData().toInt());
 
-    if (upperCaseCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::UPPERCASE);
     if (lowerCaseCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::LOWERCASE);
+    if (upperCaseCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::UPPERCASE);
     if (digitsCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::DIGITS);
     if (symbolsCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::SYMBOLS);
 
@@ -139,8 +139,8 @@ void MainWindow::generationFinished() {
 
     mkpass::ConfigDB db;
     std::vector<CharacterClass> char_classes;
-    if (upperCaseCheckBox->isChecked()) char_classes.push_back(CharacterClass::UPPERCASE);
     if (lowerCaseCheckBox->isChecked()) char_classes.push_back(CharacterClass::LOWERCASE);
+    if (upperCaseCheckBox->isChecked()) char_classes.push_back(CharacterClass::UPPERCASE);
     if (digitsCheckBox->isChecked()) char_classes.push_back(CharacterClass::DIGITS);
     if (symbolsCheckBox->isChecked()) char_classes.push_back(CharacterClass::SYMBOLS);
 
@@ -162,13 +162,13 @@ void MainWindow::serviceChanged(const QString &service) {
         }
         lengthSpinBox->setValue(entry->length);
 
-        upperCaseCheckBox->setChecked(false);
         lowerCaseCheckBox->setChecked(false);
+        upperCaseCheckBox->setChecked(false);
         digitsCheckBox->setChecked(false);
         symbolsCheckBox->setChecked(false);
         for (const auto& cc : entry->char_classes) {
-            if (cc == CharacterClass::UPPERCASE) upperCaseCheckBox->setChecked(true);
             if (cc == CharacterClass::LOWERCASE) lowerCaseCheckBox->setChecked(true);
+            if (cc == CharacterClass::UPPERCASE) upperCaseCheckBox->setChecked(true);
             if (cc == CharacterClass::DIGITS) digitsCheckBox->setChecked(true);
             if (cc == CharacterClass::SYMBOLS) symbolsCheckBox->setChecked(true);
         }
@@ -209,8 +209,8 @@ void MainWindow::updateCharacterClassesState() {
     Algorithm algorithm = static_cast<Algorithm>(algorithmComboBox->currentData().toInt());
     bool enabled = algorithm != Algorithm::Old;
 
-    upperCaseCheckBox->setEnabled(enabled);
     lowerCaseCheckBox->setEnabled(enabled);
+    upperCaseCheckBox->setEnabled(enabled);
     digitsCheckBox->setEnabled(enabled);
     symbolsCheckBox->setEnabled(enabled);
 }
