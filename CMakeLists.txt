@@ -78,12 +78,15 @@ if(WITH_GUI)
   find_package(Qt5 REQUIRED COMPONENTS Widgets Concurrent)
   set(GUI_SOURCES
     src/gui.cpp
+    src/password_dialog.cpp
+    src/qrcode/qrcodegen.cpp
   )
+  qt5_add_resources(GUI_SOURCES src/icons.qrc)
   add_library(gui_part STATIC ${GUI_SOURCES})
   #target_link_libraries(gui_part PUBLIC Qt6::Widgets)
   # target_link_libraries(gui_part PRIVATE Qt5::Widgets Qt5::Concurrent)
   target_link_libraries(gui_part PUBLIC Qt5::Widgets Qt5::Concurrent)
-  target_include_directories(gui_part PUBLIC src)
+  target_include_directories(gui_part PUBLIC src src/qrcode)
   target_compile_definitions(mkpass PRIVATE WITH_GUI)
 endif()
 
