@@ -5,6 +5,7 @@
 #include <string>
 #include <unistd.h>
 #include <stdlib.h>
+#include <algorithm>
 
 class ConfigDBTest : public ::testing::Test {
 protected:
@@ -29,9 +30,9 @@ protected:
         sqlite3_exec(db, sql, 0, 0, &err_msg);
 
         const char *sql2 =
-            "CREATE TABLE service_entries (name TEXT PRIMARY KEY, algorithm INTEGER, length INTEGER, char_classes INTEGER);"
-            "INSERT INTO service_entries VALUES ('user@github.com', 1, 11, 1);"
-            "INSERT INTO service_entries VALUES ('gitlab.com', 1, 12, 1);";
+            "CREATE TABLE service_entries (name TEXT PRIMARY KEY, algorithm INTEGER, length INTEGER, char_classes INTEGER, custom_chars TEXT);"
+            "INSERT INTO service_entries VALUES ('user@github.com', 1, 11, 1, NULL);"
+            "INSERT INTO service_entries VALUES ('gitlab.com', 1, 12, 1, NULL);";
         sqlite3_exec(db, sql2, 0, 0, &err_msg);
 
         sqlite3_close(db);
@@ -76,6 +77,37 @@ TEST_F(ConfigDBTest, GetServiceRecordNew) {
     EXPECT_EQ(rec->length, 11);
     std::vector<CharacterClass> cs{CharacterClass::LOWERCASE};
     EXPECT_EQ(rec->char_classes, cs);
+}
+
+TEST_F(ConfigDBTest, CustomChars) {
+    mkpass::ConfigDB db(db_path);
+
+    // 1. Test with custom_chars
+    mkpass::ServiceEntry entry;
+    entry.service_name = "test.com";
+    entry.algorithm = Algorithm::Argon2;
+    entry.length = 16;
+    entry.char_classes = {CharacterClass::LOWERCASE, CharacterClass::CUSTOM};
+    entry.custom_chars = "!@#$";
+
+    db.save_service_entry(entry);
+
+    auto rec = db.get_service_entry("test.com");
+    ASSERT_TRUE(rec.has_value());
+    EXPECT_EQ(rec->service_name, "test.com");
+    EXPECT_EQ(rec->algorithm, Algorithm::Argon2);
+    EXPECT_EQ(rec->length, 16);
+
+    std::vector<CharacterClass> expected_classes = {CharacterClass::LOWERCASE, CharacterClass::CUSTOM};
+    EXPECT_EQ(rec->char_classes, expected_classes);
+
+    ASSERT_TRUE(rec->custom_chars.has_value());
+    EXPECT_EQ(rec->custom_chars.value(), "!@#$");
+
+    // 2. Test without custom_chars (should be nullopt)
+    auto rec_no_custom = db.get_service_entry("user@github.com");
+    ASSERT_TRUE(rec_no_custom.has_value());
+    EXPECT_FALSE(rec_no_custom->custom_chars.has_value());
 }
 
 TEST(ConfigDB, NonExistentDB) {

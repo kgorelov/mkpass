@@ -9,33 +9,52 @@
 #include <algorithm>
 
 namespace {
-std::string CharClassToString(CharacterClass cc) {
-    switch (cc) {
-        case CharacterClass::LOWERCASE:
-            return LowercaseLetters;
-        case CharacterClass::UPPERCASE:
-            return UppercaseLetters;
-        case CharacterClass::DIGITS:
-            return Digits;
-        case CharacterClass::SYMBOLS:
-            return Symbols;
-    }
-    throw std::runtime_error("Unknown character class");
-}
 
 template <typename GeneratorType>
 std::string GenerateAndComposePassword(const Context& ctx) {
     GeneratorType g(ctx.password, ctx.service);
-    if (ctx.char_classes.empty()) {
-        return ComposePassword(g, {LowercaseLetters, UppercaseLetters, Digits, Symbols}, ctx.length);
+
+    std::vector<std::string> active_char_classes;
+
+    auto char_classes_to_use = ctx.char_classes;
+    if (char_classes_to_use.empty()) {
+        char_classes_to_use = {CharacterClass::LOWERCASE,
+                               CharacterClass::UPPERCASE,
+                               CharacterClass::DIGITS,
+                               CharacterClass::SYMBOLS};
     }
-    auto sorted_char_classes = ctx.char_classes;
-    std::sort(sorted_char_classes.begin(), sorted_char_classes.end());
-    std::vector<std::string> char_classes;
-    for (auto cc : sorted_char_classes) {
-        char_classes.push_back(CharClassToString(cc));
+    std::sort(char_classes_to_use.begin(), char_classes_to_use.end());
+
+    for (auto cc : char_classes_to_use) {
+        switch (cc) {
+        case CharacterClass::LOWERCASE:
+            active_char_classes.push_back(LowercaseLetters);
+            break;
+        case CharacterClass::UPPERCASE:
+            active_char_classes.push_back(UppercaseLetters);
+            break;
+        case CharacterClass::DIGITS:
+            active_char_classes.push_back(Digits);
+            break;
+        case CharacterClass::SYMBOLS:
+            active_char_classes.push_back(Symbols);
+            break;
+        case CharacterClass::CUSTOM:
+            if (ctx.custom_chars && !ctx.custom_chars->empty()) {
+                active_char_classes.push_back(*ctx.custom_chars);
+            }
+            break;
+        }
     }
-    return ComposePassword(g, std::move(char_classes), ctx.length);
+
+    if (active_char_classes.empty()) {
+        // Fallback
+        return ComposePassword(
+            g, {LowercaseLetters, UppercaseLetters, Digits, Symbols},
+            ctx.length);
+    }
+
+    return ComposePassword(g, std::move(active_char_classes), ctx.length);
 }
 
 } // namespace

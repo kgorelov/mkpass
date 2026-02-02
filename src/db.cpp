@@ -42,7 +42,27 @@ std::vector<CharacterClass> BitmaskToCharClasses(int mask) {
     if (mask & (1 << static_cast<int>(CharacterClass::SYMBOLS))) {
         char_classes.push_back(CharacterClass::SYMBOLS);
     }
+    if (mask & (1 << static_cast<int>(CharacterClass::CUSTOM))) {
+        char_classes.push_back(CharacterClass::CUSTOM);
+    }
     return char_classes;
+}
+
+bool column_exists(sqlite3 *db, const std::string& table_name, const std::string& column_name) {
+    sqlite3_stmt *stmt;
+    std::string sql = "PRAGMA table_info(" + table_name + ")";
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        return false;
+    }
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        const unsigned char *name = sqlite3_column_text(stmt, 1);
+        if (column_name == reinterpret_cast<const char*>(name)) {
+            sqlite3_finalize(stmt);
+            return true;
+        }
+    }
+    sqlite3_finalize(stmt);
+    return false;
 }
 
 } // namespace
@@ -64,6 +84,14 @@ void ConfigDB::create_tables() {
     if (sqlite3_exec(db, sql, 0, 0, &err_msg) != SQLITE_OK) {
         std::cerr << "Failed to create table: " << err_msg << std::endl;
         sqlite3_free(err_msg);
+    }
+
+    if (!column_exists(db, "service_entries", "custom_chars")) {
+        const char *alter_sql = "ALTER TABLE service_entries ADD COLUMN custom_chars TEXT;";
+        if (sqlite3_exec(db, alter_sql, 0, 0, &err_msg) != SQLITE_OK) {
+            std::cerr << "Failed to alter table: " << err_msg << std::endl;
+            sqlite3_free(err_msg);
+        }
     }
 }
 
@@ -162,7 +190,7 @@ std::optional<ServiceEntry> ConfigDB::get_new_service_entry(const std::string& s
     }
 
     sqlite3_stmt *stmt;
-    const char *sql = "SELECT algorithm, length, char_classes FROM service_entries WHERE name = ?";
+    const char *sql = "SELECT algorithm, length, char_classes, custom_chars FROM service_entries WHERE name = ?";
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
         return std::nullopt;
     }
@@ -175,6 +203,10 @@ std::optional<ServiceEntry> ConfigDB::get_new_service_entry(const std::string& s
         entry.algorithm = static_cast<Algorithm>(sqlite3_column_int(stmt, 0));
         entry.length = sqlite3_column_int(stmt, 1);
         entry.char_classes = BitmaskToCharClasses(sqlite3_column_int(stmt, 2));
+        const unsigned char *custom_chars = sqlite3_column_text(stmt, 3);
+        if (custom_chars) {
+            entry.custom_chars = reinterpret_cast<const char*>(custom_chars);
+        }
         sqlite3_finalize(stmt);
         return entry;
     }
@@ -197,7 +229,7 @@ void ConfigDB::save_service_entry(const ServiceEntry& entry) {
     }
 
     sqlite3_stmt *stmt;
-    const char *sql = "INSERT OR REPLACE INTO service_entries (name, algorithm, length, char_classes) VALUES (?, ?, ?, ?)";
+    const char *sql = "INSERT OR REPLACE INTO service_entries (name, algorithm, length, char_classes, custom_chars) VALUES (?, ?, ?, ?, ?)";
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
         return;
     }
@@ -206,6 +238,11 @@ void ConfigDB::save_service_entry(const ServiceEntry& entry) {
     sqlite3_bind_int(stmt, 2, static_cast<int>(entry.algorithm));
     sqlite3_bind_int(stmt, 3, entry.length);
     sqlite3_bind_int(stmt, 4, CharClassesToBitmask(entry.char_classes));
+    if (entry.custom_chars) {
+        sqlite3_bind_text(stmt, 5, entry.custom_chars->c_str(), -1, SQLITE_STATIC);
+    } else {
+        sqlite3_bind_null(stmt, 5);
+    }
 
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);

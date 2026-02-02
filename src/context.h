@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <optional>
 #include "algorithms.h"
 #include "character_classes.h"
 
@@ -16,4 +17,5 @@ struct Context {
     bool is_gui = false;
     //std::optional<unsigned> length;
     unsigned length = 0;
+    std::optional<std::string> custom_chars;
 };
