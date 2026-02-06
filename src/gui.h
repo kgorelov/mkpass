@@ -27,6 +27,7 @@ private slots:
     void serviceChanged(const QString &service);
     void checkPasswords();
     void updateCharacterClassesState();
+    void updateCustomCharsState();
 
 private:
     void setupUI();
@@ -39,6 +40,8 @@ private:
     QCheckBox *lowerCaseCheckBox;
     QCheckBox *digitsCheckBox;
     QCheckBox *symbolsCheckBox;
+    QCheckBox *customCheckBox;
+    QLineEdit *customCharsLineEdit;
     QSpinBox *lengthSpinBox;
     QPushButton *generateButton;
     QPushButton *closeButton;
