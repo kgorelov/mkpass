@@ -45,6 +45,7 @@ MainWindow::~MainWindow() {
 
 void MainWindow::setupUI() {
     setWindowTitle("mkpass GUI");
+    setMinimumWidth(500);
 
     QWidget *centralWidget = new QWidget;
     setCentralWidget(centralWidget);
@@ -70,20 +71,39 @@ void MainWindow::setupUI() {
     algorithmComboBox->addItem("Old", static_cast<int>(Algorithm::Old));
     formLayout->addRow("Algorithm:", algorithmComboBox);
 
-    QHBoxLayout *characterClassesLayout = new QHBoxLayout;
+    QGroupBox *characterClassesGroupBox = new QGroupBox("Character Classes");
+    QVBoxLayout *characterClassesLayout = new QVBoxLayout;
+
+    QGridLayout *checkBoxesLayout = new QGridLayout;
     lowerCaseCheckBox = new QCheckBox("Lower-case");
     upperCaseCheckBox = new QCheckBox("Upper-case");
     digitsCheckBox = new QCheckBox("Digits");
     symbolsCheckBox = new QCheckBox("Symbols");
+    customCheckBox = new QCheckBox("Custom:");
+
     lowerCaseCheckBox->setChecked(true);
     upperCaseCheckBox->setChecked(true);
     digitsCheckBox->setChecked(true);
     symbolsCheckBox->setChecked(true);
-    characterClassesLayout->addWidget(lowerCaseCheckBox);
-    characterClassesLayout->addWidget(upperCaseCheckBox);
-    characterClassesLayout->addWidget(digitsCheckBox);
-    characterClassesLayout->addWidget(symbolsCheckBox);
-    formLayout->addRow("Character Classes:", characterClassesLayout);
+
+    checkBoxesLayout->addWidget(lowerCaseCheckBox, 0, 0);
+    checkBoxesLayout->addWidget(upperCaseCheckBox, 0, 1);
+    checkBoxesLayout->addWidget(digitsCheckBox, 1, 0);
+    checkBoxesLayout->addWidget(symbolsCheckBox, 1, 1);
+    checkBoxesLayout->addWidget(customCheckBox, 2, 0);
+
+    characterClassesLayout->addLayout(checkBoxesLayout);
+
+    customCharsLineEdit = new QLineEdit;
+
+    QHBoxLayout *customLayout = new QHBoxLayout;
+    customLayout->addWidget(customCharsLineEdit);
+
+    characterClassesLayout->addLayout(customLayout);
+
+    characterClassesGroupBox->setLayout(characterClassesLayout);
+
+    formLayout->addRow(characterClassesGroupBox);
 
     lengthSpinBox = new QSpinBox;
     lengthSpinBox->setRange(1, 128);
@@ -109,6 +129,9 @@ void MainWindow::setupUI() {
     connect(masterPasswordLineEdit, &QLineEdit::textChanged, this, &MainWindow::checkPasswords);
     connect(repeatPasswordLineEdit, &QLineEdit::textChanged, this, &MainWindow::checkPasswords);
     connect(algorithmComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::updateCharacterClassesState);
+    connect(customCheckBox, &QCheckBox::toggled, this, &MainWindow::updateCustomCharsState);
+
+    updateCustomCharsState();
 }
 
 void MainWindow::generatePassword() {
@@ -125,6 +148,10 @@ void MainWindow::generatePassword() {
     if (upperCaseCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::UPPERCASE);
     if (digitsCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::DIGITS);
     if (symbolsCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::SYMBOLS);
+    if (customCheckBox->isChecked()) {
+        ctx.char_classes.push_back(CharacterClass::CUSTOM);
+        ctx.custom_chars = customCharsLineEdit->text().toStdString();
+    }
 
     QFuture<std::string> future = QtConcurrent::run(MkPass, ctx);
     generationWatcher->setFuture(future);
@@ -144,11 +171,18 @@ void MainWindow::generationFinished() {
     if (digitsCheckBox->isChecked()) char_classes.push_back(CharacterClass::DIGITS);
     if (symbolsCheckBox->isChecked()) char_classes.push_back(CharacterClass::SYMBOLS);
 
+    std::optional<std::string> custom_chars;
+    if (customCheckBox->isChecked()) {
+        char_classes.push_back(CharacterClass::CUSTOM);
+        custom_chars = customCharsLineEdit->text().toStdString();
+    }
+
     db.save_service_entry({
         serviceLineEdit->text().toStdString(),
         static_cast<Algorithm>(algorithmComboBox->currentData().toInt()),
         static_cast<unsigned>(lengthSpinBox->value()),
-        char_classes
+        char_classes,
+        custom_chars
     });
 }
 
@@ -166,12 +200,34 @@ void MainWindow::serviceChanged(const QString &service) {
         upperCaseCheckBox->setChecked(false);
         digitsCheckBox->setChecked(false);
         symbolsCheckBox->setChecked(false);
+        customCheckBox->setChecked(false);
         for (const auto& cc : entry->char_classes) {
             if (cc == CharacterClass::LOWERCASE) lowerCaseCheckBox->setChecked(true);
             if (cc == CharacterClass::UPPERCASE) upperCaseCheckBox->setChecked(true);
             if (cc == CharacterClass::DIGITS) digitsCheckBox->setChecked(true);
             if (cc == CharacterClass::SYMBOLS) symbolsCheckBox->setChecked(true);
+            if (cc == CharacterClass::CUSTOM) customCheckBox->setChecked(true);
         }
+        if (entry->custom_chars) {
+            customCharsLineEdit->setText(QString::fromStdString(*entry->custom_chars));
+        } else {
+            customCharsLineEdit->setText("");
+        }
+        updateCustomCharsState();
+    } else {
+        // Reset to default values
+        int index = algorithmComboBox->findData(static_cast<int>(Algorithm::Argon2));
+        if (index != -1) {
+            algorithmComboBox->setCurrentIndex(index);
+        }
+        lengthSpinBox->setValue(16);
+        lowerCaseCheckBox->setChecked(true);
+        upperCaseCheckBox->setChecked(true);
+        digitsCheckBox->setChecked(true);
+        symbolsCheckBox->setChecked(true);
+        customCheckBox->setChecked(false);
+        customCharsLineEdit->setText("");
+        updateCustomCharsState();
     }
 }
 
@@ -213,6 +269,16 @@ void MainWindow::updateCharacterClassesState() {
     upperCaseCheckBox->setEnabled(enabled);
     digitsCheckBox->setEnabled(enabled);
     symbolsCheckBox->setEnabled(enabled);
+    customCheckBox->setEnabled(enabled);
+    if (enabled) {
+        updateCustomCharsState();
+    } else {
+        customCharsLineEdit->setVisible(false);
+    }
+}
+
+void MainWindow::updateCustomCharsState() {
+    customCharsLineEdit->setVisible(customCheckBox->isChecked());
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {

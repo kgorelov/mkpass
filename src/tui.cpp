@@ -4,6 +4,7 @@
 #include <map>
 #include <limits>
 #include <stdexcept>
+#include <algorithm>
 //#include <fstream>
 
 
@@ -62,18 +63,22 @@ std::vector<CharacterClass> AskForCharClasses(const std::vector<CharacterClass>&
         {'1', {"Lowercase Letters", CharacterClass::LOWERCASE}},
         {'2', {"Uppercase Letters", CharacterClass::UPPERCASE}},
         {'3', {"Digits", CharacterClass::DIGITS}},
-        {'4', {"Symbols", CharacterClass::SYMBOLS}}
+        {'4', {"Symbols", CharacterClass::SYMBOLS}},
+        {'5', {"Custom", CharacterClass::CUSTOM}}
     };
     std::map<CharacterClass, char> cc_to_char = {
         {CharacterClass::LOWERCASE, '1'},
         {CharacterClass::UPPERCASE, '2'},
         {CharacterClass::DIGITS, '3'},
-        {CharacterClass::SYMBOLS, '4'}
+        {CharacterClass::SYMBOLS, '4'},
+        {CharacterClass::CUSTOM, '5'}
     };
 
     std::string default_choice_str;
     for (const auto& cc : default_char_classes) {
-        default_choice_str += cc_to_char[cc];
+        if (cc_to_char.count(cc)) {
+            default_choice_str += cc_to_char[cc];
+        }
     }
 
     std::cerr << "Choose character classes:\n";
@@ -95,6 +100,27 @@ std::vector<CharacterClass> AskForCharClasses(const std::vector<CharacterClass>&
         }
     }
     return result;
+}
+
+std::optional<std::string> AskForCustomChars(const std::optional<std::string>& default_custom_chars) {
+    std::string prompt = "Custom characters";
+    if (default_custom_chars) {
+        prompt += " [" + *default_custom_chars + "]";
+    }
+    prompt += ": ";
+
+    char *custom_chars_c_str = linenoise(prompt.c_str());
+    if (custom_chars_c_str == nullptr) {
+        // Ctrl+C or Ctrl+D
+        throw std::runtime_error("Input aborted");
+    }
+    std::string custom_chars_str(custom_chars_c_str);
+    free(custom_chars_c_str);
+
+    if (custom_chars_str.empty()) {
+        return default_custom_chars;
+    }
+    return custom_chars_str;
 }
 
 
@@ -160,6 +186,7 @@ int run_tui() {
 
     auto algorithm = AskForAlgorithm(default_algorithm);
     std::vector<CharacterClass> char_classes;
+    std::optional<std::string> custom_chars;
     if (algorithm != Algorithm::Old) {
         std::vector<CharacterClass> default_char_classes = {
             CharacterClass::LOWERCASE,
@@ -171,6 +198,14 @@ int run_tui() {
             default_char_classes = db_entry->char_classes;
         }
         char_classes = AskForCharClasses(default_char_classes);
+
+        if (std::find(char_classes.begin(), char_classes.end(), CharacterClass::CUSTOM) != char_classes.end()) {
+            std::optional<std::string> default_custom_chars;
+            if (db_entry) {
+                default_custom_chars = db_entry->custom_chars;
+            }
+            custom_chars = AskForCustomChars(default_custom_chars);
+        }
     }
 
     // Input length
@@ -205,13 +240,15 @@ int run_tui() {
         .service = service,
         .char_classes = char_classes,
         .algorithm = algorithm,
-        .length = length
+        .is_gui = false,
+        .length = length,
+        .custom_chars = custom_chars
     };
 
     // Get the result to stdout
     std::cout << MkPass(ctx) << std::endl;
 
-    db.save_service_entry({service, algorithm, length, char_classes});
+    db.save_service_entry({service, algorithm, length, char_classes, custom_chars});
 
     return 0;
 }

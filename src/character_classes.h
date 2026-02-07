@@ -12,7 +12,8 @@ enum class CharacterClass {
     LOWERCASE = 0,
     UPPERCASE = 1,
     DIGITS = 2,
-    SYMBOLS = 3
+    SYMBOLS = 3,
+    CUSTOM = 4
 };
 
 // TODO: define an enum here

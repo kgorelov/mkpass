@@ -18,6 +18,7 @@ struct ServiceEntry {
     Algorithm algorithm;
     unsigned length;
     std::vector<CharacterClass> char_classes;
+    std::optional<std::string> custom_chars;
 };
 
 
