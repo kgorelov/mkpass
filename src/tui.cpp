@@ -20,6 +20,7 @@
 #include "context.h"
 #include "character_classes.h"
 #include "db.h"
+#include "platform_utils.h"
 #include "linenoise.h"
 #include <set>
 
@@ -144,7 +145,7 @@ int run_tui_safe() {
 }
 
 int run_tui() {
-    mkpass::ConfigDB db;
+    mkpass::ConfigDB db(GetConfigDBPath());
     service_names = db.get_all_service_names();
 
     // Input Master Password

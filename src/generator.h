@@ -1,5 +1,7 @@
 #pragma once
 
+#include "platform_defs.h"
+
 #include <cstdint>
 #include <concepts>
 #include <random>
@@ -122,7 +124,9 @@ private:
 
 #include "sha512.h"
 
+#if MKPASS_USE_CONCEPTS
 // Concept check
 static_assert(std::uniform_random_bit_generator<Generator<HKDF_HMAC<SHA512>>>,
               "Generator does not meet UniformRandomBitGenerator requirements");
+#endif
 

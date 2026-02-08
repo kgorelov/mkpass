@@ -2,33 +2,63 @@ cmake_minimum_required(VERSION 3.22.1)
 
 project("mkpass")
 
+set(PROJECT_ROOT ${CMAKE_SOURCE_DIR}/../../../../../)
+
+# C++ part library
+set(CPP_SOURCES
+  ${PROJECT_ROOT}/src/digest.cpp
+  ${PROJECT_ROOT}/src/compose.cpp
+  ${PROJECT_ROOT}/src/mkpass.cpp
+  ${PROJECT_ROOT}/src/hkdf_argon2.cpp
+  ${PROJECT_ROOT}/src/db.cpp
+)
+add_library(cpp_part STATIC ${CPP_SOURCES})
+target_include_directories(cpp_part PUBLIC ${PROJECT_ROOT}/src)
+target_compile_options(cpp_part PRIVATE -std=c++20)
+
+# SQLite3 library
+add_library(sqlite3 STATIC ${PROJECT_ROOT}/src/sqlite3/sqlite3.c)
+target_include_directories(sqlite3 PUBLIC ${PROJECT_ROOT}/src/sqlite3)
+
+target_link_libraries(cpp_part PRIVATE sqlite3)
+
+
+# A pure C SHA512 implementation library
+add_library(sha512 STATIC ${PROJECT_ROOT}/src/sha512.c)
+target_include_directories(sha512 PUBLIC ${PROJECT_ROOT}/src)
+
+
+# Argon2 library
+set(ARGON2_SOURCES
+  ${PROJECT_ROOT}/src/argon2/argon2.c
+  ${PROJECT_ROOT}/src/argon2/core.c
+  ${PROJECT_ROOT}/src/argon2/ref.c
+  ${PROJECT_ROOT}/src/argon2/blake2/blake2b.c
+  ${PROJECT_ROOT}/src/argon2/thread.c
+  ${PROJECT_ROOT}/src/argon2/encoding.c
+)
+add_library(argon2 STATIC ${ARGON2_SOURCES})
+target_include_directories(argon2 PUBLIC
+    ${PROJECT_ROOT}/src/argon2
+    ${PROJECT_ROOT}/src/argon2/blake2
+)
+
+
 # Add JNI wrapper
 add_library(mkpass SHARED native-lib.cpp)
+target_compile_options(mkpass PRIVATE -std=c++20)
 
-# Include directories for headers
 target_include_directories(mkpass PRIVATE
-    ../../../../src
-    ../../../../src/argon2
-    ../../../../src/argon2/blake2
-    ../../../../src/linenoise-ng
+    ${PROJECT_ROOT}/src
 )
-
-# Add C++ sources from the main project, excluding tests and GUI/TUI related files
-file(GLOB_RECURSE MKPASS_SOURCES
-    ../../../../src/*.cpp
-    ../../../../src/*.c
-)
-
-list(FILTER MKPASS_SOURCES EXCLUDE REGEX ".*_ut\.cpp$")
-list(FILTER MKPASS_SOURCES EXCLUDE REGEX ".*e2e_test\.cpp$")
-list(FILTER MKPASS_SOURCES EXCLUDE REGEX ".*tui\.cpp$")
-list(FILTER MKPASS_SOURCES EXCLUDE REGEX ".*gui\.cpp$")
-list(FILTER MKPASS_SOURCES EXCLUDE REGEX ".*main\.cpp$")
-
-
-target_sources(mkpass PRIVATE ${MKPASS_SOURCES})
 
 # Link to NDK libraries
 find_library(log-lib log)
-target_link_libraries(mkpass ${log-lib})
+
+target_link_libraries(mkpass PRIVATE
+  cpp_part
+  sha512
+  argon2
+  ${log-lib}
+)
 

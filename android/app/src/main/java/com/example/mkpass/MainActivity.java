@@ -1,9 +1,28 @@
 package com.example.mkpass;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AlertDialog;
 
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.SeekBar;
+import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -12,19 +31,195 @@ public class MainActivity extends AppCompatActivity {
         System.loadLibrary("mkpass");
     }
 
+    private TextInputEditText masterPassword;
+    private TextInputEditText repeatPassword;
+    private AutoCompleteTextView service;
+    private Spinner algorithmSpinner;
+    private CheckBox lowerCaseCheckBox;
+    private CheckBox upperCaseCheckBox;
+    private CheckBox digitsCheckBox;
+    private CheckBox symbolsCheckBox;
+    private CheckBox customCheckBox;
+    private TextInputLayout customCharsLayout;
+    private TextInputEditText customChars;
+    private SeekBar lengthSeekBar;
+    private TextView lengthValue;
+    private Button generateButton;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Example of a call to a native method
-        TextView tv = findViewById(R.id.sample_text);
-        tv.setText(stringFromJNI());
+        masterPassword = findViewById(R.id.masterPassword);
+        repeatPassword = findViewById(R.id.repeatPassword);
+        service = findViewById(R.id.service);
+        algorithmSpinner = findViewById(R.id.algorithmSpinner);
+        lowerCaseCheckBox = findViewById(R.id.lowerCaseCheckBox);
+        upperCaseCheckBox = findViewById(R.id.upperCaseCheckBox);
+        digitsCheckBox = findViewById(R.id.digitsCheckBox);
+        symbolsCheckBox = findViewById(R.id.symbolsCheckBox);
+        customCheckBox = findViewById(R.id.customCheckBox);
+        customCharsLayout = findViewById(R.id.customCharsLayout);
+        customChars = findViewById(R.id.customChars);
+        lengthSeekBar = findViewById(R.id.lengthSeekBar);
+        lengthValue = findViewById(R.id.lengthValue);
+        generateButton = findViewById(R.id.generateButton);
+
+        // Setup Algorithm Spinner
+        ArrayAdapter<CharSequence> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new String[]{"Argon2", "SlowSha512", "Old"});
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        algorithmSpinner.setAdapter(adapter);
+
+        // Setup Custom Chars visibility
+        customCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            customCharsLayout.setVisibility(isChecked ? View.VISIBLE : View.GONE);
+        });
+
+        // Setup Length SeekBar
+        lengthSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                lengthValue.setText(String.valueOf(progress));
+            }
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) { }
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) { }
+        });
+        lengthValue.setText(String.valueOf(lengthSeekBar.getProgress()));
+
+
+        // Setup Service AutoComplete
+        String[] all_services = getAllServiceNames();
+        ArrayAdapter<String> serviceAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, all_services);
+        service.setAdapter(serviceAdapter);
+
+        service.setOnItemClickListener((parent, view, position, id) -> {
+            String selectedService = (String) parent.getItemAtPosition(position);
+            loadServiceEntry(selectedService);
+        });
+
+        // Generate Button
+        generateButton.setOnClickListener(v -> generatePassword());
+
+        // Password validation
+        TextWatcher passwordTextWatcher = new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void afterTextChanged(Editable s) {
+                checkPasswords();
+            }
+        };
+        masterPassword.addTextChangedListener(passwordTextWatcher);
+        repeatPassword.addTextChangedListener(passwordTextWatcher);
     }
 
-    /**
-     * A native method that is implemented by the 'mkpass' native library,
-     * which is packaged with this application.
-     */
-    public native String stringFromJNI();
+    private void loadServiceEntry(String serviceName) {
+        ServiceEntry entry = getServiceEntry(serviceName);
+        if (entry != null) {
+            algorithmSpinner.setSelection(entry.algorithm);
+            lengthSeekBar.setProgress(entry.length);
+
+            lowerCaseCheckBox.setChecked(false);
+            upperCaseCheckBox.setChecked(false);
+            digitsCheckBox.setChecked(false);
+            symbolsCheckBox.setChecked(false);
+            customCheckBox.setChecked(false);
+
+            for (int cc : entry.charClasses) {
+                if (cc == 0) lowerCaseCheckBox.setChecked(true);
+                if (cc == 1) upperCaseCheckBox.setChecked(true);
+                if (cc == 2) digitsCheckBox.setChecked(true);
+                if (cc == 3) symbolsCheckBox.setChecked(true);
+                if (cc == 4) customCheckBox.setChecked(true);
+            }
+
+            if (entry.customChars != null) {
+                customChars.setText(entry.customChars);
+            }
+        } else {
+            // Reset to defaults
+            algorithmSpinner.setSelection(0);
+            lengthSeekBar.setProgress(16);
+            lowerCaseCheckBox.setChecked(true);
+            upperCaseCheckBox.setChecked(true);
+            digitsCheckBox.setChecked(true);
+            symbolsCheckBox.setChecked(true);
+            customCheckBox.setChecked(false);
+            customChars.setText("");
+        }
+    }
+
+    private void generatePassword() {
+        if (!checkPasswords()) {
+            Toast.makeText(this, "Passwords do not match", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String masterPwd = masterPassword.getText().toString();
+        if (masterPwd.isEmpty()) {
+            Toast.makeText(this, "Master password cannot be empty", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String serviceName = service.getText().toString();
+        int algorithm = algorithmSpinner.getSelectedItemPosition();
+        int length = lengthSeekBar.getProgress();
+
+        List<Integer> charClasses = new ArrayList<>();
+        if (lowerCaseCheckBox.isChecked()) charClasses.add(0);
+        if (upperCaseCheckBox.isChecked()) charClasses.add(1);
+        if (digitsCheckBox.isChecked()) charClasses.add(2);
+        if (symbolsCheckBox.isChecked()) charClasses.add(3);
+
+        String customCharsStr = null;
+        if (customCheckBox.isChecked()) {
+            charClasses.add(4);
+            customCharsStr = customChars.getText().toString();
+        }
+
+        int[] charClassesArray = charClasses.stream().mapToInt(i->i).toArray();
+
+        String generatedPassword = generatePasswordNative(masterPwd, serviceName, algorithm, length, charClassesArray, customCharsStr);
+
+        // Save entry
+        saveServiceEntry(serviceName, algorithm, length, charClassesArray, customCharsStr);
+
+        // Show password in dialog
+        new AlertDialog.Builder(this)
+                .setTitle("Generated Password")
+                .setMessage(generatedPassword)
+                .setPositiveButton("OK", null)
+                .show();
+    }
+
+    private boolean checkPasswords() {
+        String pass1 = masterPassword.getText().toString();
+        String pass2 = repeatPassword.getText().toString();
+        if (!pass2.isEmpty() && !pass1.equals(pass2)) {
+            repeatPassword.setError("Passwords do not match");
+            return false;
+        } else {
+            repeatPassword.setError(null);
+            return true;
+        }
+    }
+
+    // Native methods
+    public native String[] getAllServiceNames();
+    public native ServiceEntry getServiceEntry(String serviceName);
+    public native void saveServiceEntry(String serviceName, int algorithm, int length, int[] charClasses, String customChars);
+    public native String generatePasswordNative(String password, String service, int algorithm, int length, int[] charClasses, String customChars);
+}
+
+// Helper class for passing data from C++ to Java
+class ServiceEntry {
+    public int algorithm;
+    public int length;
+    public int[] charClasses;
+    public String customChars;
 }

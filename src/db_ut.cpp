@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <algorithm>
 
+#include "platform_utils.h"
+
 class ConfigDBTest : public ::testing::Test {
 protected:
     std::string db_path;
@@ -120,7 +122,7 @@ TEST(ConfigDB, EnvVariable) {
     const char* db_path = "/tmp/mkpass-test-env.db";
     setenv("MKPASS_DB_PATH", db_path, 1);
 
-    mkpass::ConfigDB db;
+    mkpass::ConfigDB db(GetConfigDBPath());
     auto snames = db.get_all_service_names();
     ASSERT_TRUE(snames.empty());
 
