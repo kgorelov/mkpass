@@ -36,7 +36,7 @@ Java_com_example_mkpass_MainActivity_generateQrCode(JNIEnv *env, jobject /* this
 
     const int size = qr.getSize();
     const int border = 4;
-    const int bitmap_size = (size + border * 2) * 10;
+    const int bitmap_size = (size + border * 2) * 20;
 
     jclass bitmapCls = env->FindClass("android/graphics/Bitmap");
     jmethodID createBitmapMid = env->GetStaticMethodID(bitmapCls, "createBitmap", "(IILandroid/graphics/Bitmap$Config;)Landroid/graphics/Bitmap;");
@@ -66,9 +66,9 @@ Java_com_example_mkpass_MainActivity_generateQrCode(JNIEnv *env, jobject /* this
     for (int y = 0; y < size; y++) {
         for (int x = 0; x < size; x++) {
             if (qr.getModule(x, y)) {
-                float left = (x + border) * 10;
-                float top = (y + border) * 10;
-                env->CallVoidMethod(canvas, drawRectMid, left, top, left + 10, top + 10, paint);
+                float left = (x + border) * 20;
+                float top = (y + border) * 20;
+                env->CallVoidMethod(canvas, drawRectMid, left, top, left + 20, top + 20, paint);
             }
         }
     }
