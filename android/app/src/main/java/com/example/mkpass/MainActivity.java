@@ -215,6 +215,7 @@ public class MainActivity extends AppCompatActivity {
 
         TextView passwordTextView = dialogView.findViewById(R.id.passwordTextView);
         passwordTextView.setText(generatedPassword);
+        passwordTextView.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
 
         Button copyButton = dialogView.findViewById(R.id.copyButton);
         copyButton.setOnClickListener(v -> {
@@ -226,12 +227,14 @@ public class MainActivity extends AppCompatActivity {
 
         Button revealButton = dialogView.findViewById(R.id.revealButton);
         revealButton.setOnClickListener(v -> {
-            if (passwordTextView.getInputType() == android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD) {
-                passwordTextView.setInputType(android.text.InputType.TYPE_CLASS_TEXT);
-                revealButton.setText("Hide");
-            } else {
-                passwordTextView.setInputType(android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            if ((passwordTextView.getInputType() & android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) == android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) {
+                // Currently visible, so hide it
+                passwordTextView.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
                 revealButton.setText("Reveal");
+            } else {
+                // Currently hidden, so reveal it
+                passwordTextView.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+                revealButton.setText("Hide");
             }
         });
 
