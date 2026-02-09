@@ -13,6 +13,7 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -208,9 +209,41 @@ public class MainActivity extends AppCompatActivity {
         saveServiceEntry(serviceName, algorithm, length, charClassesArray, customCharsStr);
 
         // Show password in dialog
-        new AlertDialog.Builder(this)
-                .setTitle("Generated Password")
-                .setMessage(generatedPassword)
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_generated_password, null);
+        builder.setView(dialogView);
+
+        TextView passwordTextView = dialogView.findViewById(R.id.passwordTextView);
+        passwordTextView.setText(generatedPassword);
+
+        Button copyButton = dialogView.findViewById(R.id.copyButton);
+        copyButton.setOnClickListener(v -> {
+            android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            android.content.ClipData clip = android.content.ClipData.newPlainText("Password", generatedPassword);
+            clipboard.setPrimaryClip(clip);
+            Toast.makeText(this, "Password copied to clipboard", Toast.LENGTH_SHORT).show();
+        });
+
+        Button revealButton = dialogView.findViewById(R.id.revealButton);
+        revealButton.setOnClickListener(v -> {
+            if (passwordTextView.getInputType() == android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD) {
+                passwordTextView.setInputType(android.text.InputType.TYPE_CLASS_TEXT);
+                revealButton.setText("Hide");
+            } else {
+                passwordTextView.setInputType(android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+                revealButton.setText("Reveal");
+            }
+        });
+
+        Button qrButton = dialogView.findViewById(R.id.qrButton);
+        ImageView qrCodeImageView = dialogView.findViewById(R.id.qrCodeImageView);
+        qrButton.setOnClickListener(v -> {
+            android.graphics.Bitmap qrCodeBitmap = generateQrCode(generatedPassword);
+            qrCodeImageView.setImageBitmap(qrCodeBitmap);
+            qrCodeImageView.setVisibility(qrCodeImageView.getVisibility() == View.GONE ? View.VISIBLE : View.GONE);
+        });
+
+        builder.setTitle("Generated Password")
                 .setPositiveButton("OK", null)
                 .show();
     }
@@ -233,6 +266,7 @@ public class MainActivity extends AppCompatActivity {
     public native ServiceEntry getServiceEntry(String serviceName);
     public native void saveServiceEntry(String serviceName, int algorithm, int length, int[] charClasses, String customChars);
     public native String generatePasswordNative(String password, String service, int algorithm, int length, int[] charClasses, String customChars);
+    public native android.graphics.Bitmap generateQrCode(String text);
 }
 
 // Helper class for passing data from C++ to Java

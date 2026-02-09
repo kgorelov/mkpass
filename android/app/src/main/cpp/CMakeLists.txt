@@ -22,6 +22,14 @@ target_include_directories(sqlite3 PUBLIC ${PROJECT_ROOT}/src/sqlite3)
 
 target_link_libraries(cpp_part PRIVATE sqlite3)
 
+# QR-code generator
+set(qrcodegen_SOURCES
+  ${PROJECT_ROOT}/src/qrcode/qrcodegen.cpp
+)
+add_library(qrcodegen STATIC ${qrcodegen_SOURCES})
+target_include_directories(qrcodegen PUBLIC ${PROJECT_ROOT}/src/qrcode)
+
+
 
 # A pure C SHA512 implementation library
 add_library(sha512 STATIC ${PROJECT_ROOT}/src/sha512.c)
@@ -59,6 +67,7 @@ target_link_libraries(mkpass PRIVATE
   cpp_part
   sha512
   argon2
+  qrcodegen
   ${log-lib}
 )
 
