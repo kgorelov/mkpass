@@ -46,7 +46,8 @@
             <AutoCompleteTextView
                 android:id="@+id/service"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:inputType="text" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <TextView
@@ -68,35 +69,42 @@
             android:text="Character Classes"
             android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
 
-        <CheckBox
-            android:id="@+id/lowerCaseCheckBox"
-            android:layout_width="wrap_content"
+        <GridLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Lowercase" />
+            android:columnCount="2"
+            android:rowCount="3">
 
-        <CheckBox
-            android:id="@+id/upperCaseCheckBox"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Uppercase" />
+            <CheckBox
+                android:id="@+id/lowerCaseCheckBox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Lowercase" />
 
-        <CheckBox
-            android:id="@+id/digitsCheckBox"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Digits" />
+            <CheckBox
+                android:id="@+id/upperCaseCheckBox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Uppercase" />
 
-        <CheckBox
-            android:id="@+id/symbolsCheckBox"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Symbols" />
+            <CheckBox
+                android:id="@+id/digitsCheckBox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Digits" />
 
-        <CheckBox
-            android:id="@+id/customCheckBox"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Custom" />
+            <CheckBox
+                android:id="@+id/symbolsCheckBox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Symbols" />
+
+            <CheckBox
+                android:id="@+id/customCheckBox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Custom" />
+        </GridLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/customCharsLayout"
