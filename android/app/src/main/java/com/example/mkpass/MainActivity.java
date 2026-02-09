@@ -51,6 +51,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        init(getDatabasePath("mkpass.db").getAbsolutePath());
+
+
         masterPassword = findViewById(R.id.masterPassword);
         repeatPassword = findViewById(R.id.repeatPassword);
         service = findViewById(R.id.service);
@@ -89,6 +92,16 @@ public class MainActivity extends AppCompatActivity {
         });
         lengthValue.setText(String.valueOf(lengthSeekBar.getProgress()));
 
+        // Set default values
+        lengthSeekBar.setProgress(16);
+        lowerCaseCheckBox.setChecked(true);
+        upperCaseCheckBox.setChecked(true);
+        digitsCheckBox.setChecked(true);
+        symbolsCheckBox.setChecked(true);
+        customCheckBox.setChecked(false);
+        customChars.setText("");
+
+
 
         // Setup Service AutoComplete
         String[] all_services = getAllServiceNames();
@@ -121,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
     private void loadServiceEntry(String serviceName) {
         ServiceEntry entry = getServiceEntry(serviceName);
         if (entry != null) {
-            algorithmSpinner.setSelection(entry.algorithm);
+            algorithmSpinner.setSelection(entry.algorithm - 1);
             lengthSeekBar.setProgress(entry.length);
 
             lowerCaseCheckBox.setChecked(false);
@@ -167,7 +180,12 @@ public class MainActivity extends AppCompatActivity {
         }
 
         String serviceName = service.getText().toString();
-        int algorithm = algorithmSpinner.getSelectedItemPosition();
+        if (serviceName.isEmpty()) {
+            Toast.makeText(this, "Service name cannot be empty", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        int algorithm = algorithmSpinner.getSelectedItemPosition() + 1;
         int length = lengthSeekBar.getProgress();
 
         List<Integer> charClasses = new ArrayList<>();
@@ -210,6 +228,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Native methods
+    public native void init(String dbPath);
     public native String[] getAllServiceNames();
     public native ServiceEntry getServiceEntry(String serviceName);
     public native void saveServiceEntry(String serviceName, int algorithm, int length, int[] charClasses, String customChars);

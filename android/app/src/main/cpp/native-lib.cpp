@@ -8,11 +8,6 @@
 #include "db.h"
 #include "character_classes.h"
 
-// Helper to convert std::string to jstring
-jstring stringToJstring(JNIEnv* env, const std::string& str) {
-    return env->NewStringUTF(str.c_str());
-}
-
 // Helper to convert jstring to std::string
 std::string jstringToString(JNIEnv* env, jstring jstr) {
     if (jstr == nullptr) {
@@ -24,11 +19,21 @@ std::string jstringToString(JNIEnv* env, jstring jstr) {
     return str;
 }
 
+// Helper to convert std::string to jstring
+jstring stringToJstring(JNIEnv* env, const std::string& str) {
+    return env->NewStringUTF(str.c_str());
+}
+
+std::unique_ptr<mkpass::ConfigDB> db;
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_example_mkpass_MainActivity_init(JNIEnv *env, jobject /* this */, jstring dbPath) {
+    db = std::make_unique<mkpass::ConfigDB>(jstringToString(env, dbPath));
+}
 
 extern "C" JNIEXPORT jobjectArray JNICALL
 Java_com_example_mkpass_MainActivity_getAllServiceNames(JNIEnv *env, jobject /* this */) {
-    mkpass::ConfigDB db("mkpass.db"); // TODO: pass path as 3rd arg
-    std::set<std::string> service_names = db.get_all_service_names();
+    std::set<std::string> service_names = db->get_all_service_names();
 
     jobjectArray result = env->NewObjectArray(service_names.size(), env->FindClass("java/lang/String"), nullptr);
     int i = 0;
@@ -40,8 +45,7 @@ Java_com_example_mkpass_MainActivity_getAllServiceNames(JNIEnv *env, jobject /* 
 
 extern "C" JNIEXPORT jobject JNICALL
 Java_com_example_mkpass_MainActivity_getServiceEntry(JNIEnv *env, jobject /* this */, jstring serviceName) {
-    mkpass::ConfigDB db("mkpass.db");
-    auto entry = db.get_service_entry(jstringToString(env, serviceName));
+    auto entry = db->get_service_entry(jstringToString(env, serviceName));
 
     if (!entry) {
         return nullptr;
@@ -76,7 +80,6 @@ Java_com_example_mkpass_MainActivity_getServiceEntry(JNIEnv *env, jobject /* thi
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_mkpass_MainActivity_saveServiceEntry(JNIEnv *env, jobject /* this */, jstring serviceName, jint algorithm, jint length, jintArray charClasses, jstring customChars) {
-    mkpass::ConfigDB db("mkpass.db");
     std::vector<CharacterClass> cc_vec;
     jint* cc_arr = env->GetIntArrayElements(charClasses, nullptr);
     int len = env->GetArrayLength(charClasses);
@@ -90,7 +93,7 @@ Java_com_example_mkpass_MainActivity_saveServiceEntry(JNIEnv *env, jobject /* th
         custom_chars_opt = jstringToString(env, customChars);
     }
 
-    db.save_service_entry({
+    db->save_service_entry({
         jstringToString(env, serviceName),
         static_cast<Algorithm>(algorithm),
         static_cast<unsigned>(length),

@@ -47,6 +47,7 @@
                 android:id="@+id/service"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:minHeight="52dp"
                 android:inputType="text" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -130,7 +131,7 @@
             android:id="@+id/lengthSeekBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:max="128"
+            android:max="64"
             android:min="1" />
 
         <TextView
