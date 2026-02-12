@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace 'com.example.mkpass'
+    namespace 'app.mkpass'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.example.mkpass"
+        applicationId "app.mkpass"
         minSdk 21
         targetSdk 34
         versionCode 1

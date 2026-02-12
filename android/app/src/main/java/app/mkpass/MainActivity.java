@@ -1,4 +1,4 @@
-package com.example.mkpass;
+package app.mkpass;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AlertDialog;

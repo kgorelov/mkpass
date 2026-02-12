@@ -29,7 +29,7 @@ using qrcodegen::QrCode;
 using qrcodegen::QrSegment;
 
 extern "C" JNIEXPORT jobject JNICALL
-Java_com_example_mkpass_MainActivity_generateQrCode(JNIEnv *env, jobject /* this */, jstring text) {
+Java_app_mkpass_MainActivity_generateQrCode(JNIEnv *env, jobject /* this */, jstring text) {
     const char *text_cstr = env->GetStringUTFChars(text, nullptr);
     const QrCode qr = QrCode::encodeText(text_cstr, QrCode::Ecc::MEDIUM);
     env->ReleaseStringUTFChars(text, text_cstr);
@@ -80,12 +80,12 @@ Java_com_example_mkpass_MainActivity_generateQrCode(JNIEnv *env, jobject /* this
 std::unique_ptr<mkpass::ConfigDB> db;
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_example_mkpass_MainActivity_init(JNIEnv *env, jobject /* this */, jstring dbPath) {
+Java_app_mkpass_MainActivity_init(JNIEnv *env, jobject /* this */, jstring dbPath) {
     db = std::make_unique<mkpass::ConfigDB>(jstringToString(env, dbPath));
 }
 
 extern "C" JNIEXPORT jobjectArray JNICALL
-Java_com_example_mkpass_MainActivity_getAllServiceNames(JNIEnv *env, jobject /* this */) {
+Java_app_mkpass_MainActivity_getAllServiceNames(JNIEnv *env, jobject /* this */) {
     std::set<std::string> service_names = db->get_all_service_names();
 
     jobjectArray result = env->NewObjectArray(service_names.size(), env->FindClass("java/lang/String"), nullptr);
@@ -97,14 +97,14 @@ Java_com_example_mkpass_MainActivity_getAllServiceNames(JNIEnv *env, jobject /* 
 }
 
 extern "C" JNIEXPORT jobject JNICALL
-Java_com_example_mkpass_MainActivity_getServiceEntry(JNIEnv *env, jobject /* this */, jstring serviceName) {
+Java_app_mkpass_MainActivity_getServiceEntry(JNIEnv *env, jobject /* this */, jstring serviceName) {
     auto entry = db->get_service_entry(jstringToString(env, serviceName));
 
     if (!entry) {
         return nullptr;
     }
 
-    jclass serviceEntryClass = env->FindClass("com/example/mkpass/ServiceEntry");
+    jclass serviceEntryClass = env->FindClass("app/mkpass/ServiceEntry");
     jmethodID constructor = env->GetMethodID(serviceEntryClass, "<init>", "()V");
     jobject result = env->NewObject(serviceEntryClass, constructor);
 
@@ -132,7 +132,7 @@ Java_com_example_mkpass_MainActivity_getServiceEntry(JNIEnv *env, jobject /* thi
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_example_mkpass_MainActivity_saveServiceEntry(JNIEnv *env, jobject /* this */, jstring serviceName, jint algorithm, jint length, jintArray charClasses, jstring customChars) {
+Java_app_mkpass_MainActivity_saveServiceEntry(JNIEnv *env, jobject /* this */, jstring serviceName, jint algorithm, jint length, jintArray charClasses, jstring customChars) {
     std::vector<CharacterClass> cc_vec;
     jint* cc_arr = env->GetIntArrayElements(charClasses, nullptr);
     int len = env->GetArrayLength(charClasses);
@@ -156,7 +156,7 @@ Java_com_example_mkpass_MainActivity_saveServiceEntry(JNIEnv *env, jobject /* th
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_example_mkpass_MainActivity_generatePasswordNative(JNIEnv *env, jobject /* this */, jstring password, jstring service, jint algorithm, jint length, jintArray charClasses, jstring customChars) {
+Java_app_mkpass_MainActivity_generatePasswordNative(JNIEnv *env, jobject /* this */, jstring password, jstring service, jint algorithm, jint length, jintArray charClasses, jstring customChars) {
     std::vector<CharacterClass> cc_vec;
     jint* cc_arr = env->GetIntArrayElements(charClasses, nullptr);
     int len = env->GetArrayLength(charClasses);
@@ -183,4 +183,3 @@ Java_com_example_mkpass_MainActivity_generatePasswordNative(JNIEnv *env, jobject
     std::string result = MkPass(ctx);
     return stringToJstring(env, result);
 }
-
