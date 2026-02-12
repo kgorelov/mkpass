@@ -14,6 +14,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -24,6 +25,10 @@ import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import android.os.Handler;
+import android.os.Looper;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -31,6 +36,9 @@ public class MainActivity extends AppCompatActivity {
     static {
         System.loadLibrary("mkpass");
     }
+
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final Handler handler = new Handler(Looper.getMainLooper());
 
     private TextInputEditText masterPassword;
     private TextInputEditText repeatPassword;
@@ -46,12 +54,12 @@ public class MainActivity extends AppCompatActivity {
     private SeekBar lengthSeekBar;
     private TextView lengthValue;
     private Button generateButton;
+    private ProgressBar progressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         init(getDatabasePath("mkpass.db").getAbsolutePath());
 
 
@@ -69,17 +77,16 @@ public class MainActivity extends AppCompatActivity {
         lengthSeekBar = findViewById(R.id.lengthSeekBar);
         lengthValue = findViewById(R.id.lengthValue);
         generateButton = findViewById(R.id.generateButton);
+        progressBar = findViewById(R.id.progressBar);
 
         // Setup Algorithm Spinner
         ArrayAdapter<CharSequence> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new String[]{"Argon2", "SlowSha512", "Old"});
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         algorithmSpinner.setAdapter(adapter);
-
         // Setup Custom Chars visibility
         customCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             customCharsLayout.setVisibility(isChecked ? View.VISIBLE : View.GONE);
         });
-
         // Setup Length SeekBar
         lengthSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -92,7 +99,6 @@ public class MainActivity extends AppCompatActivity {
             public void onStopTrackingTouch(SeekBar seekBar) { }
         });
         lengthValue.setText(String.valueOf(lengthSeekBar.getProgress()));
-
         // Set default values
         lengthSeekBar.setProgress(16);
         lowerCaseCheckBox.setChecked(true);
@@ -186,69 +192,86 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        int algorithm = algorithmSpinner.getSelectedItemPosition() + 1;
-        int length = lengthSeekBar.getProgress();
+        generateButton.setEnabled(false);
+        progressBar.setVisibility(View.VISIBLE);
 
-        List<Integer> charClasses = new ArrayList<>();
-        if (lowerCaseCheckBox.isChecked()) charClasses.add(0);
-        if (upperCaseCheckBox.isChecked()) charClasses.add(1);
-        if (digitsCheckBox.isChecked()) charClasses.add(2);
-        if (symbolsCheckBox.isChecked()) charClasses.add(3);
+        executor.execute(() -> {
+            // Background work
+            int algorithm = algorithmSpinner.getSelectedItemPosition() + 1;
+            int length = lengthSeekBar.getProgress();
 
-        String customCharsStr = null;
-        if (customCheckBox.isChecked()) {
-            charClasses.add(4);
-            customCharsStr = customChars.getText().toString();
-        }
+            List<Integer> charClasses = new ArrayList<>();
+            if (lowerCaseCheckBox.isChecked()) charClasses.add(0);
+            if (upperCaseCheckBox.isChecked()) charClasses.add(1);
+            if (digitsCheckBox.isChecked()) charClasses.add(2);
+            if (symbolsCheckBox.isChecked()) charClasses.add(3);
 
-        int[] charClassesArray = charClasses.stream().mapToInt(i->i).toArray();
-
-        String generatedPassword = generatePasswordNative(masterPwd, serviceName, algorithm, length, charClassesArray, customCharsStr);
-
-        // Save entry
-        saveServiceEntry(serviceName, algorithm, length, charClassesArray, customCharsStr);
-
-        // Show password in dialog
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_generated_password, null);
-        builder.setView(dialogView);
-
-        TextView passwordTextView = dialogView.findViewById(R.id.passwordTextView);
-        passwordTextView.setText(generatedPassword);
-        passwordTextView.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
-
-        Button copyButton = dialogView.findViewById(R.id.copyButton);
-        copyButton.setOnClickListener(v -> {
-            android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-            android.content.ClipData clip = android.content.ClipData.newPlainText("Password", generatedPassword);
-            clipboard.setPrimaryClip(clip);
-            Toast.makeText(this, "Password copied to clipboard", Toast.LENGTH_SHORT).show();
-        });
-
-        Button revealButton = dialogView.findViewById(R.id.revealButton);
-        revealButton.setOnClickListener(v -> {
-            if ((passwordTextView.getInputType() & android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) == android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) {
-                // Currently visible, so hide it
-                passwordTextView.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
-                revealButton.setText("Reveal");
-            } else {
-                // Currently hidden, so reveal it
-                passwordTextView.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
-                revealButton.setText("Hide");
+            String customCharsStr = null;
+            if (customCheckBox.isChecked()) {
+                charClasses.add(4);
+                customCharsStr = customChars.getText().toString();
             }
-        });
 
-        Button qrButton = dialogView.findViewById(R.id.qrButton);
-        ImageView qrCodeImageView = dialogView.findViewById(R.id.qrCodeImageView);
-        qrButton.setOnClickListener(v -> {
-            android.graphics.Bitmap qrCodeBitmap = generateQrCode(generatedPassword);
-            qrCodeImageView.setImageBitmap(qrCodeBitmap);
-            qrCodeImageView.setVisibility(qrCodeImageView.getVisibility() == View.GONE ? View.VISIBLE : View.GONE);
-        });
+            int[] charClassesArray = charClasses.stream().mapToInt(i->i).toArray();
 
-        builder.setTitle("Generated Password")
-                .setPositiveButton("OK", null)
-                .show();
+            String generatedPassword = generatePasswordNative(masterPwd, serviceName, algorithm, length, charClassesArray, customCharsStr);
+
+            // Save entry in background
+            saveServiceEntry(serviceName, algorithm, length, charClassesArray, customCharsStr);
+
+            // Post result to UI thread
+            handler.post(() -> {
+                // UI work
+                progressBar.setVisibility(View.GONE);
+
+                // Show password in dialog
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                View dialogView = getLayoutInflater().inflate(R.layout.dialog_generated_password, null);
+                builder.setView(dialogView);
+
+                TextView passwordTextView = dialogView.findViewById(R.id.passwordTextView);
+                passwordTextView.setText(generatedPassword);
+                passwordTextView.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+
+                Button copyButton = dialogView.findViewById(R.id.copyButton);
+                copyButton.setOnClickListener(v -> {
+                    android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                    android.content.ClipData clip = android.content.ClipData.newPlainText("Password", generatedPassword);
+                    clipboard.setPrimaryClip(clip);
+                    Toast.makeText(this, "Password copied to clipboard", Toast.LENGTH_SHORT).show();
+                });
+
+                Button revealButton = dialogView.findViewById(R.id.revealButton);
+                revealButton.setOnClickListener(v -> {
+                    if ((passwordTextView.getInputType() & android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) == android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) {
+                        // Currently visible, so hide it
+                        passwordTextView.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+                        revealButton.setText("Reveal");
+                    } else {
+                        // Currently hidden, so reveal it
+                        passwordTextView.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+                        revealButton.setText("Hide");
+                    }
+                });
+
+                Button qrButton = dialogView.findViewById(R.id.qrButton);
+                ImageView qrCodeImageView = dialogView.findViewById(R.id.qrCodeImageView);
+                qrButton.setOnClickListener(v -> {
+                    android.graphics.Bitmap qrCodeBitmap = generateQrCode(generatedPassword);
+                    qrCodeImageView.setImageBitmap(qrCodeBitmap);
+                    qrCodeImageView.setVisibility(qrCodeImageView.getVisibility() == View.GONE ? View.VISIBLE : View.GONE);
+                });
+
+                builder.setTitle("Generated Password")
+                        .setPositiveButton("OK", null);
+
+                AlertDialog dialog = builder.create();
+                dialog.setOnDismissListener(dialogInterface -> {
+                    generateButton.setEnabled(true);
+                });
+                dialog.show();
+            });
+        });
     }
 
     private boolean checkPasswords() {
