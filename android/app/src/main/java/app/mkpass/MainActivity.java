@@ -110,9 +110,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         // Setup Service AutoComplete
-        String[] all_services = getAllServiceNames();
-        ArrayAdapter<String> serviceAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, all_services);
-        service.setAdapter(serviceAdapter);
+        updateServiceSuggestions();
 
         service.setOnItemClickListener((parent, view, position, id) -> {
             String selectedService = (String) parent.getItemAtPosition(position);
@@ -135,6 +133,12 @@ public class MainActivity extends AppCompatActivity {
         };
         masterPassword.addTextChangedListener(passwordTextWatcher);
         repeatPassword.addTextChangedListener(passwordTextWatcher);
+    }
+
+    private void updateServiceSuggestions() {
+        String[] all_services = getAllServiceNames();
+        ArrayAdapter<String> serviceAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, all_services);
+        service.setAdapter(serviceAdapter);
     }
 
     private void loadServiceEntry(String serviceName) {
@@ -230,6 +234,7 @@ public class MainActivity extends AppCompatActivity {
             handler.post(() -> {
                 // UI work
                 progressDialog.dismiss();
+                updateServiceSuggestions();
 
                 // Show password in dialog
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
