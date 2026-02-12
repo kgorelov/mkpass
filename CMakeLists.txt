@@ -114,6 +114,10 @@ if(WITH_GUI)
   target_link_libraries(mkpass PRIVATE gui_part)
 endif()
 
+if (MSVC)
+    target_sources(mkpass PRIVATE mkpass.rc)
+endif()
+
 ################################################################################
 # Testing support
 ################################################################################
@@ -158,3 +162,21 @@ target_link_libraries(e2e_tests
   GTest::Main
 )
 gtest_discover_tests(e2e_tests)
+
+if(UNIX AND NOT APPLE)
+    include(GNUInstallDirs)
+
+    install(
+        TARGETS mkpass
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+    install(
+        FILES icons/mkpass_256.png
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/256x256/apps
+        RENAME mkpass.png
+    )
+    install(
+        FILES mkpass.desktop
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/applications
+    )
+endif()
