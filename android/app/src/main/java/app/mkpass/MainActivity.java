@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
     private SeekBar lengthSeekBar;
     private TextView lengthValue;
     private Button generateButton;
-    private ProgressBar progressBar;
+    private AlertDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,7 +77,6 @@ public class MainActivity extends AppCompatActivity {
         lengthSeekBar = findViewById(R.id.lengthSeekBar);
         lengthValue = findViewById(R.id.lengthValue);
         generateButton = findViewById(R.id.generateButton);
-        progressBar = findViewById(R.id.progressBar);
 
         // Setup Algorithm Spinner
         ArrayAdapter<CharSequence> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new String[]{"Argon2", "SlowSha512", "Old"});
@@ -193,7 +192,12 @@ public class MainActivity extends AppCompatActivity {
         }
 
         generateButton.setEnabled(false);
-        progressBar.setVisibility(View.VISIBLE);
+
+        AlertDialog.Builder progressBuilder = new AlertDialog.Builder(this);
+        progressBuilder.setView(getLayoutInflater().inflate(R.layout.dialog_progress, null));
+        progressBuilder.setCancelable(false);
+        progressDialog = progressBuilder.create();
+        progressDialog.show();
 
         executor.execute(() -> {
             // Background work
@@ -212,7 +216,10 @@ public class MainActivity extends AppCompatActivity {
                 customCharsStr = customChars.getText().toString();
             }
 
-            int[] charClassesArray = charClasses.stream().mapToInt(i->i).toArray();
+            int[] charClassesArray = new int[charClasses.size()];
+            for (int i = 0; i < charClasses.size(); i++) {
+                charClassesArray[i] = charClasses.get(i);
+            }
 
             String generatedPassword = generatePasswordNative(masterPwd, serviceName, algorithm, length, charClassesArray, customCharsStr);
 
@@ -222,7 +229,7 @@ public class MainActivity extends AppCompatActivity {
             // Post result to UI thread
             handler.post(() -> {
                 // UI work
-                progressBar.setVisibility(View.GONE);
+                progressDialog.dismiss();
 
                 // Show password in dialog
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
