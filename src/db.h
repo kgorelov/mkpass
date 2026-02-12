@@ -24,7 +24,6 @@ struct ServiceEntry {
 
 class ConfigDB {
 public:
-    ConfigDB();
     ConfigDB(const std::string &db_path);
     ~ConfigDB();
 

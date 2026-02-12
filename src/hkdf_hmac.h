@@ -5,7 +5,7 @@
 #include <span>
 #include <cstdint>
 
-template <HashCalculator C>
+HASH_CALCULATOR_TEMPLATE
 struct HKDF_HMAC {
     using value_type = typename C::value_type;
 

@@ -3,6 +3,7 @@
 #include "context.h"
 #include "character_classes.h"
 #include "db.h"
+#include "platform_utils.h"
 #include "password_dialog.h"
 
 #include <QVBoxLayout>
@@ -29,7 +30,7 @@ MainWindow::MainWindow(QWidget *parent)
     generationWatcher = new QFutureWatcher<std::string>(this);
     connect(generationWatcher, &QFutureWatcher<std::string>::finished, this, &MainWindow::generationFinished);
 
-    mkpass::ConfigDB db;
+    mkpass::ConfigDB db(GetConfigDBPath());
     QStringList services;
     for (const auto& service : db.get_all_service_names()) {
         services << QString::fromStdString(service);
@@ -164,7 +165,7 @@ void MainWindow::generationFinished() {
     statusBar()->showMessage("Generated.");
     generateButton->setEnabled(true);
 
-    mkpass::ConfigDB db;
+    mkpass::ConfigDB db(GetConfigDBPath());
     std::vector<CharacterClass> char_classes;
     if (lowerCaseCheckBox->isChecked()) char_classes.push_back(CharacterClass::LOWERCASE);
     if (upperCaseCheckBox->isChecked()) char_classes.push_back(CharacterClass::UPPERCASE);
@@ -187,7 +188,7 @@ void MainWindow::generationFinished() {
 }
 
 void MainWindow::serviceChanged(const QString &service) {
-    mkpass::ConfigDB db;
+    mkpass::ConfigDB db(GetConfigDBPath());
     auto entry = db.get_service_entry(service.toStdString());
     if (entry) {
         int index = algorithmComboBox->findData(static_cast<int>(entry->algorithm));

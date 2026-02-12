@@ -5,8 +5,12 @@
 #include <string>
 #include <array>
 #include <cstdint>
+#include <concepts>
 
 
+#include "platform_defs.h"
+
+#if MKPASS_USE_CONCEPTS
 template<typename T>
 concept HashCalculator =
 requires {
@@ -34,9 +38,13 @@ requires(T h, std::span<const uint8_t> s) {
     { h.Finalize() } -> std::same_as<typename T::value_type>;
 };
 
+#define HASH_CALCULATOR_TEMPLATE template<HashCalculator C>
+#else
+#define HASH_CALCULATOR_TEMPLATE template<typename C>
+#endif
 
-template<HashCalculator C>
-C::value_type CalcHash(std::span<const uint8_t> inp) {
+HASH_CALCULATOR_TEMPLATE
+typename C::value_type CalcHash(std::span<const uint8_t> inp) {
     C calculator;
     calculator.Update(inp);
     return calculator.Finalize();

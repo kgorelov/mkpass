@@ -3,8 +3,8 @@
 #include "digest.h"
 
 // HMAC(key, msg) = H((key ⊕ opad) || H((key ⊕ ipad) || msg))
-template <HashCalculator C>
-C::value_type HMAC(
+HASH_CALCULATOR_TEMPLATE
+typename C::value_type HMAC(
     std::span<const uint8_t> key,
     std::span<const uint8_t> message) {
     constexpr auto block_size = C::block_size();
