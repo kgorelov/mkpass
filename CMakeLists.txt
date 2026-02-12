@@ -29,6 +29,7 @@ else()
     SET(CMAKE_CXX_FLAGS_DEBUG "-g")
 endif()
 
+
 # Link external OpenSSL only when cmake -DOPENSSL_SHA512=ON
 if(OPENSSL_SHA512)
   find_package(OpenSSL REQUIRED)
@@ -38,10 +39,17 @@ if(OPENSSL_SHA512)
   )
 endif()
 
+
+# Prefer static linking
 set(BUILD_SHARED_LIBS OFF)   # Prefer static libs globally
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")  # Only static
-find_package(SQLite3 REQUIRED)
-target_link_libraries(cpp_part PRIVATE SQLite::SQLite3)
+
+
+# SQLite3 library
+add_library(sqlite3 STATIC src/sqlite3/sqlite3.c)
+target_include_directories(sqlite3 PUBLIC src/sqlite3)
+target_link_libraries(cpp_part PRIVATE sqlite3)
+
 
 # Linenoise-ng library
 add_library(linenoise STATIC src/linenoise-ng/linenoise.cpp src/linenoise-ng/ConvertUTF.cpp src/linenoise-ng/wcwidth.cpp)
