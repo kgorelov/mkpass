@@ -18,6 +18,7 @@
 #include <QStatusBar>
 #include <QApplication>
 #include <QClipboard>
+#include <QIcon>
 #include <QtConcurrent/QtConcurrent>
 #include <QFuture>
 #include <QFutureWatcher>
@@ -291,6 +292,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
 
 int run_gui(int argc, char *argv[]) {
     QApplication app(argc, argv);
+    app.setWindowIcon(QIcon(":/app_icon"));
     MainWindow win;
     win.show();
     return app.exec();

@@ -29,6 +29,7 @@ else()
     SET(CMAKE_CXX_FLAGS_DEBUG "-g")
 endif()
 
+
 # Link external OpenSSL only when cmake -DOPENSSL_SHA512=ON
 if(OPENSSL_SHA512)
   find_package(OpenSSL REQUIRED)
@@ -38,10 +39,17 @@ if(OPENSSL_SHA512)
   )
 endif()
 
+
+# Prefer static linking
 set(BUILD_SHARED_LIBS OFF)   # Prefer static libs globally
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")  # Only static
-find_package(SQLite3 REQUIRED)
-target_link_libraries(cpp_part PRIVATE SQLite::SQLite3)
+
+
+# SQLite3 library
+add_library(sqlite3 STATIC src/sqlite3/sqlite3.c)
+target_include_directories(sqlite3 PUBLIC src/sqlite3)
+target_link_libraries(cpp_part PRIVATE sqlite3)
+
 
 # Linenoise-ng library
 add_library(linenoise STATIC src/linenoise-ng/linenoise.cpp src/linenoise-ng/ConvertUTF.cpp src/linenoise-ng/wcwidth.cpp)
@@ -70,22 +78,29 @@ add_library(argon2 STATIC ${ARGON2_SOURCES})
 
 add_executable(mkpass src/main.cpp)
 if(WITH_GUI)
-  # set(OPENGL_opengl_LIBRARY "/usr/lib/x86_64-linux-gnu/libGL.so")
-  # set(OPENGL_glx_LIBRARY "/usr/lib/x86_64-linux-gnu/libGLX.so")
-  # set(QT_QPA_DEFAULT_PLATFORM eglfs)
-  # set(OpenGL_GL_PREFERENCE GLVND)
-  # find_package(Qt6 REQUIRED COMPONENTS Widgets Concurrent)
-  find_package(Qt5 REQUIRED COMPONENTS Widgets Concurrent)
+  set(MKPASS_QT_VERSION 5 CACHE STRING "Qt version to use (5 or 6)")
+  set_property(CACHE MKPASS_QT_VERSION PROPERTY STRINGS 5 6)
+
   set(GUI_SOURCES
     src/gui.cpp
     src/password_dialog.cpp
     src/qrcode/qrcodegen.cpp
   )
-  qt5_add_resources(GUI_SOURCES src/icons.qrc)
+
+  if (MKPASS_QT_VERSION EQUAL 6)
+    find_package(Qt6 REQUIRED COMPONENTS Widgets Concurrent)
+    qt_add_resources(GUI_SOURCES src/icons.qrc)
+    set(QT_LIBRARIES Qt6::Widgets Qt6::Concurrent)
+  elseif (MKPASS_QT_VERSION EQUAL 5)
+    find_package(Qt5 REQUIRED COMPONENTS Widgets Concurrent)
+    qt5_add_resources(GUI_SOURCES src/icons.qrc)
+    set(QT_LIBRARIES Qt5::Widgets Qt5::Concurrent)
+  else()
+    message(FATAL_ERROR "Unsupported Qt version: ${MKPASS_QT_VERSION}. Please use 5 or 6.")
+  endif()
+
   add_library(gui_part STATIC ${GUI_SOURCES})
-  #target_link_libraries(gui_part PUBLIC Qt6::Widgets)
-  # target_link_libraries(gui_part PRIVATE Qt5::Widgets Qt5::Concurrent)
-  target_link_libraries(gui_part PUBLIC Qt5::Widgets Qt5::Concurrent)
+  target_link_libraries(gui_part PUBLIC ${QT_LIBRARIES})
   target_include_directories(gui_part PUBLIC src src/qrcode)
   target_compile_definitions(mkpass PRIVATE WITH_GUI)
 endif()
@@ -104,6 +119,10 @@ target_link_libraries(mkpass PRIVATE
 )
 if(WITH_GUI)
   target_link_libraries(mkpass PRIVATE gui_part)
+endif()
+
+if (MSVC)
+    target_sources(mkpass PRIVATE mkpass.rc)
 endif()
 
 ################################################################################
@@ -150,3 +169,21 @@ target_link_libraries(e2e_tests
   GTest::Main
 )
 gtest_discover_tests(e2e_tests)
+
+if(UNIX AND NOT APPLE)
+    include(GNUInstallDirs)
+
+    install(
+        TARGETS mkpass
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+    install(
+        FILES icons/mkpass_256.png
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/256x256/apps
+        RENAME mkpass.png
+    )
+    install(
+        FILES mkpass.desktop
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/applications
+    )
+endif()
