@@ -138,6 +138,9 @@ void completion(const char *buf, linenoiseCompletions *lc) {
 int run_tui_safe() {
     try {
         return run_tui();
+    } catch (const std::runtime_error &e) {
+        std::cerr << "ERROR! " << e.what() << std::endl;
+        return 1;
     } catch (const std::exception &e) {
         // This happens on Ctrl+C
         return 130;
