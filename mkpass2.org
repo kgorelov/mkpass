@@ -8,22 +8,22 @@
   - [X] generator
   - [X] uniform distribution
   - [X] composer
-** TODO Cli interface
+** DONE Cli interface
   - [X] read user input
   - [X] options class
   - [ ] minimal cmd line options parser
   - [ ] support env variables
-** TODO Refactor and Passphrase composer
 ** DONE Consider using a slow hash function
 The problem with using sha512 is that it's too fast to compute.
 If a resulting password is easy and quick to check then a proxy attack becomes possible, either brute force or dictionary based.
 If the master password is found, all passwords derived from that master password are compromised.
 
 ** DONE Database support
-** Documentation
-** Support for the old algorithm?
-** QT UI
-** Android Support
-** Windows version
-** Mac version
+** DONE Support for the old algorithm?
+** DONE QT UI
+** DONE Android Support
+** DONE Windows version
+** TODO Documentation
+** TODO Passphrase composer
 ** Web version (WebAssembly)
+** Mac version
