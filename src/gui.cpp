@@ -5,6 +5,7 @@
 #include "db.h"
 #include "platform_utils.h"
 #include "password_dialog.h"
+#include "progress_dialog.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -138,7 +139,9 @@ void MainWindow::setupUI() {
 
 void MainWindow::generatePassword() {
     generateButton->setEnabled(false);
-    statusBar()->showMessage("Generating... Please wait.");
+
+    progressDialog = new ProgressDialog(this);
+    progressDialog->show();
 
     Context ctx;
     ctx.password = masterPasswordLineEdit->text().toStdString();
@@ -160,6 +163,9 @@ void MainWindow::generatePassword() {
 }
 
 void MainWindow::generationFinished() {
+    progressDialog->close();
+    delete progressDialog;
+
     generatedPassword = generationWatcher->result();
     PasswordDialog dialog(QString::fromStdString(generatedPassword), this);
     dialog.exec();

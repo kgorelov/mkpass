@@ -10,6 +10,7 @@ class QSpinBox;
 class QPushButton;
 class QComboBox;
 class QGroupBox;
+class ProgressDialog;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -48,6 +49,7 @@ private:
 
     QFutureWatcher<std::string> *generationWatcher;
     std::string generatedPassword;
+    ProgressDialog *progressDialog;
 };
 
 int run_gui(int argc, char *argv[]);

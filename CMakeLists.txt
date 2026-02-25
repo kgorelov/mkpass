@@ -84,6 +84,7 @@ if(WITH_GUI)
   set(GUI_SOURCES
     src/gui.cpp
     src/password_dialog.cpp
+    src/progress_dialog.cpp
     src/qrcode/qrcodegen.cpp
   )
 
