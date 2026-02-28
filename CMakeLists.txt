@@ -137,8 +137,10 @@ set(TEST_SOURCES
   src/uniform_ut.cpp
   src/compose_ut.cpp
   src/hkdf_argon2_ut.cpp
-  src/db_ut.cpp
 )
+if (NOT MSVC)
+  list(APPEND TEST_SOURCES src/db_ut.cpp)
+endif()
 find_package(GTest REQUIRED)
 add_executable(mkpass_tests ${TEST_SOURCES})
 if (MSVC)
