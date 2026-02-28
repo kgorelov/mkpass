@@ -103,7 +103,17 @@ if(WITH_GUI)
   add_library(gui_part STATIC ${GUI_SOURCES})
   target_link_libraries(gui_part PUBLIC ${QT_LIBRARIES})
   target_include_directories(gui_part PUBLIC src src/qrcode)
-  target_compile_definitions(mkpass PRIVATE WITH_GUI)
+
+  if (MSVC)
+    add_executable(mkpass-gui WIN32 src/main_gui.cpp)
+  else()
+    add_executable(mkpass-gui src/main_gui.cpp)
+  endif()
+  target_compile_definitions(mkpass-gui PRIVATE WITH_GUI)
+  target_link_libraries(mkpass-gui PRIVATE gui_part cpp_part sha512 argon2 linenoise)
+  if (MSVC)
+    target_sources(mkpass-gui PRIVATE mkpass.rc)
+  endif()
 endif()
 
 if (MSVC)
@@ -118,9 +128,8 @@ target_link_libraries(mkpass PRIVATE
   argon2
   linenoise
 )
-if(WITH_GUI)
-  target_link_libraries(mkpass PRIVATE gui_part)
-endif()
+
+
 
 if (MSVC)
     target_sources(mkpass PRIVATE mkpass.rc)
