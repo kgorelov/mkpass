@@ -175,7 +175,6 @@ Java_app_mkpass_MainActivity_generatePasswordNative(JNIEnv *env, jobject /* this
         .service = jstringToString(env, service),
         .char_classes = cc_vec,
         .algorithm = static_cast<Algorithm>(algorithm),
-        .is_gui = true,
         .length = static_cast<unsigned>(length),
         .custom_chars = custom_chars_opt
     };

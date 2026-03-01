@@ -14,8 +14,6 @@ struct Context {
     std::vector<CharacterClass> char_classes;
     Algorithm algorithm = Algorithm::Argon2;
 
-    bool is_gui = false;
-    //std::optional<unsigned> length;
     unsigned length = 0;
     std::optional<std::string> custom_chars;
 };

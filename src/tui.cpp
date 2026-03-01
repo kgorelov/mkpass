@@ -244,7 +244,6 @@ int run_tui() {
         .service = service,
         .char_classes = char_classes,
         .algorithm = algorithm,
-        .is_gui = false,
         .length = length,
         .custom_chars = custom_chars
     };
