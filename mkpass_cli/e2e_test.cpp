@@ -105,8 +105,9 @@ void trim(std::string &s) {
 
 
 TEST(E2ETest, SimpleTest) {
+    std::cout << "MKPASS_EXECUTABLE_PATH: " << MKPASS_EXECUTABLE_PATH << std::endl;
     std::string input = "master_password\nmaster_password\nservice_name\n1\n1234\n16\n";
-    ProcessOutput output = exec_with_input("./mkpass", input);
+    ProcessOutput output = exec_with_input(MKPASS_EXECUTABLE_PATH, input);
     trim(output.std_out);
     EXPECT_EQ(output.exit_code, 0);
     EXPECT_EQ(output.std_out.length(), 16);
@@ -128,7 +129,7 @@ TEST(E2ETest, DatabasePath) {
     sqlite3_close(db);
 
     std::string input = "master_password\nmaster_password\ngit\t\t\n1\n1234\n16\n";
-    ProcessOutput output = exec_with_input("./mkpass", input);
+    ProcessOutput output = exec_with_input(MKPASS_EXECUTABLE_PATH, input);
     trim(output.std_out);
     EXPECT_EQ(output.exit_code, 0);
     EXPECT_EQ(output.std_out.length(), 16);
@@ -153,7 +154,7 @@ TEST(E2ETest, DatabasePathWithUsernames) {
     sqlite3_close(db);
 
     std::string input = "master_password\nmaster_password\nuser@git\t\t\n1\n1234\n20\n";
-    ProcessOutput output = exec_with_input("./mkpass", input);
+    ProcessOutput output = exec_with_input(MKPASS_EXECUTABLE_PATH, input);
     trim(output.std_out);
     EXPECT_EQ(output.exit_code, 0);
     EXPECT_EQ(output.std_out.length(), 20);
@@ -179,7 +180,7 @@ TEST(E2ETest, AutocompleteOldSnames) {
     sqlite3_close(db);
 
     std::string input = "master_password\nmaster_password\nuser@\t\t\n1\n1234\n20\n";
-    ProcessOutput output = exec_with_input("./mkpass", input);
+    ProcessOutput output = exec_with_input(MKPASS_EXECUTABLE_PATH, input);
     trim(output.std_out);
     EXPECT_EQ(output.exit_code, 0);
     EXPECT_EQ(output.std_out.length(), 20);
@@ -190,7 +191,7 @@ TEST(E2ETest, AutocompleteOldSnames) {
 
 TEST(E2ETest, CtrlCAtServiceName) {
     std::string input = "master_password\nmaster_password\n\x03";
-    ProcessOutput output = exec_with_input("./mkpass", input);
+    ProcessOutput output = exec_with_input(MKPASS_EXECUTABLE_PATH, input);
     EXPECT_EQ(output.exit_code, 130);
 }
 
@@ -200,7 +201,7 @@ TEST(E2EServiceEntriesTest, DatabaseUpdate) {
     remove(db_path);
 
     std::string input = "master_password\nmaster_password\nnew_service.com\n1\n1234\n24\n";
-    ProcessOutput output = exec_with_input("./mkpass", input);
+    ProcessOutput output = exec_with_input(MKPASS_EXECUTABLE_PATH, input);
     trim(output.std_out);
     EXPECT_EQ(output.exit_code, 0);
     EXPECT_EQ(output.std_out.length(), 24);
@@ -249,7 +250,7 @@ TEST(E2EServiceEntriesTest, AutocompleteNewServiceEntries) {
     std::string input = "master_password\nmaster_password\ngithub.com\n\n\n\n";
     // TODO FIXME autocompletion by TAB doesn't work in the testcase for some reason
     // std::string input = "master_password\nmaster_password\ngithub\t\n\n\n\n";
-    ProcessOutput output = exec_with_input("./mkpass", input);
+    ProcessOutput output = exec_with_input(MKPASS_EXECUTABLE_PATH, input);
     trim(output.std_out);
     EXPECT_EQ(output.exit_code, 0);
     EXPECT_EQ(output.std_out.length(), 10);

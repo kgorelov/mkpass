@@ -2,7 +2,7 @@
 Version=1.0
 Name=mkpass
 Comment=Password generator
-Exec=mkpass gui
+Exec=mkpass-gui
 Icon=mkpass
 Terminal=false
 Type=Application

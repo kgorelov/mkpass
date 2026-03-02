@@ -8,11 +8,12 @@
   - [X] generator
   - [X] uniform distribution
   - [X] composer
-** DONE Cli interface
+** TODO Cli interface
   - [X] read user input
   - [X] options class
   - [ ] minimal cmd line options parser
   - [ ] support env variables
+  - [ ] interactive mode: enter master password once, stay in the loop
 ** DONE Consider using a slow hash function
 The problem with using sha512 is that it's too fast to compute.
 If a resulting password is easy and quick to check then a proxy attack becomes possible, either brute force or dictionary based.
