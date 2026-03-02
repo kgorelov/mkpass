@@ -18,10 +18,6 @@ target_link_libraries(mkpass PRIVATE
   linenoise
 )
 
-if (MSVC)
-    target_sources(mkpass PRIVATE ../mkpass.rc)
-endif()
-
 if (NOT MSVC)
   find_package(GTest REQUIRED)
   add_executable(e2e_tests e2e_test.cpp)
