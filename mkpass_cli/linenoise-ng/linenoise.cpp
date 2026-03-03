@@ -191,7 +191,7 @@ class WinAttributes {
  public:
   WinAttributes() {
     CONSOLE_SCREEN_BUFFER_INFO info;
-    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info);
+    GetConsoleScreenBufferInfo(GetStdHandle(STD_ERROR_HANDLE), &info);
     _defaultAttribute = info.wAttributes & INTENSITY;
     _defaultColor = info.wAttributes & FOREGROUND_WHITE;
     _defaultBackground = info.wAttributes & BACKGROUND_WHITE;
@@ -285,7 +285,7 @@ static size_t OutputWin(char16_t* text16, char32_t* text32, size_t len32) {
   size_t count16 = 0;
 
   copyString32to16(text16, len32, &count16, text32, len32);
-  WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE), text16,
+  WriteConsoleW(GetStdHandle(STD_ERROR_HANDLE), text16,
                 static_cast<DWORD>(count16), nullptr, nullptr);
 
   return count16;
@@ -367,7 +367,7 @@ static char32_t* HandleEsc(char32_t* p, char32_t* end) {
     ++p;
   }
 
-  auto handle = GetStdHandle(STD_OUTPUT_HANDLE);
+  auto handle = GetStdHandle(STD_ERROR_HANDLE);
   SetConsoleTextAttribute(handle,
                           WIN_ATTR._consoleAttribute | WIN_ATTR._consoleColor);
 
@@ -627,7 +627,7 @@ struct PromptBase {            // a convenience struct for grouping prompt info
   PromptBase() : promptPreviousInputLen(0) {}
 
   bool write() {
-    if (write32(1, promptText.get(), promptBytes) == -1) return false;
+    if (write32(2, promptText.get(), promptBytes) == -1) return false;
 
     return true;
   }
@@ -648,7 +648,7 @@ struct PromptInfo : public PromptBase {
     int len = 0;
     int x = 0;
 
-    bool const strip = (isatty(1) == 0);
+    bool const strip = (isatty(2) == 0);
 
     while (*pIn) {
       char32_t c = *pIn;
@@ -984,7 +984,7 @@ static int enableRawMode(void) {
 #ifdef _WIN32
   if (!console_in) {
     console_in = GetStdHandle(STD_INPUT_HANDLE);
-    console_out = GetStdHandle(STD_OUTPUT_HANDLE);
+    console_out = GetStdHandle(STD_ERROR_HANDLE);
 
     GetConsoleMode(console_in, &oldMode);
     SetConsoleMode(console_in, oldMode &
@@ -1048,11 +1048,11 @@ static int getScreenColumns(void) {
   int cols;
 #ifdef _WIN32
   CONSOLE_SCREEN_BUFFER_INFO inf;
-  GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &inf);
+  GetConsoleScreenBufferInfo(GetStdHandle(STD_ERROR_HANDLE), &inf);
   cols = inf.dwSize.X;
 #else
   struct winsize ws;
-  cols = (ioctl(1, TIOCGWINSZ, &ws) == -1) ? 80 : ws.ws_col;
+  cols = (ioctl(2, TIOCGWINSZ, &ws) == -1) ? 80 : ws.ws_col;
 #endif
   // cols is 0 in certain circumstances like inside debugger, which creates
   // further issues
@@ -1063,11 +1063,11 @@ static int getScreenRows(void) {
   int rows;
 #ifdef _WIN32
   CONSOLE_SCREEN_BUFFER_INFO inf;
-  GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &inf);
+  GetConsoleScreenBufferInfo(GetStdHandle(STD_ERROR_HANDLE), &inf);
   rows = 1 + inf.srWindow.Bottom - inf.srWindow.Top;
 #else
   struct winsize ws;
-  rows = (ioctl(1, TIOCGWINSZ, &ws) == -1) ? 24 : ws.ws_row;
+  rows = (ioctl(2, TIOCGWINSZ, &ws) == -1) ? 24 : ws.ws_row;
 #endif
   return (rows > 0) ? rows : 24;
 }
@@ -1102,10 +1102,10 @@ static void setDisplayAttribute(bool enhancedDisplay, bool error) {
 #else
   if (enhancedDisplay) {
     char const* p = (error ? "\x1b[1;31m" : "\x1b[1;34m");
-    if (write(1, p, 7) == -1)
+    if (write(2, p, 7) == -1)
       return; /* bright blue (visible with both B&W bg) */
   } else {
-    if (write(1, "\x1b[0m", 4) == -1) return; /* reset */
+    if (write(2, "\x1b[0m", 4) == -1) return; /* reset */
   }
 #endif
 }
@@ -1156,7 +1156,7 @@ static void dynamicRefresh(PromptBase& pi, char32_t* buf32, int len, int pos) {
   if (!pi.write()) return;
 
   // display the input line
-  if (write32(1, buf32, len) == -1) return;
+  if (write32(2, buf32, len) == -1) return;
 
   // position the cursor
   GetConsoleScreenBufferInfo(console_out, &inf);
@@ -1168,31 +1168,31 @@ static void dynamicRefresh(PromptBase& pi, char32_t* buf32, int len, int pos) {
   int cursorRowMovement = pi.promptCursorRowOffset - pi.promptExtraLines;
   if (cursorRowMovement > 0) {  // move the cursor up as required
     snprintf(seq, sizeof seq, "\x1b[%dA", cursorRowMovement);
-    if (write(1, seq, strlen(seq)) == -1) return;
+    if (write(2, seq, strlen(seq)) == -1) return;
   }
   // position at the start of the prompt, clear to end of screen
   snprintf(seq, sizeof seq, "\x1b[1G\x1b[J");  // 1-based on VT100
-  if (write(1, seq, strlen(seq)) == -1) return;
+  if (write(2, seq, strlen(seq)) == -1) return;
 
   // display the prompt
   if (!pi.write()) return;
 
   // display the input line
-  if (write32(1, buf32, len) == -1) return;
+  if (write32(2, buf32, len) == -1) return;
 
   // we have to generate our own newline on line wrap
   if (xEndOfInput == 0 && yEndOfInput > 0)
-    if (write(1, "\n", 1) == -1) return;
+    if (write(2, "\n", 1) == -1) return;
 
   // position the cursor
   cursorRowMovement = yEndOfInput - yCursorPos;
   if (cursorRowMovement > 0) {  // move the cursor up as required
     snprintf(seq, sizeof seq, "\x1b[%dA", cursorRowMovement);
-    if (write(1, seq, strlen(seq)) == -1) return;
+    if (write(2, seq, strlen(seq)) == -1) return;
   }
   // position the cursor within the line
   snprintf(seq, sizeof seq, "\x1b[%dG", xCursorPos + 1);  // 1-based on VT100
-  if (write(1, seq, strlen(seq)) == -1) return;
+  if (write(2, seq, strlen(seq)) == -1) return;
 #endif
 
   pi.promptCursorRowOffset =
@@ -1297,13 +1297,13 @@ void InputBuffer::refreshLine(PromptBase& pi) {
 
   // display the input line
   if (highlight == -1) {
-    if (write32(1, buf32, len) == -1) return;
+    if (write32(2, buf32, len) == -1) return;
   } else {
-    if (write32(1, buf32, highlight) == -1) return;
+    if (write32(2, buf32, highlight) == -1) return;
     setDisplayAttribute(true, indicateError); /* bright blue (visible with both B&W bg) */
-    if (write32(1, &buf32[highlight], 1) == -1) return;
+    if (write32(2, &buf32[highlight], 1) == -1) return;
     setDisplayAttribute(false, indicateError);
-    if (write32(1, buf32 + highlight + 1, len - highlight - 1) == -1) return;
+    if (write32(2, buf32 + highlight + 1, len - highlight - 1) == -1) return;
   }
 
   // position the cursor
@@ -1316,36 +1316,36 @@ void InputBuffer::refreshLine(PromptBase& pi) {
   int cursorRowMovement = pi.promptCursorRowOffset - pi.promptExtraLines;
   if (cursorRowMovement > 0) {  // move the cursor up as required
     snprintf(seq, sizeof seq, "\x1b[%dA", cursorRowMovement);
-    if (write(1, seq, strlen(seq)) == -1) return;
+    if (write(2, seq, strlen(seq)) == -1) return;
   }
   // position at the end of the prompt, clear to end of screen
   snprintf(seq, sizeof seq, "\x1b[%dG\x1b[J",
            pi.promptIndentation + 1);  // 1-based on VT100
-  if (write(1, seq, strlen(seq)) == -1) return;
+  if (write(2, seq, strlen(seq)) == -1) return;
 
   if (highlight == -1) {  // write unhighlighted text
-    if (write32(1, buf32, len) == -1) return;
+    if (write32(2, buf32, len) == -1) return;
   } else {  // highlight the matching brace/bracket/parenthesis
-    if (write32(1, buf32, highlight) == -1) return;
+    if (write32(2, buf32, highlight) == -1) return;
     setDisplayAttribute(true, indicateError);
-    if (write32(1, &buf32[highlight], 1) == -1) return;
+    if (write32(2, &buf32[highlight], 1) == -1) return;
     setDisplayAttribute(false, indicateError);
-    if (write32(1, buf32 + highlight + 1, len - highlight - 1) == -1) return;
+    if (write32(2, buf32 + highlight + 1, len - highlight - 1) == -1) return;
   }
 
   // we have to generate our own newline on line wrap
   if (xEndOfInput == 0 && yEndOfInput > 0)
-    if (write(1, "\n", 1) == -1) return;
+    if (write(2, "\n", 1) == -1) return;
 
   // position the cursor
   cursorRowMovement = yEndOfInput - yCursorPos;
   if (cursorRowMovement > 0) {  // move the cursor up as required
     snprintf(seq, sizeof seq, "\x1b[%dA", cursorRowMovement);
-    if (write(1, seq, strlen(seq)) == -1) return;
+    if (write(2, seq, strlen(seq)) == -1) return;
   }
   // position the cursor within the line
   snprintf(seq, sizeof seq, "\x1b[%dG", xCursorPos + 1);  // 1-based on VT100
-  if (write(1, seq, strlen(seq)) == -1) return;
+  if (write(2, seq, strlen(seq)) == -1) return;
 #endif
 
   pi.promptCursorRowOffset =
@@ -1842,7 +1842,7 @@ static char32_t linenoiseReadChar(void) {
 #if defined(_DEBUG_LINUX_KEYBOARD)
   if (c == ctrlChar('^')) {  // ctrl-^, special debug mode, prints all keys hit,
                              // ctrl-C to get out
-    printf(
+    fprintf(stderr,
         "\nEntering keyboard debugging mode (on ctrl-^), press ctrl-C to exit "
         "this mode\n");
     while (true) {
@@ -1850,7 +1850,7 @@ static char32_t linenoiseReadChar(void) {
       int ret = read(0, keys, 10);
 
       if (ret <= 0) {
-        printf("\nret: %d\n", ret);
+        fprintf(stderr, "\nret: %d\n", ret);
       }
       for (int i = 0; i < ret; ++i) {
         char32_t key = static_cast<char32_t>(keys[i]);
@@ -1878,14 +1878,14 @@ static char32_t linenoiseReadChar(void) {
           friendlyTextBuf[2] = 0;
           friendlyTextPtr = friendlyTextBuf;
         }
-        printf("%d x%02X (%s%s)  ", key, key, prefixText, friendlyTextPtr);
+        fprintf(stderr, "%d x%02X (%s%s)  ", key, key, prefixText, friendlyTextPtr);
       }
-      printf("\x1b[1G\n");  // go to first column of new line
+      fprintf(stderr, "\x1b[1G\n");  // go to first column of new line
 
       // drop out of this loop on ctrl-C
       if (keys[0] == ctrlChar('C')) {
-        printf("Leaving keyboard debugging mode (on ctrl-C)\n");
-        fflush(stdout);
+        fprintf(stderr, "Leaving keyboard debugging mode (on ctrl-C)\n");
+        fflush(stderr);
         return -2;
       }
     }
@@ -2046,9 +2046,9 @@ int InputBuffer::completeLine(PromptBase& pi) {
     pos = len;
     refreshLine(pi);
     pos = savePos;
-    printf("\nDisplay all %u possibilities? (y or n)",
+    fprintf(stderr, "\nDisplay all %u possibilities? (y or n)",
            static_cast<unsigned int>(lc.completionStrings.size()));
-    fflush(stdout);
+    fflush(stderr);
     onNewLine = true;
     while (c != 'y' && c != 'Y' && c != 'n' && c != 'N' && c != ctrlChar('C')) {
       do {
@@ -2065,7 +2065,7 @@ int InputBuffer::completeLine(PromptBase& pi) {
       case ctrlChar('C'):
         showCompletions = false;
         freeCompletions(&lc);
-        if (write(1, "^C", 2) == -1) return -1;  // Display the ^C we got
+        if (write(2, "^C", 2) == -1) return -1;  // Display the ^C we got
         c = 0;
         break;
     }
@@ -2098,8 +2098,8 @@ int InputBuffer::completeLine(PromptBase& pi) {
         (lc.completionStrings.size() + columnCount - 1) / columnCount;
     for (size_t row = 0; row < rowCount; ++row) {
       if (row == pauseRow) {
-        printf("\n--More--");
-        fflush(stdout);
+        fprintf(stderr, "\n--More--");
+        fflush(stderr);
         c = 0;
         bool doBeep = false;
         while (c != ' ' && c != '\r' && c != '\n' && c != 'y' && c != 'Y' &&
@@ -2118,28 +2118,28 @@ int InputBuffer::completeLine(PromptBase& pi) {
           case ' ':
           case 'y':
           case 'Y':
-            printf("\r        \r");
+            fprintf(stderr, "\r        \r");
             pauseRow += getScreenRows() - 1;
             break;
           case '\r':
           case '\n':
-            printf("\r        \r");
+            fprintf(stderr, "\r        \r");
             ++pauseRow;
             break;
           case 'n':
           case 'N':
           case 'q':
           case 'Q':
-            printf("\r        \r");
+            fprintf(stderr, "\r        \r");
             stopList = true;
             break;
           case ctrlChar('C'):
-            if (write(1, "^C", 2) == -1) return -1;  // Display the ^C we got
+            if (write(2, "^C", 2) == -1) return -1;  // Display the ^C we got
             stopList = true;
             break;
         }
       } else {
-        printf("\n");
+        fprintf(stderr, "\n");
       }
       if (stopList) {
         break;
@@ -2148,30 +2148,30 @@ int InputBuffer::completeLine(PromptBase& pi) {
         size_t index = (column * rowCount) + row;
         if (index < lc.completionStrings.size()) {
           itemLength = static_cast<int>(lc.completionStrings[index].length());
-          fflush(stdout);
-          if (write32(1, lc.completionStrings[index].get(), itemLength) == -1)
+          fflush(stderr);
+          if (write32(2, lc.completionStrings[index].get(), itemLength) == -1)
             return -1;
           if (((column + 1) * rowCount) + row < lc.completionStrings.size()) {
             for (int k = itemLength; k < longestCompletion; ++k) {
-              printf(" ");
+              fprintf(stderr, " ");
             }
           }
         }
       }
     }
-    fflush(stdout);
+    fflush(stderr);
     freeCompletions(&lc);
   }
 
   // display the prompt on a new line, then redisplay the input buffer
   if (!stopList || c == ctrlChar('C')) {
-    if (write(1, "\n", 1) == -1) return 0;
+    if (write(2, "\n", 1) == -1) return 0;
   }
   if (!pi.write()) return 0;
 #ifndef _WIN32
   // we have to generate our own newline on line wrap on Linux
   if (pi.promptIndentation == 0 && pi.promptExtraLines > 0)
-    if (write(1, "\n", 1) == -1) return 0;
+    if (write(2, "\n", 1) == -1) return 0;
 #endif
   pi.promptCursorRowOffset = pi.promptExtraLines;
   refreshLine(pi);
@@ -2185,14 +2185,14 @@ void linenoiseClearScreen(void) {
 #ifdef _WIN32
   COORD coord = {0, 0};
   CONSOLE_SCREEN_BUFFER_INFO inf;
-  HANDLE screenHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+  HANDLE screenHandle = GetStdHandle(STD_ERROR_HANDLE);
   GetConsoleScreenBufferInfo(screenHandle, &inf);
   SetConsoleCursorPosition(screenHandle, coord);
   DWORD count;
   FillConsoleOutputCharacterA(screenHandle, ' ', inf.dwSize.X * inf.dwSize.Y,
                               coord, &count);
 #else
-  if (write(1, "\x1b[H\x1b[2J", 7) <= 0) return;
+  if (write(2, "\x1b[H\x1b[2J", 7) <= 0) return;
 #endif
 }
 
@@ -2202,7 +2202,7 @@ void InputBuffer::clearScreen(PromptBase& pi) {
 #ifndef _WIN32
   // we have to generate our own newline on line wrap on Linux
   if (pi.promptIndentation == 0 && pi.promptExtraLines > 0)
-    if (write(1, "\n", 1) == -1) return;
+    if (write(2, "\n", 1) == -1) return;
 #endif
   pi.promptCursorRowOffset = pi.promptExtraLines;
   refreshLine(pi);
@@ -2519,7 +2519,7 @@ int InputBuffer::getInputLine(PromptBase& pi) {
 #ifndef _WIN32
   // we have to generate our own newline on line wrap on Linux
   if (pi.promptIndentation == 0 && pi.promptExtraLines > 0)
-    if (write(1, "\n", 1) == -1) return -1;
+    if (write(2, "\n", 1) == -1) return -1;
 #endif
 
   // the cursor starts out at the end of the prompt
@@ -2653,7 +2653,7 @@ int InputBuffer::getInputLine(PromptBase& pi) {
         // so we don't display the next prompt over the previous input line
         pos = len;  // pass len as pos for EOL
         refreshLine(pi);
-        if (write(1, "^C", 2) == -1) return -1;  // Display the ^C we got
+        if (write(2, "^C", 2) == -1) return -1;  // Display the ^C we got
         return -1;
 
       case META + 'c':  // meta-C, give word initial Cap
@@ -3074,7 +3074,7 @@ int InputBuffer::getInputLine(PromptBase& pi) {
                 pi.promptPreviousInputLen = inputLen;
               /* Avoid a full update of the line in the
                * trivial case. */
-              if (write32(1, reinterpret_cast<char32_t*>(&c), 1) == -1)
+              if (write32(2, reinterpret_cast<char32_t*>(&c), 1) == -1)
                 return -1;
             } else {
               refreshLine(pi);
@@ -3184,14 +3184,14 @@ char* linenoise(const char* prompt) {
     char32_t buf32[LINENOISE_MAX_LINE];
     char charWidths[LINENOISE_MAX_LINE];
     if (!preloadErrorMessage.empty()) {
-      printf("%s", preloadErrorMessage.c_str());
-      fflush(stdout);
+      fprintf(stderr, "%s", preloadErrorMessage.c_str());
+      fflush(stderr);
       preloadErrorMessage.clear();
     }
     PromptInfo pi(prompt, getScreenColumns());
     if (isUnsupportedTerm()) {
       if (!pi.write()) return 0;
-      fflush(stdout);
+      fflush(stderr);
       if (preloadedBufferContents.empty()) {
         unique_ptr<char[]> buf8(new char[LINENOISE_MAX_LINE]);
         if (fgets(buf8.get(), LINENOISE_MAX_LINE, stdin) == NULL) {
@@ -3219,7 +3219,7 @@ char* linenoise(const char* prompt) {
       }
       int count = ib.getInputLine(pi);
       disableRawMode();
-      printf("\n");
+      fprintf(stderr, "\n");
       if (count == -1) {
         return NULL;
       }
@@ -3405,7 +3405,7 @@ void linenoiseSetMultiLine(int) {}
 void linenoisePrintKeyCodes(void) {
   char quit[4];
 
-  printf(
+  fprintf(stderr,
       "Linenoise key codes debugging mode.\n"
       "Press keys to see scan codes. Type 'quit' at any time to exit.\n");
   if (enableRawMode() == -1) return;
@@ -3424,10 +3424,10 @@ void linenoisePrintKeyCodes(void) {
     quit[sizeof(quit) - 1] = c; /* Insert current char on the right. */
     if (memcmp(quit, "quit", sizeof(quit)) == 0) break;
 
-    printf("'%c' %02x (%d) (type quit to exit)\n", isprint(c) ? c : '?', (int)c,
+    fprintf(stderr, "'%c' %02x (%d) (type quit to exit)\n", isprint(c) ? c : '?', (int)c,
            (int)c);
-    printf("\r"); /* Go left edge manually, we are in raw mode. */
-    fflush(stdout);
+    fprintf(stderr, "\r"); /* Go left edge manually, we are in raw mode. */
+    fflush(stderr);
   }
   disableRawMode();
 }
