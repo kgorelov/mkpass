@@ -47,7 +47,7 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::setupUI() {
-    setWindowTitle("mkpass GUI");
+    setWindowTitle("mkpass");
     setMinimumWidth(500);
 
     QWidget *centralWidget = new QWidget;
