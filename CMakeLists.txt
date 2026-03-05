@@ -2,9 +2,15 @@ cmake_minimum_required (VERSION 3.10)
 project (mkpass)
 
 option(WITH_GUI "Build with Qt GUI" ON)
+option(WITH_WEBASSEMBLY "Build with WebAssembly" OFF)
 
 enable_testing()
 
 add_subdirectory(libmkpass)
 add_subdirectory(mkpass_cli)
-add_subdirectory(mkpass_gui)
+if(WITH_GUI)
+    add_subdirectory(mkpass_gui)
+endif()
+if(WITH_WEBASSEMBLY)
+    add_subdirectory(mkpass_webasm)
+endif()
