@@ -5,9 +5,47 @@ import { MkPassModule } from './wasm';
 function App() {
   const [service, setService] = useState('');
   const [masterPassword, setMasterPassword] = useState('');
+  const [repeatPassword, setRepeatPassword] = useState('');
   const [password, setPassword] = useState('');
   const [passwordLength, setPasswordLength] = useState(16);
   const [wasmModule, setWasmModule] = useState<MkPassModule | null>(null);
+
+  const [passwordMatchStatus, setPasswordMatchStatus] = useState({
+    isValid: true,
+    message: '',
+    className: '',
+    statusClassName: ''
+  });
+
+  useEffect(() => {
+    if (repeatPassword === '') {
+      setPasswordMatchStatus({ isValid: true, message: '', className: '', statusClassName: '' });
+      return;
+    }
+
+    if (masterPassword === repeatPassword) {
+      setPasswordMatchStatus({
+        isValid: true,
+        message: 'OK: Passwords match.',
+        className: 'input-ok',
+        statusClassName: 'status-ok'
+      });
+    } else if (masterPassword.startsWith(repeatPassword)) {
+      setPasswordMatchStatus({
+        isValid: false,
+        message: 'Warning: passwords don\'t match',
+        className: '',
+        statusClassName: 'status-warning'
+      });
+    } else {
+      setPasswordMatchStatus({
+        isValid: false,
+        message: 'Error: passwords don\'t match',
+        className: 'input-error',
+        statusClassName: 'status-error'
+      });
+    }
+  }, [masterPassword, repeatPassword]);
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -67,22 +105,41 @@ function App() {
       <header className="App-header">
         <h1>mkpass</h1>
         <div className="form">
-          <input
-            type="text"
-            placeholder="Service"
-            value={service}
-            onChange={(e) => setService(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Master Password"
-            value={masterPassword}
-            onChange={(e) => setMasterPassword(e.target.value)}
-          />
-          <div className="password-length">
-            <label htmlFor="password-length">Password Length: {passwordLength}</label>
+          <div className="input-group">
+            <label>Master Password:</label>
             <input
-              id="password-length"
+              type="password"
+              placeholder="Master Password"
+              className={passwordMatchStatus.className}
+              value={masterPassword}
+              onChange={(e) => setMasterPassword(e.target.value)}
+            />
+          </div>
+          <div className="input-group">
+            <label>Repeat Password:</label>
+            <input
+              type="password"
+              placeholder="Repeat Password"
+              className={passwordMatchStatus.className}
+              value={repeatPassword}
+              onChange={(e) => setRepeatPassword(e.target.value)}
+            />
+          </div>
+          <div className={`status-message ${passwordMatchStatus.statusClassName}`}>
+            {passwordMatchStatus.message}
+          </div>
+          <div className="input-group">
+            <label>Service:</label>
+            <input
+              type="text"
+              placeholder="Service"
+              value={service}
+              onChange={(e) => setService(e.target.value)}
+            />
+          </div>
+          <div className="input-group">
+            <label>Password Length: {passwordLength}</label>
+            <input
               type="range"
               min="8"
               max="64"
@@ -90,8 +147,11 @@ function App() {
               onChange={(e) => setPasswordLength(parseInt(e.target.value, 10))}
             />
           </div>
-          <button onClick={handleGenerate} disabled={!wasmModule}>
-            {wasmModule ? "Generate" : "Loading..."}
+          <button
+            onClick={handleGenerate}
+            disabled={!wasmModule || !passwordMatchStatus.isValid || !masterPassword || !service}
+          >
+            {!wasmModule ? "Loading..." : "Generate"}
           </button>
         </div>
         {password && (

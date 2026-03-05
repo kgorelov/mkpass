@@ -22,23 +22,62 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px;
   width: 100%;
   margin-top: 20px;
 }
 
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+}
+
+.input-group label {
+  font-size: 1rem;
+  font-weight: bold;
+}
+
 input[type="text"],
-input[type="password"] {
+input[type="password"],
+input[type="range"] {
   padding: 10px;
   border-radius: 4px;
   border: none;
   font-size: 1rem;
+  transition: background-color 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.password-length {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.input-ok {
+  background-color: #28a745 !important; /* Green */
+  color: white;
+}
+
+.input-error {
+  background-color: #dc3545 !important; /* Red */
+  color: white;
+}
+
+.status-message {
+  font-size: 0.9rem;
+  margin-top: -15px;
+  margin-bottom: -5px;
+  min-height: 1.2rem;
+}
+
+.status-error {
+  color: #ff6b6b;
+}
+
+.status-warning {
+  color: #ffd43b;
+}
+
+.status-ok {
+  color: #51cf66;
 }
 
 button {
