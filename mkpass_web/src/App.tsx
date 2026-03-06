@@ -8,6 +8,16 @@ function App() {
   const [repeatPassword, setRepeatPassword] = useState('');
   const [password, setPassword] = useState('');
   const [passwordLength, setPasswordLength] = useState(16);
+  const [algorithm, setAlgorithm] = useState<number>(1); // Default to Argon2 (1)
+  const [charClassesState, setCharClassesState] = useState({
+    lowercase: true,
+    uppercase: true,
+    digits: true,
+    symbols: true,
+    custom: false,
+  });
+  const [customChars, setCustomChars] = useState('');
+
   const [wasmModule, setWasmModule] = useState<MkPassModule | null>(null);
 
   const [passwordMatchStatus, setPasswordMatchStatus] = useState({
@@ -54,7 +64,9 @@ function App() {
     script.onload = () => {
       if (window.mkpass_wasm) {
         window.mkpass_wasm().then((module: MkPassModule) => {
+          console.log("WASM Module Loaded. Algorithm values:", module.Algorithm);
           setWasmModule(module);
+          setAlgorithm(module.Algorithm.Argon2.value);
         });
       }
     };
@@ -71,26 +83,29 @@ function App() {
     }
 
     const charClasses = new wasmModule.VectorCharacterClass();
-    charClasses.push_back(wasmModule.CharacterClass.LOWERCASE);
-    charClasses.push_back(wasmModule.CharacterClass.UPPERCASE);
-    charClasses.push_back(wasmModule.CharacterClass.DIGITS);
-    charClasses.push_back(wasmModule.CharacterClass.SYMBOLS);
+    if (charClassesState.lowercase) charClasses.push_back(wasmModule.CharacterClass.LOWERCASE);
+    if (charClassesState.uppercase) charClasses.push_back(wasmModule.CharacterClass.UPPERCASE);
+    if (charClassesState.digits) charClasses.push_back(wasmModule.CharacterClass.DIGITS);
+    if (charClassesState.symbols) charClasses.push_back(wasmModule.CharacterClass.SYMBOLS);
+    if (charClassesState.custom) charClasses.push_back(wasmModule.CharacterClass.CUSTOM);
 
     const ctx = {
       password: masterPassword,
       service: service,
       char_classes: charClasses,
-      algorithm: wasmModule.Algorithm.Argon2,
+      algorithm: algorithm,
       length: passwordLength,
-      custom_chars: "",
+      custom_chars: customChars,
     };
+
+    console.log("Generating password with context:", ctx);
 
     try {
       const result = wasmModule.MkPass(ctx);
       setPassword(result);
-    } catch (e) {
-      console.error(e);
-      alert("Error generating password.");
+    } catch (e: any) {
+      console.error("WASM MkPass error:", e);
+      alert(`Error generating password: ${e.message || e}`);
     } finally {
       charClasses.delete();
     }
@@ -137,6 +152,87 @@ function App() {
               onChange={(e) => setService(e.target.value)}
             />
           </div>
+
+          <div className="input-group">
+            <label>Algorithm:</label>
+            <select
+              value={algorithm}
+              onChange={(e) => setAlgorithm(Number(e.target.value))}
+              className="select-algorithm"
+              disabled={!wasmModule}
+            >
+              {wasmModule ? (
+                <>
+                  <option value={wasmModule.Algorithm.Argon2.value}>Argon2</option>
+                  <option value={wasmModule.Algorithm.SlowSha512.value}>SlowSha512</option>
+                  <option value={wasmModule.Algorithm.Old.value}>Old</option>
+                </>
+              ) : (
+                <option value={1}>Loading algorithms...</option>
+              )}
+            </select>
+          </div>
+
+          <div className="character-classes">
+            <label>Character Classes:</label>
+            <div className="checkbox-grid">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={charClassesState.lowercase}
+                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old.value : false}
+                  onChange={(e) => setCharClassesState({ ...charClassesState, lowercase: e.target.checked })}
+                />
+                Lower-case
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={charClassesState.uppercase}
+                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old.value : false}
+                  onChange={(e) => setCharClassesState({ ...charClassesState, uppercase: e.target.checked })}
+                />
+                Upper-case
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={charClassesState.digits}
+                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old.value : false}
+                  onChange={(e) => setCharClassesState({ ...charClassesState, digits: e.target.checked })}
+                />
+                Digits
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={charClassesState.symbols}
+                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old.value : false}
+                  onChange={(e) => setCharClassesState({ ...charClassesState, symbols: e.target.checked })}
+                />
+                Symbols
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={charClassesState.custom}
+                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old.value : false}
+                  onChange={(e) => setCharClassesState({ ...charClassesState, custom: e.target.checked })}
+                />
+                Custom
+              </label>
+            </div>
+            {charClassesState.custom && (wasmModule ? algorithm !== wasmModule.Algorithm.Old.value : true) && (
+              <input
+                type="text"
+                placeholder="Custom characters"
+                value={customChars}
+                onChange={(e) => setCustomChars(e.target.value)}
+                className="custom-chars-input"
+              />
+            )}
+          </div>
+
           <div className="input-group">
             <label>Password Length: {passwordLength}</label>
             <input
