@@ -1,33 +1,30 @@
-export interface EmbindEnum {
-    value: number;
-}
-
 export interface MkPassModule {
     Algorithm: {
-        Argon2: EmbindEnum;
-        SlowSha512: EmbindEnum;
-        Old: EmbindEnum;
+        Argon2: number;
+        SlowSha512: number;
+        Old: number;
     };
     CharacterClass: {
-        LOWERCASE: EmbindEnum;
-        UPPERCASE: EmbindEnum;
-        DIGITS: EmbindEnum;
-        SYMBOLS: EmbindEnum;
-        CUSTOM: EmbindEnum;
+        LOWERCASE: number;
+        UPPERCASE: number;
+        DIGITS: number;
+        SYMBOLS: number;
+        CUSTOM: number;
     };
     VectorCharacterClass: {
         new (): any;
         push_back(value: any): void;
         delete(): void;
     };
-    MkPass(ctx: {
-        password: string;
-        service: string;
-        char_classes: any;
-        algorithm: number | EmbindEnum;
-        length: number;
-        custom_chars: string;
-    }): string;
+    MkPass(
+        password: string,
+        service: string,
+        char_classes: any,
+        algorithm: number,
+        length: number,
+        custom_chars: string
+    ): string;
+    getExceptionMessage(ptr: number): string;
 }
 
 declare global {

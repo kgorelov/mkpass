@@ -18,6 +18,9 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
+    "build:wasm": "../build_wasm.sh",
+    "prebuild": "npm run build:wasm",
+    "prestart": "npm run build:wasm",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",

@@ -9,31 +9,23 @@
 
 using namespace emscripten;
 
-struct ContextWasm {
-    std::string password;
-    std::string service;
-    std::vector<CharacterClass> char_classes;
-    Algorithm algorithm = Algorithm::Argon2;
-    unsigned length = 0;
-    std::string custom_chars;
-};
-
-std::string MkPassWasm(const ContextWasm& ctx_wasm) {
-    printf("MkPassWasm called\n");
-    printf("  Password length: %zu\n", ctx_wasm.password.length());
-    printf("  Service: %s\n", ctx_wasm.service.c_str());
-    printf("  Char classes size: %zu\n", ctx_wasm.char_classes.size());
-    printf("  Algorithm: %d\n", (int)ctx_wasm.algorithm);
-    printf("  Target length: %u\n", ctx_wasm.length);
+std::string MkPassWasm(std::string password, std::string service, std::vector<CharacterClass> char_classes, Algorithm algorithm, unsigned length, std::string custom_chars) {
+    printf("MkPassWasm entry\n");
+    printf("  Password length: %zu\n", (size_t)password.length());
+    printf("  Service: %s\n", service.c_str());
+    printf("  Char classes size: %zu\n", (size_t)char_classes.size());
+    printf("  Algorithm: %d\n", (int)algorithm);
+    printf("  Target length: %u\n", length);
+    printf("  Custom chars: %s\n", custom_chars.c_str());
 
     Context ctx;
-    ctx.password = ctx_wasm.password;
-    ctx.service = ctx_wasm.service;
-    ctx.char_classes = ctx_wasm.char_classes;
-    ctx.algorithm = ctx_wasm.algorithm;
-    ctx.length = ctx_wasm.length;
-    if (!ctx_wasm.custom_chars.empty()) {
-        ctx.custom_chars = ctx_wasm.custom_chars;
+    ctx.password = password;
+    ctx.service = service;
+    ctx.char_classes = char_classes;
+    ctx.algorithm = algorithm;
+    ctx.length = length;
+    if (!custom_chars.empty()) {
+        ctx.custom_chars = custom_chars;
     } else {
         ctx.custom_chars = std::nullopt;
     }
@@ -54,14 +46,6 @@ EMSCRIPTEN_BINDINGS(mkpass_module) {
         .value("CUSTOM", CharacterClass::CUSTOM);
 
     register_vector<CharacterClass>("VectorCharacterClass");
-
-    value_object<ContextWasm>("Context")
-        .field("password", &ContextWasm::password)
-        .field("service", &ContextWasm::service)
-        .field("char_classes", &ContextWasm::char_classes)
-        .field("algorithm", &ContextWasm::algorithm)
-        .field("length", &ContextWasm::length)
-        .field("custom_chars", &ContextWasm::custom_chars);
 
     function("MkPass", &MkPassWasm);
 }

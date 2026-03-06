@@ -66,7 +66,7 @@ function App() {
         window.mkpass_wasm().then((module: MkPassModule) => {
           console.log("WASM Module Loaded. Algorithm values:", module.Algorithm);
           setWasmModule(module);
-          setAlgorithm(module.Algorithm.Argon2.value);
+          setAlgorithm(module.Algorithm.Argon2);
         });
       }
     };
@@ -89,23 +89,32 @@ function App() {
     if (charClassesState.symbols) charClasses.push_back(wasmModule.CharacterClass.SYMBOLS);
     if (charClassesState.custom) charClasses.push_back(wasmModule.CharacterClass.CUSTOM);
 
-    const ctx = {
-      password: masterPassword,
-      service: service,
-      char_classes: charClasses,
-      algorithm: algorithm,
-      length: passwordLength,
-      custom_chars: customChars,
-    };
-
-    console.log("Generating password with context:", ctx);
+    console.log("Generating with params:", {
+      masterPassword: masterPassword.length > 0 ? "[REDACTED]" : "EMPTY",
+      service,
+      charClasses: charClassesState,
+      algorithm,
+      passwordLength,
+      customChars
+    });
 
     try {
-      const result = wasmModule.MkPass(ctx);
+      console.log("Calling wasmModule.MkPass...");
+      const result = wasmModule.MkPass(masterPassword, service, charClasses, algorithm, passwordLength, customChars);
+      console.log("MkPass result obtained");
       setPassword(result);
     } catch (e: any) {
       console.error("WASM MkPass error:", e);
-      alert(`Error generating password: ${e.message || e}`);
+      let errorMsg = e.message || e.toString();
+      if (typeof e === 'number') {
+          // Emscripten often throws numbers for pointers to error messages
+          try {
+              errorMsg = wasmModule.getExceptionMessage(e);
+          } catch(ex) {
+              errorMsg = `WASM error code: ${e}`;
+          }
+      }
+      alert(`Error generating password: ${errorMsg}`);
     } finally {
       charClasses.delete();
     }
@@ -163,9 +172,9 @@ function App() {
             >
               {wasmModule ? (
                 <>
-                  <option value={wasmModule.Algorithm.Argon2.value}>Argon2</option>
-                  <option value={wasmModule.Algorithm.SlowSha512.value}>SlowSha512</option>
-                  <option value={wasmModule.Algorithm.Old.value}>Old</option>
+                  <option value={wasmModule.Algorithm.Argon2}>Argon2</option>
+                  <option value={wasmModule.Algorithm.SlowSha512}>SlowSha512</option>
+                  <option value={wasmModule.Algorithm.Old}>Old</option>
                 </>
               ) : (
                 <option value={1}>Loading algorithms...</option>
@@ -180,7 +189,7 @@ function App() {
                 <input
                   type="checkbox"
                   checked={charClassesState.lowercase}
-                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old.value : false}
+                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old : false}
                   onChange={(e) => setCharClassesState({ ...charClassesState, lowercase: e.target.checked })}
                 />
                 Lower-case
@@ -189,7 +198,7 @@ function App() {
                 <input
                   type="checkbox"
                   checked={charClassesState.uppercase}
-                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old.value : false}
+                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old : false}
                   onChange={(e) => setCharClassesState({ ...charClassesState, uppercase: e.target.checked })}
                 />
                 Upper-case
@@ -198,7 +207,7 @@ function App() {
                 <input
                   type="checkbox"
                   checked={charClassesState.digits}
-                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old.value : false}
+                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old : false}
                   onChange={(e) => setCharClassesState({ ...charClassesState, digits: e.target.checked })}
                 />
                 Digits
@@ -207,7 +216,7 @@ function App() {
                 <input
                   type="checkbox"
                   checked={charClassesState.symbols}
-                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old.value : false}
+                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old : false}
                   onChange={(e) => setCharClassesState({ ...charClassesState, symbols: e.target.checked })}
                 />
                 Symbols
@@ -216,13 +225,13 @@ function App() {
                 <input
                   type="checkbox"
                   checked={charClassesState.custom}
-                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old.value : false}
+                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old : false}
                   onChange={(e) => setCharClassesState({ ...charClassesState, custom: e.target.checked })}
                 />
                 Custom
               </label>
             </div>
-            {charClassesState.custom && (wasmModule ? algorithm !== wasmModule.Algorithm.Old.value : true) && (
+            {charClassesState.custom && (wasmModule ? algorithm !== wasmModule.Algorithm.Old : true) && (
               <input
                 type="text"
                 placeholder="Custom characters"
