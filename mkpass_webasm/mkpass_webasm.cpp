@@ -1,6 +1,7 @@
 #include <emscripten/bind.h>
 #include <string>
 #include <vector>
+#include <cstdio>
 #include "mkpass.h"
 #include "context.h"
 #include "algorithms.h"
@@ -18,6 +19,13 @@ struct ContextWasm {
 };
 
 std::string MkPassWasm(const ContextWasm& ctx_wasm) {
+    printf("MkPassWasm called\n");
+    printf("  Password length: %zu\n", ctx_wasm.password.length());
+    printf("  Service: %s\n", ctx_wasm.service.c_str());
+    printf("  Char classes size: %zu\n", ctx_wasm.char_classes.size());
+    printf("  Algorithm: %d\n", (int)ctx_wasm.algorithm);
+    printf("  Target length: %u\n", ctx_wasm.length);
+
     Context ctx;
     ctx.password = ctx_wasm.password;
     ctx.service = ctx_wasm.service;
@@ -26,6 +34,8 @@ std::string MkPassWasm(const ContextWasm& ctx_wasm) {
     ctx.length = ctx_wasm.length;
     if (!ctx_wasm.custom_chars.empty()) {
         ctx.custom_chars = ctx_wasm.custom_chars;
+    } else {
+        ctx.custom_chars = std::nullopt;
     }
     return MkPass(ctx);
 }

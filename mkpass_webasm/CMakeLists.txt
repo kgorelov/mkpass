@@ -12,5 +12,6 @@ target_link_options(mkpass_webasm PRIVATE "-sEXPORT_NAME='mkpass_wasm'")
 target_link_options(mkpass_webasm PRIVATE "-sENVIRONMENT='web'")
 target_link_options(mkpass_webasm PRIVATE "-sALLOW_MEMORY_GROWTH=1")
 target_link_options(mkpass_webasm PRIVATE "-sINITIAL_MEMORY=134217728") # 128 MiB
+target_link_options(mkpass_webasm PRIVATE "-sNO_DISABLE_EXCEPTION_CATCHING")
 
 target_link_libraries(mkpass_webasm PRIVATE libmkpass sha512 argon2 qrcodegen sqlite3)
