@@ -1,15 +1,19 @@
+export interface EmbindEnum {
+    value: number;
+}
+
 export interface MkPassModule {
     Algorithm: {
-        Argon2: number;
-        SlowSha512: number;
-        Old: number;
+        Argon2: EmbindEnum;
+        SlowSha512: EmbindEnum;
+        Old: EmbindEnum;
     };
     CharacterClass: {
-        LOWERCASE: number;
-        UPPERCASE: number;
-        DIGITS: number;
-        SYMBOLS: number;
-        CUSTOM: number;
+        LOWERCASE: EmbindEnum;
+        UPPERCASE: EmbindEnum;
+        DIGITS: EmbindEnum;
+        SYMBOLS: EmbindEnum;
+        CUSTOM: EmbindEnum;
     };
     VectorCharacterClass: {
         new (): any;

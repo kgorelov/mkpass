@@ -9,20 +9,13 @@
 
 using namespace emscripten;
 
-std::string MkPassWasm(std::string password, std::string service, std::vector<CharacterClass> char_classes, Algorithm algorithm, unsigned length, std::string custom_chars) {
-    printf("MkPassWasm entry\n");
-    printf("  Password length: %zu\n", (size_t)password.length());
-    printf("  Service: %s\n", service.c_str());
-    printf("  Char classes size: %zu\n", (size_t)char_classes.size());
-    printf("  Algorithm: %d\n", (int)algorithm);
-    printf("  Target length: %u\n", length);
-    printf("  Custom chars: %s\n", custom_chars.c_str());
-
+//std::string MkPassWasm(std::string password, std::string service, std::vector<CharacterClass> char_classes, Algorithm algorithm, unsigned length, std::string custom_chars) {
+std::string MkPassWasm(std::string password, std::string service, std::vector<CharacterClass> char_classes, int algorithm, unsigned length, std::string custom_chars) {
     Context ctx;
     ctx.password = password;
     ctx.service = service;
     ctx.char_classes = char_classes;
-    ctx.algorithm = algorithm;
+    ctx.algorithm = (Algorithm)algorithm;
     ctx.length = length;
     if (!custom_chars.empty()) {
         ctx.custom_chars = custom_chars;
