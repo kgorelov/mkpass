@@ -135,7 +135,7 @@ input[type="range"] {
 
 button {
   padding: 10px 20px;
-  background-color: #61dafb;
+  background-color: #9C27B0;
   border: none;
   border-radius: 4px;
   font-size: 1rem;
@@ -156,7 +156,7 @@ button svg {
 }
 
 button:hover {
-  background-color: #4fa8c7;
+  background-color: #7B1FA2;
 }
 
 button:disabled {
@@ -219,14 +219,14 @@ button:disabled {
   border: none;
   padding: 8px;
   cursor: pointer;
-  color: #61dafb;
+  color: #80CBC4;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .icon-button:hover {
-  background-color: rgba(97, 218, 251, 0.1);
+  background-color: #00796B;
 }
 
 .icon-button svg {
