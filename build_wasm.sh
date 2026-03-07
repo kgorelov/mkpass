@@ -27,7 +27,7 @@ echo "WASM module built and copied successfully!"
 cd "$ROOT_DIR"
 if command -v node >/dev/null 2>&1; then
     echo "Running WASM tests..."
-    node test_wasm.js
+    node "$WASM_SOURCE_DIR/test_wasm.js"
     echo "WASM tests finished."
 else
     echo "Warning: node not found, skipping WASM tests."
