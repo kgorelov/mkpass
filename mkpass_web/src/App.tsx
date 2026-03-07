@@ -64,9 +64,9 @@ function App() {
     script.onload = () => {
       if (window.mkpass_wasm) {
         window.mkpass_wasm().then((module: MkPassModule) => {
-          console.log("WASM Module Loaded. Algorithm values:", module.Algorithm);
+          console.log("WASM Module Loaded.");
           setWasmModule(module);
-          setAlgorithm(module.Algorithm.Argon2);
+          setAlgorithm(module.Algorithm.Argon2.value);
         });
       }
     };
@@ -94,7 +94,9 @@ function App() {
       service,
       charClasses: charClassesState,
       algorithm,
+      algorithmType: typeof algorithm,
       passwordLength,
+      passwordLengthType: typeof passwordLength,
       customChars
     });
 
@@ -166,15 +168,19 @@ function App() {
             <label>Algorithm:</label>
             <select
               value={algorithm}
-              onChange={(e) => setAlgorithm(Number(e.target.value))}
+              onChange={(e) => {
+                const newVal = Number(e.target.value);
+                console.log("Algorithm change requested:", newVal);
+                setAlgorithm(newVal);
+              }}
               className="select-algorithm"
               disabled={!wasmModule}
             >
               {wasmModule ? (
                 <>
-                  <option value={wasmModule.Algorithm.Argon2}>Argon2</option>
-                  <option value={wasmModule.Algorithm.SlowSha512}>SlowSha512</option>
-                  <option value={wasmModule.Algorithm.Old}>Old</option>
+                  <option value={wasmModule.Algorithm.Argon2.value}>Argon2</option>
+                  <option value={wasmModule.Algorithm.SlowSha512.value}>SlowSha512</option>
+                  <option value={wasmModule.Algorithm.Old.value}>Old</option>
                 </>
               ) : (
                 <option value={1}>Loading algorithms...</option>
@@ -189,7 +195,7 @@ function App() {
                 <input
                   type="checkbox"
                   checked={charClassesState.lowercase}
-                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old : false}
+                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old.value : false}
                   onChange={(e) => setCharClassesState({ ...charClassesState, lowercase: e.target.checked })}
                 />
                 Lower-case
@@ -198,7 +204,7 @@ function App() {
                 <input
                   type="checkbox"
                   checked={charClassesState.uppercase}
-                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old : false}
+                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old.value : false}
                   onChange={(e) => setCharClassesState({ ...charClassesState, uppercase: e.target.checked })}
                 />
                 Upper-case
@@ -207,7 +213,7 @@ function App() {
                 <input
                   type="checkbox"
                   checked={charClassesState.digits}
-                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old : false}
+                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old.value : false}
                   onChange={(e) => setCharClassesState({ ...charClassesState, digits: e.target.checked })}
                 />
                 Digits
@@ -216,7 +222,7 @@ function App() {
                 <input
                   type="checkbox"
                   checked={charClassesState.symbols}
-                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old : false}
+                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old.value : false}
                   onChange={(e) => setCharClassesState({ ...charClassesState, symbols: e.target.checked })}
                 />
                 Symbols
@@ -225,13 +231,13 @@ function App() {
                 <input
                   type="checkbox"
                   checked={charClassesState.custom}
-                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old : false}
+                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old.value : false}
                   onChange={(e) => setCharClassesState({ ...charClassesState, custom: e.target.checked })}
                 />
                 Custom
               </label>
             </div>
-            {charClassesState.custom && (wasmModule ? algorithm !== wasmModule.Algorithm.Old : true) && (
+            {charClassesState.custom && (wasmModule ? algorithm !== wasmModule.Algorithm.Old.value : true) && (
               <input
                 type="text"
                 placeholder="Custom characters"
