@@ -66,6 +66,20 @@ const QrCodeComponent: React.FC<QrCodeProps> = ({ data }) => {
   );
 };
 
+interface SavedService {
+  service: string;
+  algorithm: number;
+  length: number;
+  charClasses: {
+    lowercase: boolean;
+    uppercase: boolean;
+    digits: boolean;
+    symbols: boolean;
+    custom: boolean;
+  };
+  customChars: string;
+}
+
 function App() {
   const [service, setService] = useState('');
   const [masterPassword, setMasterPassword] = useState('');
@@ -81,6 +95,8 @@ function App() {
     custom: false,
   });
   const [customChars, setCustomChars] = useState('');
+  const [saveService, setSaveService] = useState(true);
+  const [savedServices, setSavedServices] = useState<Record<string, SavedService>>({});
 
   const [wasmModule, setWasmModule] = useState<MkPassModule | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -95,6 +111,18 @@ function App() {
     className: '',
     statusClassName: ''
   });
+
+  // Load saved services on mount
+  useEffect(() => {
+    const stored = localStorage.getItem('mkpass_services');
+    if (stored) {
+      try {
+        setSavedServices(JSON.parse(stored));
+      } catch (e) {
+        console.error("Failed to parse saved services", e);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (repeatPassword === '') {
@@ -145,6 +173,17 @@ function App() {
     };
   }, []);
 
+  const handleServiceChange = (value: string) => {
+    setService(value);
+    if (savedServices[value]) {
+      const s = savedServices[value];
+      setAlgorithm(s.algorithm);
+      setPasswordLength(s.length);
+      setCharClassesState(s.charClasses);
+      setCustomChars(s.customChars);
+    }
+  };
+
   const handleGenerate = () => {
     if (!wasmModule) {
       alert("WASM module not loaded yet.");
@@ -153,8 +192,22 @@ function App() {
 
     setIsGenerating(true);
 
-    // Use setTimeout to allow the UI to render the loading state
-    // before the blocking WASM execution starts.
+    // Save service settings if enabled
+    if (saveService && service) {
+      const newSaved = {
+        ...savedServices,
+        [service]: {
+          service,
+          algorithm,
+          length: passwordLength,
+          charClasses: charClassesState,
+          customChars
+        }
+      };
+      setSavedServices(newSaved);
+      localStorage.setItem('mkpass_services', JSON.stringify(newSaved));
+    }
+
     setTimeout(() => {
       const charClasses = new wasmModule.VectorCharacterClass();
       if (charClassesState.lowercase) charClasses.push_back(wasmModule.CharacterClass.LOWERCASE);
@@ -236,9 +289,21 @@ function App() {
             <input
               type="text"
               placeholder="Service"
+              list="services-list"
               value={service}
-              onChange={(e) => setService(e.target.value)}
+              onChange={(e) => handleServiceChange(e.target.value)}
             />
+            <datalist id="services-list">
+              {Object.keys(savedServices).map(s => <option key={s} value={s} />)}
+            </datalist>
+            <label className="save-checkbox">
+              <input
+                type="checkbox"
+                checked={saveService}
+                onChange={(e) => setSaveService(e.target.checked)}
+              />
+              Save settings
+            </label>
           </div>
 
           <div className="input-group">
