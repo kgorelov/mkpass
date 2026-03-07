@@ -29,5 +29,12 @@ If the master password is found, all passwords derived from that master password
   - [ ] make the db_ut test work on Windows
 ** TODO Documentation
 ** TODO Passphrase composer
-** Web version (WebAssembly)
+** TODO Web version (WebAssembly)
+  - [X] Essential functions
+  - [X] Results dialog
+  - [ ] Icon
+  - [ ] Style
 ** Mac version
+* Bugs
+** Android
+*** Passwords mismatch prefix

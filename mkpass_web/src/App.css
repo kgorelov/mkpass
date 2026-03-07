@@ -142,6 +142,10 @@ button {
   cursor: pointer;
   color: #282c34;
   font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 button:hover {
@@ -153,23 +157,102 @@ button:disabled {
   cursor: not-allowed;
 }
 
-.result {
-  margin-top: 40px;
-  padding: 20px;
-  background-color: #3e4451;
-  border-radius: 8px;
-  width: 100%;
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
 }
 
-.password-display {
-  background-color: #1c2025;
-  padding: 15px;
-  border-radius: 4px;
-  margin: 10px 0;
-  word-break: break-all;
+.modal-content {
+  background-color: #3e4451;
+  padding: 30px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 450px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.modal-content h2 {
+  margin: 0;
   font-size: 1.5rem;
 }
 
-code {
+.password-container {
+  display: flex;
+  align-items: center;
+  background-color: #1c2025;
+  border-radius: 6px;
+  padding: 5px 15px;
+  gap: 10px;
+}
+
+.password-text {
+  flex-grow: 1;
+  font-family: monospace;
+  font-size: 1.4rem;
   color: #e06c75;
+  word-break: break-all;
+  text-align: left;
+  padding: 10px 0;
+}
+
+.icon-button {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  color: #61dafb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-button:hover {
+  background-color: rgba(97, 218, 251, 0.1);
+}
+
+.icon-button svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.qr-container {
+  background-color: white;
+  padding: 15px;
+  border-radius: 8px;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-canvas {
+  image-rendering: pixelated;
+}
+
+.close-button {
+  background-color: #6c757d;
+  color: white;
+}
+
+.close-button:hover {
+  background-color: #5a6268;
 }
