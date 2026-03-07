@@ -32,8 +32,8 @@ If the master password is found, all passwords derived from that master password
 ** TODO Web version (WebAssembly)
   - [X] Essential functions
   - [X] Results dialog
-  - [ ] Icon
-  - [ ] Style
+  - [X] Icon
+  - [X] Style
 ** Mac version
 * Bugs
 ** Android

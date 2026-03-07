@@ -19,6 +19,22 @@
   padding: 20px;
 }
 
+.title-container {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.title-container h1 {
+  margin: 0;
+}
+
+.logo {
+  height: 60px;
+  width: auto;
+}
+
 .form {
   display: flex;
   flex-direction: column;

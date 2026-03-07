@@ -195,7 +195,10 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>mkpass</h1>
+        <div className="title-container">
+          <img src="/logo_mkpass.png" alt="mkpass logo" className="logo" />
+          <h1>mkpass</h1>
+        </div>
         <div className="form">
           <div className="input-group">
             <label>Master Password:</label>
