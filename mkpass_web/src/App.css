@@ -120,6 +120,23 @@ input[type="range"] {
   margin-top: 5px;
 }
 
+.save-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: normal !important;
+  margin-top: 5px;
+  cursor: pointer;
+}
+
+.save-checkbox input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+}
+
 .input-ok {
   background-color: #28a745 !important; /* Green */
   color: white;
