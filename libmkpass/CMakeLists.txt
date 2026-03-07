@@ -53,6 +53,9 @@ set(ARGON2_SOURCES
   argon2/encoding.c
 )
 add_library(argon2 STATIC ${ARGON2_SOURCES})
+if (EMSCRIPTEN)
+    target_compile_definitions(argon2 PRIVATE ARGON2_NO_THREADS=1)
+endif()
 target_include_directories(argon2 PUBLIC
     argon2
     argon2/blake2
@@ -70,33 +73,35 @@ target_include_directories(qrcodegen PUBLIC qrcode)
 # Testing support
 ################################################################################
 
-enable_testing()
-set(TEST_SOURCES
-  digest_ut.cpp
-  generator_ut.cpp
-  uniform_ut.cpp
-  compose_ut.cpp
-  hkdf_argon2_ut.cpp
-)
-if (NOT MSVC)
-  list(APPEND TEST_SOURCES db_ut.cpp)
-endif()
-find_package(GTest REQUIRED)
-add_executable(mkpass_tests ${TEST_SOURCES})
-if (MSVC)
-    target_compile_options(mkpass_tests PRIVATE /std:c++20)
-else()
-    target_compile_options(mkpass_tests PRIVATE -std=c++20)
-endif()
+if(NOT EMSCRIPTEN)
+  enable_testing()
+  set(TEST_SOURCES
+    digest_ut.cpp
+    generator_ut.cpp
+    uniform_ut.cpp
+    compose_ut.cpp
+    hkdf_argon2_ut.cpp
+  )
+  if (NOT MSVC)
+    list(APPEND TEST_SOURCES db_ut.cpp)
+  endif()
+  find_package(GTest REQUIRED)
+  add_executable(mkpass_tests ${TEST_SOURCES})
+  if (MSVC)
+      target_compile_options(mkpass_tests PRIVATE /std:c++20)
+  else()
+      target_compile_options(mkpass_tests PRIVATE -std=c++20)
+  endif()
 
-target_include_directories(mkpass_tests PRIVATE .)
+  target_include_directories(mkpass_tests PRIVATE .)
 
-target_link_libraries(mkpass_tests PRIVATE
-  libmkpass
-  sha512
-  argon2
-  GTest::GTest
-  GTest::Main
-)
-include(GoogleTest)
-gtest_discover_tests(mkpass_tests)
+  target_link_libraries(mkpass_tests PRIVATE
+    libmkpass
+    sha512
+    argon2
+    GTest::GTest
+    GTest::Main
+  )
+  include(GoogleTest)
+  gtest_discover_tests(mkpass_tests)
+endif()

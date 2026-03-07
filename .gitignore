@@ -1,4 +1,10 @@
 build
+build_wasm
+build_webasm
+mkpass_web/node_modules
+mkpass_web/build
+mkpass_web/public/mkpass_webasm.js
+mkpass_web/public/mkpass_webasm.wasm
 android/.gradle
 android/app/build
 android/app/.cxx

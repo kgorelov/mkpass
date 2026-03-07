@@ -23,11 +23,20 @@ If the master password is found, all passwords derived from that master password
 ** DONE Support for the old algorithm?
 ** DONE QT UI
 ** DONE Android Support
+  - [ ] Essential functions
+  - [ ] Icon
 ** TODO Windows version
   - [X] Initial Windows support
   - [ ] make the e2e test work on Windows
   - [ ] make the db_ut test work on Windows
 ** TODO Documentation
 ** TODO Passphrase composer
-** Web version (WebAssembly)
+** TODO Web version (WebAssembly)
+  - [X] Essential functions
+  - [X] Results dialog
+  - [X] Icon
+  - [X] Style
 ** Mac version
+* Bugs
+** Android
+*** Passwords mismatch prefix
