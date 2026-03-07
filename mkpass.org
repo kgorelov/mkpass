@@ -47,5 +47,12 @@ If the master password is found, all passwords derived from that master password
   - [ ] WordNet sanitized wordlists: nouns, verbs, adjectives, adverbs
   - [ ] Tools: wordnet manipulation tools
   - [ ] Passphrase algoritm implementation
-** Web version (WebAssembly)
+** TODO Web version (WebAssembly)
+  - [X] Essential functions
+  - [X] Results dialog
+  - [ ] Icon
+  - [ ] Style
 ** Mac version
+* Bugs
+** Android
+*** Passwords mismatch prefix

@@ -2,6 +2,14 @@ export interface EmbindEnum {
     value: number;
 }
 
+export interface QrCodeData {
+    size: number;
+    data: {
+        size(): number;
+        get(index: number): boolean;
+    };
+}
+
 export interface MkPassModule {
     Algorithm: {
         Argon2: EmbindEnum;
@@ -20,6 +28,10 @@ export interface MkPassModule {
         push_back(value: any): void;
         delete(): void;
     };
+    VectorBool: {
+        size(): number;
+        get(index: number): boolean;
+    };
     MkPass(
         password: string,
         service: string,
@@ -28,6 +40,7 @@ export interface MkPassModule {
         length: number,
         custom_chars: string
     ): string;
+    GenerateQrCode(text: string): QrCodeData;
     getExceptionMessage(ptr: number): string;
 }
 

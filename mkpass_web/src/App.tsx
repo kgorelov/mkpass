@@ -1,6 +1,70 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
-import { MkPassModule } from './wasm';
+import { MkPassModule, QrCodeData } from './wasm';
+
+const EyeIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+  </svg>
+);
+
+const EyeOffIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path>
+    <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path>
+    <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.76 9.76 0 0 0 5.36-1.65"></path>
+    <line x1="2" x2="22" y1="2" y2="22"></line>
+  </svg>
+);
+
+const CopyIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor">
+    <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+  </svg>
+);
+
+const QrIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor">
+    <path d="M3 3h8v8H3zm0 10h8v8H3zm10-10h8v8h-8zm0 10h8v8h-8zM5 5v4h4V5zm0 10v4h4v-4zm10-10v4h4V5zm4 14h-2v-2h-2v2h-2v-2h-2v2h2v2h-2v2h2v-2h2v2h2v-2h2z"/>
+  </svg>
+);
+
+interface QrCodeProps {
+  data: QrCodeData;
+}
+
+const QrCodeComponent: React.FC<QrCodeProps> = ({ data }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (canvasRef.current) {
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        const size = data.size;
+        const scale = 5;
+        canvas.width = size * scale;
+        canvas.height = size * scale;
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'black';
+        for (let y = 0; y < size; y++) {
+          for (let x = 0; x < size; x++) {
+            if (data.data.get(y * size + x)) {
+              ctx.fillRect(x * scale, y * scale, scale, scale);
+            }
+          }
+        }
+      }
+    }
+  }, [data]);
+
+  return (
+    <div className="qr-container">
+      <canvas ref={canvasRef} className="qr-canvas" />
+    </div>
+  );
+};
 
 function App() {
   const [service, setService] = useState('');
@@ -8,7 +72,7 @@ function App() {
   const [repeatPassword, setRepeatPassword] = useState('');
   const [password, setPassword] = useState('');
   const [passwordLength, setPasswordLength] = useState(16);
-  const [algorithm, setAlgorithm] = useState<number>(1); // Default to Argon2 (1)
+  const [algorithm, setAlgorithm] = useState<number>(1);
   const [charClassesState, setCharClassesState] = useState({
     lowercase: true,
     uppercase: true,
@@ -19,6 +83,10 @@ function App() {
   const [customChars, setCustomChars] = useState('');
 
   const [wasmModule, setWasmModule] = useState<MkPassModule | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isQrCodeVisible, setIsQrCodeVisible] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState<QrCodeData | null>(null);
 
   const [passwordMatchStatus, setPasswordMatchStatus] = useState({
     isValid: true,
@@ -62,8 +130,8 @@ function App() {
     script.src = '/mkpass_webasm.js';
     script.async = true;
     script.onload = () => {
-      if (window.mkpass_wasm) {
-        window.mkpass_wasm().then((module: MkPassModule) => {
+      if ((window as any).mkpass_wasm) {
+        (window as any).mkpass_wasm().then((module: MkPassModule) => {
           console.log("WASM Module Loaded.");
           setWasmModule(module);
           setAlgorithm(module.Algorithm.Argon2.value);
@@ -89,27 +157,17 @@ function App() {
     if (charClassesState.symbols) charClasses.push_back(wasmModule.CharacterClass.SYMBOLS);
     if (charClassesState.custom) charClasses.push_back(wasmModule.CharacterClass.CUSTOM);
 
-    console.log("Generating with params:", {
-      masterPassword: masterPassword.length > 0 ? "[REDACTED]" : "EMPTY",
-      service,
-      charClasses: charClassesState,
-      algorithm,
-      algorithmType: typeof algorithm,
-      passwordLength,
-      passwordLengthType: typeof passwordLength,
-      customChars
-    });
-
     try {
-      console.log("Calling wasmModule.MkPass...");
       const result = wasmModule.MkPass(masterPassword, service, charClasses, algorithm, passwordLength, customChars);
-      console.log("MkPass result obtained");
       setPassword(result);
+      setIsModalOpen(true);
+      setIsPasswordVisible(false);
+      setIsQrCodeVisible(false);
+      setQrCodeData(null);
     } catch (e: any) {
       console.error("WASM MkPass error:", e);
       let errorMsg = e.message || e.toString();
       if (typeof e === 'number') {
-          // Emscripten often throws numbers for pointers to error messages
           try {
               errorMsg = wasmModule.getExceptionMessage(e);
           } catch(ex) {
@@ -124,6 +182,14 @@ function App() {
 
   const handleCopy = () => {
     navigator.clipboard.writeText(password);
+  };
+
+  const handleToggleQr = () => {
+    if (!isQrCodeVisible && !qrCodeData && wasmModule) {
+      const data = wasmModule.GenerateQrCode(password);
+      setQrCodeData(data);
+    }
+    setIsQrCodeVisible(!isQrCodeVisible);
   };
 
   return (
@@ -168,11 +234,7 @@ function App() {
             <label>Algorithm:</label>
             <select
               value={algorithm}
-              onChange={(e) => {
-                const newVal = Number(e.target.value);
-                console.log("Algorithm change requested:", newVal);
-                setAlgorithm(newVal);
-              }}
+              onChange={(e) => setAlgorithm(Number(e.target.value))}
               className="select-algorithm"
               disabled={!wasmModule}
             >
@@ -265,16 +327,37 @@ function App() {
             {!wasmModule ? "Loading..." : "Generate"}
           </button>
         </div>
-        {password && (
-          <div className="result">
-            <p>Generated Password:</p>
-            <div className="password-display">
-                <code>{password}</code>
-            </div>
-            <button onClick={handleCopy}>Copy</button>
-          </div>
-        )}
       </header>
+
+      {isModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>Generated Password</h2>
+            <div className="password-container">
+              <div className="password-text">
+                {isPasswordVisible ? password : '•'.repeat(password.length)}
+              </div>
+              <button className="icon-button" onClick={() => setIsPasswordVisible(!isPasswordVisible)} title={isPasswordVisible ? "Hide" : "Show"}>
+                {isPasswordVisible ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+              <button className="icon-button" onClick={handleCopy} title="Copy to clipboard">
+                <CopyIcon />
+              </button>
+            </div>
+
+            {isQrCodeVisible && qrCodeData && (
+              <QrCodeComponent data={qrCodeData} />
+            )}
+
+            <div className="modal-actions">
+              <button onClick={handleToggleQr}>
+                <QrIcon /> {isQrCodeVisible ? "Hide QR Code" : "Show QR Code"}
+              </button>
+              <button className="close-button" onClick={() => setIsModalOpen(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
