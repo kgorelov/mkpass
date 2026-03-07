@@ -23,6 +23,8 @@ If the master password is found, all passwords derived from that master password
 ** DONE Support for the old algorithm?
 ** DONE QT UI
 ** DONE Android Support
+  - [ ] Essential functions
+  - [ ] Icon
 ** TODO Windows version
   - [X] Initial Windows support
   - [ ] make the e2e test work on Windows
