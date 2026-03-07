@@ -23,3 +23,12 @@ echo "Copying artifacts to $WEB_PUBLIC_DIR..."
 cp mkpass_webasm.js mkpass_webasm.wasm "$WEB_PUBLIC_DIR/"
 
 echo "WASM module built and copied successfully!"
+
+cd "$ROOT_DIR"
+if command -v node >/dev/null 2>&1; then
+    echo "Running WASM tests..."
+    node test_wasm.js
+    echo "WASM tests finished."
+else
+    echo "Warning: node not found, skipping WASM tests."
+fi
