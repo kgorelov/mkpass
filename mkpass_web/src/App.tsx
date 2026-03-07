@@ -83,6 +83,7 @@ function App() {
   const [customChars, setCustomChars] = useState('');
 
   const [wasmModule, setWasmModule] = useState<MkPassModule | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isQrCodeVisible, setIsQrCodeVisible] = useState(false);
@@ -150,34 +151,41 @@ function App() {
       return;
     }
 
-    const charClasses = new wasmModule.VectorCharacterClass();
-    if (charClassesState.lowercase) charClasses.push_back(wasmModule.CharacterClass.LOWERCASE);
-    if (charClassesState.uppercase) charClasses.push_back(wasmModule.CharacterClass.UPPERCASE);
-    if (charClassesState.digits) charClasses.push_back(wasmModule.CharacterClass.DIGITS);
-    if (charClassesState.symbols) charClasses.push_back(wasmModule.CharacterClass.SYMBOLS);
-    if (charClassesState.custom) charClasses.push_back(wasmModule.CharacterClass.CUSTOM);
+    setIsGenerating(true);
 
-    try {
-      const result = wasmModule.MkPass(masterPassword, service, charClasses, algorithm, passwordLength, customChars);
-      setPassword(result);
-      setIsModalOpen(true);
-      setIsPasswordVisible(false);
-      setIsQrCodeVisible(false);
-      setQrCodeData(null);
-    } catch (e: any) {
-      console.error("WASM MkPass error:", e);
-      let errorMsg = e.message || e.toString();
-      if (typeof e === 'number') {
-          try {
-              errorMsg = wasmModule.getExceptionMessage(e);
-          } catch(ex) {
-              errorMsg = `WASM error code: ${e}`;
-          }
+    // Use setTimeout to allow the UI to render the loading state
+    // before the blocking WASM execution starts.
+    setTimeout(() => {
+      const charClasses = new wasmModule.VectorCharacterClass();
+      if (charClassesState.lowercase) charClasses.push_back(wasmModule.CharacterClass.LOWERCASE);
+      if (charClassesState.uppercase) charClasses.push_back(wasmModule.CharacterClass.UPPERCASE);
+      if (charClassesState.digits) charClasses.push_back(wasmModule.CharacterClass.DIGITS);
+      if (charClassesState.symbols) charClasses.push_back(wasmModule.CharacterClass.SYMBOLS);
+      if (charClassesState.custom) charClasses.push_back(wasmModule.CharacterClass.CUSTOM);
+
+      try {
+        const result = wasmModule.MkPass(masterPassword, service, charClasses, algorithm, passwordLength, customChars);
+        setPassword(result);
+        setIsModalOpen(true);
+        setIsPasswordVisible(false);
+        setIsQrCodeVisible(false);
+        setQrCodeData(null);
+      } catch (e: any) {
+        console.error("WASM MkPass error:", e);
+        let errorMsg = e.message || e.toString();
+        if (typeof e === 'number') {
+            try {
+                errorMsg = wasmModule.getExceptionMessage(e);
+            } catch(ex) {
+                errorMsg = `WASM error code: ${e}`;
+            }
+        }
+        alert(`Error generating password: ${errorMsg}`);
+      } finally {
+        charClasses.delete();
+        setIsGenerating(false);
       }
-      alert(`Error generating password: ${errorMsg}`);
-    } finally {
-      charClasses.delete();
-    }
+    }, 50);
   };
 
   const handleCopy = () => {
@@ -325,12 +333,21 @@ function App() {
           </div>
           <button
             onClick={handleGenerate}
-            disabled={!wasmModule || !passwordMatchStatus.isValid || !masterPassword || !service}
+            disabled={!wasmModule || !passwordMatchStatus.isValid || !masterPassword || !service || isGenerating}
           >
-            {!wasmModule ? "Loading..." : "Generate"}
+            {!wasmModule ? "Loading..." : isGenerating ? "Generating..." : "Generate"}
           </button>
         </div>
       </header>
+
+      {isGenerating && (
+        <div className="modal-overlay">
+          <div className="loading-content">
+            <div className="spinner"></div>
+            <p>Generating Password...</p>
+          </div>
+        </div>
+      )}
 
       {isModalOpen && (
         <div className="modal-overlay">
