@@ -1,4 +1,4 @@
-const mkpass_wasm = require('./build_wasm/mkpass_webasm.js');
+const mkpass_wasm = require('./../build_wasm/mkpass_webasm.js');
 
 async function runTests() {
     console.log("Starting WASM tests...");
