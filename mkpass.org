@@ -27,7 +27,18 @@ If the master password is found, all passwords derived from that master password
   - [X] Initial Windows support
   - [ ] make the e2e test work on Windows
   - [ ] make the db_ut test work on Windows
+** Termux version
+  - [X] linking against wordexp
+  - [ ] termux package
 ** TODO Documentation
 ** TODO Passphrase composer
+*** Simple passphrase algorithm
+  - [X] Diceware EFF large wordlist
+  - [ ] Simple passphare algoritm implementation
+  - [ ] Tools: txt to C-code
+*** Lexic formulas passphrase algorithm
+  - [ ] WordNet sanitized wordlists: nouns, verbs, adjectives, adverbs
+  - [ ] Tools: wordnet manipulation tools
+  - [ ] Passphrase algoritm implementation
 ** Web version (WebAssembly)
 ** Mac version
