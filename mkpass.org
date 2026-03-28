@@ -45,6 +45,8 @@ If the master password is found, all passwords derived from that master password
   - [ ] Support in GUI/QT
   - [ ] Support in Android
   - [ ] Support in Web
+  - [ ] Simple passphare algoritm implementation
+  - [ ] Tools: txt to C-code
 *** Lexic formulas passphrase algorithm
   - [ ] WordNet sanitized wordlists: nouns, verbs, adjectives, adverbs
   - [ ] Tools: wordnet manipulation tools
@@ -54,6 +56,8 @@ If the master password is found, all passwords derived from that master password
   - [X] Results dialog
   - [X] Icon
   - [X] Style
+
+
 ** Mac version
 * Bugs
 ** Android
