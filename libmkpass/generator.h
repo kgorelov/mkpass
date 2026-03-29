@@ -49,8 +49,8 @@ public:
      * @param seedstr Initial input, defines the random sequence
      */
     Generator(std::span<const uint8_t> key, std::span<const uint8_t> info)
-        : key_(key)
-        , info_(info)
+        : key_(key.begin(), key.end())
+        , info_(info.begin(), info.end())
         , index_(0)
         , extend_counter_(0)
     {
@@ -115,8 +115,8 @@ private:
     }
 
 private:
-    std::span<const uint8_t> key_;
-    std::span<const uint8_t> info_;
+    std::vector<uint8_t> key_;
+    std::vector<uint8_t> info_;
     size_t index_;
     uint8_t extend_counter_;
     typename HKDF::value_type digest_;
