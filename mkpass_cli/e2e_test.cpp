@@ -9,6 +9,7 @@
 #include <sqlite3.h>
 #include "character_classes.h"
 #include "algorithms.h"
+#include "platform_utils.h"
 
 struct ProcessOutput {
     std::string std_out;
@@ -114,12 +115,12 @@ TEST(E2ETest, SimpleTest) {
 }
 
 TEST(E2ETest, DatabasePath) {
-    const char* db_path = "/tmp/mkpass-e2e-test.db";
-    setenv("MKPASS_DB_PATH", db_path, 1);
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-test.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
 
     // Create a dummy database for testing
     sqlite3 *db;
-    sqlite3_open(db_path, &db);
+    sqlite3_open(db_path.c_str(), &db);
     const char *sql =
         "CREATE TABLE snames (name TEXT PRIMARY KEY, length INTEGER);"
         "INSERT INTO snames VALUES ('github.com', 10);"
@@ -135,16 +136,16 @@ TEST(E2ETest, DatabasePath) {
     EXPECT_EQ(output.std_out.length(), 16);
 
     unsetenv("MKPASS_DB_PATH");
-    remove(db_path);
+    remove(db_path.c_str());
 }
 
 TEST(E2ETest, DatabasePathWithUsernames) {
-    const char* db_path = "/tmp/mkpass-e2e-test-2.db";
-    setenv("MKPASS_DB_PATH", db_path, 1);
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-test.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
 
     // Create a dummy database for testing
     sqlite3 *db;
-    sqlite3_open(db_path, &db);
+    sqlite3_open(db_path.c_str(), &db);
     const char *sql =
         "CREATE TABLE snames (name TEXT PRIMARY KEY, length INTEGER);"
         "INSERT INTO snames VALUES ('user@github.com', 15);"
@@ -160,16 +161,16 @@ TEST(E2ETest, DatabasePathWithUsernames) {
     EXPECT_EQ(output.std_out.length(), 20);
 
     unsetenv("MKPASS_DB_PATH");
-    remove(db_path);
+    remove(db_path.c_str());
 }
 
 TEST(E2ETest, AutocompleteOldSnames) {
-    const char* db_path = "/tmp/mkpass-e2e-test-3.db";
-    setenv("MKPASS_DB_PATH", db_path, 1);
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-test-3.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
 
     // Create a dummy database for testing
     sqlite3 *db;
-    sqlite3_open(db_path, &db);
+    sqlite3_open(db_path.c_str(), &db);
     const char *sql =
         "CREATE TABLE snames (name TEXT PRIMARY KEY, length INTEGER);"
         "INSERT INTO snames VALUES ('user@github.com', 15);"
@@ -186,7 +187,7 @@ TEST(E2ETest, AutocompleteOldSnames) {
     EXPECT_EQ(output.std_out.length(), 20);
 
     unsetenv("MKPASS_DB_PATH");
-    remove(db_path);
+    remove(db_path.c_str());
 }
 
 TEST(E2ETest, CtrlCAtServiceName) {
@@ -196,9 +197,9 @@ TEST(E2ETest, CtrlCAtServiceName) {
 }
 
 TEST(E2EServiceEntriesTest, DatabaseUpdate) {
-    const char* db_path = "/tmp/mkpass-e2e-test2-db-update.db";
-    setenv("MKPASS_DB_PATH", db_path, 1);
-    remove(db_path);
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-test2-db-update.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
+    remove(db_path.c_str());
 
     std::string input = "master_password\nmaster_password\nnew_service.com\n1\n1234\n24\n";
     ProcessOutput output = exec_with_input(MKPASS_EXECUTABLE_PATH, input);
@@ -208,7 +209,7 @@ TEST(E2EServiceEntriesTest, DatabaseUpdate) {
 
     // Check if the database was updated
     sqlite3 *db;
-    sqlite3_open(db_path, &db);
+    sqlite3_open(db_path.c_str(), &db);
     ASSERT_TRUE(db != nullptr);
 
     sqlite3_stmt *stmt;
@@ -228,17 +229,17 @@ TEST(E2EServiceEntriesTest, DatabaseUpdate) {
     sqlite3_close(db);
 
     unsetenv("MKPASS_DB_PATH");
-    remove(db_path);
+    remove(db_path.c_str());
 }
 
 TEST(E2EServiceEntriesTest, AutocompleteNewServiceEntries) {
-    const char* db_path = "/tmp/mkpass-e2e2-autocomplete.db";
-    setenv("MKPASS_DB_PATH", db_path, 1);
-    remove(db_path);
+    std::string db_path = GetTmpDir() + "/mkpass-e2e2-autocomplete.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
+    remove(db_path.c_str());
 
     // Create a dummy database for testing
     sqlite3 *db;
-    sqlite3_open(db_path, &db);
+    sqlite3_open(db_path.c_str(), &db);
     const char *sql =
         "CREATE TABLE service_entries (name TEXT PRIMARY KEY, algorithm INTEGER, length INTEGER, char_classes INTEGER);"
         "INSERT INTO service_entries VALUES ('github.com', 1, 10, 1);"
@@ -256,5 +257,5 @@ TEST(E2EServiceEntriesTest, AutocompleteNewServiceEntries) {
     EXPECT_EQ(output.std_out.length(), 10);
 
     unsetenv("MKPASS_DB_PATH");
-    remove(db_path);
+    remove(db_path.c_str());
 }
