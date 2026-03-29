@@ -3,6 +3,7 @@
 #include "generator.h"
 #include "hkdf_hmac.h"
 #include "hkdf_argon2.h"
+#include "wordlist.h"
 #include "character_classes.h"
 #include <stdexcept>
 #include <vector>
@@ -57,7 +58,16 @@ std::string GenerateAndComposePassword(const Context& ctx) {
     return ComposePassword(g, std::move(active_char_classes), ctx.length);
 }
 
+template <typename GeneratorType>
+std::string GenerateAndComposePassphraseDiceware(const Context& ctx) 
+{
+    GeneratorType g(ctx.password, ctx.service);
+    Wordlist wordlist;
+    return ComposePassPhrase(g, wordlist, ctx.length);
+}
+
 } // namespace
+
 
 std::string MkPass(const Context& ctx) {
     switch (ctx.algorithm) {
@@ -67,6 +77,8 @@ std::string MkPass(const Context& ctx) {
             return GenerateAndComposePassword<Generator<HKDF_HMAC<SLOW_SHA512>>>(ctx);
         case Algorithm::Old:
             return ComposeOldMkpass1Password(ctx.password, ctx.service, ctx.length);
+	case Algorithm::Passphrase_Diceware_EFF_Large:
+	    return GenerateAndComposePassphraseDiceware<Generator<HKDF_Argon2>>(ctx);
     }
     throw std::runtime_error("Unsupported algorithm");
 }

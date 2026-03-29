@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <iostream>
 #include <set>
+#include <cctype>
 
 #include "compose.h"
 #include "generator.h"
@@ -111,3 +112,49 @@ std::string ComposeOldMkpass1Password(
 
     return czkz::base64_encode(hash).substr(0, length);
 }
+
+// Separator algorithm modifies the current selected word:
+// either adding '-' at the front if it's not the fist word
+// the state is in the separator class itself
+// or capitilizing the first letter.
+// These must be different separator classes.
+
+class WordsSeparator {
+public:
+  std::string operator()(const std::string& word) {
+    std::string result(word);
+    if (result.length() > 0) {
+      result[0] = std::toupper(result[0]);
+    }
+    return result;
+  }
+};
+
+
+std::string ComposePassPhrase(
+    GeneratorInterface& generator,
+    const Wordlist& wordlist,
+    size_t length)
+{
+  std::string result;
+  UniformDistribution distibution(0, wordlist.length()-1);
+  WordsSeparator separator;
+  std::set<int> used_idxs;
+
+  while (length > 0) {
+    auto idx = distibution(generator);
+    if (used_idxs.find(idx) != used_idxs.end()) {
+      continue;
+    }
+    used_idxs.insert(idx);
+    result += separator(wordlist[idx]);
+    --length;
+  }
+  return result;
+}
+
+// Implement Composing passphares using patterns/formulas instead of length
+// Formula: ADJ NOUN VERB NOUN
+// FormulaL ADJ NOUN ADV VERB ADJ NOUN
+// Separator: '-' ' ' CAPITILIZE UPPER
+

@@ -28,18 +28,21 @@ Algorithm AskForAlgorithm(Algorithm default_algorithm) {
     std::map<char, Algorithm> choices = {
         {'1', Algorithm::Argon2},
         {'2', Algorithm::SlowSha512},
-        {'3', Algorithm::Old}
+        {'3', Algorithm::Old},
+        {'4', Algorithm::Passphrase_Diceware_EFF_Large}
     };
     std::map<Algorithm, char> algo_to_char = {
         {Algorithm::Argon2, '1'},
         {Algorithm::SlowSha512, '2'},
-        {Algorithm::Old, '3'}
+        {Algorithm::Old, '3'},
+	{Algorithm::Passphrase_Diceware_EFF_Large, '4'}
     };
 
     std::cerr << "Choose algorithm:\n";
     std::cerr << "1. Password (Argon2)\n";
     std::cerr << "2. Password (SHA512 HMAC)\n";
     std::cerr << "3. OldPassword\n";
+    std::cerr << "4. Passphrase Diceware EFF Large (Argon2)\n";
     std::cerr << "Your choice (e.g. 1) [" << algo_to_char[default_algorithm] << "]: ";
     std::string choice;
     std::getline(std::cin, choice);
@@ -191,7 +194,7 @@ int run_tui() {
     auto algorithm = AskForAlgorithm(default_algorithm);
     std::vector<CharacterClass> char_classes;
     std::optional<std::string> custom_chars;
-    if (algorithm != Algorithm::Old) {
+    if (algorithm != Algorithm::Old && algorithm != Algorithm::Passphrase_Diceware_EFF_Large) {
         std::vector<CharacterClass> default_char_classes = {
             CharacterClass::LOWERCASE,
             CharacterClass::UPPERCASE,

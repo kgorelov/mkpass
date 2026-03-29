@@ -36,6 +36,8 @@ If the master password is found, all passwords derived from that master password
   - [X] Diceware EFF large wordlist
   - [ ] Simple passphare algoritm implementation
   - [ ] Tools: txt to C-code
+  - [ ] Fix tests: TestLE, E2E
+  - [ ] Testcases
 *** Lexic formulas passphrase algorithm
   - [ ] WordNet sanitized wordlists: nouns, verbs, adjectives, adverbs
   - [ ] Tools: wordnet manipulation tools

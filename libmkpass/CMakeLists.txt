@@ -5,6 +5,7 @@ set(SOURCES
   mkpass.cpp
   hkdf_argon2.cpp
   db.cpp
+  eff_large_words.cpp
   )
 add_library(libmkpass STATIC ${SOURCES})
 target_include_directories(libmkpass PUBLIC .)
@@ -37,6 +38,16 @@ set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")  # Only static
 add_library(sqlite3 STATIC sqlite3/sqlite3.c)
 target_include_directories(sqlite3 PUBLIC sqlite3)
 target_link_libraries(libmkpass PRIVATE sqlite3)
+
+# Linking against wordexp in termux android env
+if(ANDROID AND EXISTS "/data/data/com.termux")
+    set(IS_TERMUX TRUE)
+endif()
+
+if(IS_TERMUX)
+    target_link_libraries(libmkpass
+        PRIVATE /data/data/com.termux/files/usr/lib/libandroid-wordexp.a)
+endif()
 
 
 # A pure C SHA512 implementation library

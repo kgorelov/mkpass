@@ -9,15 +9,16 @@
 
 #include "platform_utils.h"
 
+
 class ConfigDBTest : public ::testing::Test {
 protected:
     std::string db_path;
 
     void SetUp() override {
-        char tmpl[] = "/tmp/mkpass-test-XXXXXX";
-        int fd = mkstemp(tmpl);
+        std::string tmpl = GetTmpDir() + "/mkpass-test-XXXXXX";
+        int fd = mkstemp((char*)tmpl.c_str());
         if (fd != -1) {
-            db_path = tmpl;
+	    db_path = tmpl;
             close(fd);
         }
 
@@ -119,16 +120,16 @@ TEST(ConfigDB, NonExistentDB) {
 }
 
 TEST(ConfigDB, EnvVariable) {
-    const char* db_path = "/tmp/mkpass-test-env.db";
-    setenv("MKPASS_DB_PATH", db_path, 1);
+    std::string db_path = GetTmpDir() + "/mkpass-test-env.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
 
     mkpass::ConfigDB db(GetConfigDBPath());
     auto snames = db.get_all_service_names();
     ASSERT_TRUE(snames.empty());
 
     // Check that the database file was created
-    ASSERT_EQ(access(db_path, F_OK), 0);
+    ASSERT_EQ(access(db_path.c_str(), F_OK), 0);
 
     unsetenv("MKPASS_DB_PATH");
-    remove(db_path);
+    remove(db_path.c_str());
 }

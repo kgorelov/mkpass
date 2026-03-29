@@ -6,7 +6,8 @@
 #include "digest.h"
 #include <gtest/gtest.h>
 
-template<HashCalculator C>
+//template<HashCalculator C>
+HASH_CALCULATOR_TEMPLATE
 std::string ToString(const typename C::value_type& d) {
     std::ostringstream oss;
     for (unsigned int i = 0; i < d.size(); ++i) {
@@ -15,7 +16,8 @@ std::string ToString(const typename C::value_type& d) {
     return oss.str();
 }
 
-template <HashCalculator C>
+//template <HashCalculator C>
+HASH_CALCULATOR_TEMPLATE
 std::string HashStr(const std::string& inp) {
     return ToString<C>(CalcHash<C>({reinterpret_cast<const uint8_t*>(inp.data()), inp.size()}));
 }

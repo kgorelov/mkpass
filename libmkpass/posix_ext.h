@@ -19,4 +19,12 @@ std::string GetConfigDBPath() {
     return db_path;
 }
 
+std::string GetTmpDir() {
+    char *tmpdir = getenv("TMPDIR");
+    if (tmpdir) {
+      return std::string(tmpdir);
+    }
+    return "/tmp";
+}
+
 }
