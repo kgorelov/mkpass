@@ -5,9 +5,11 @@
 #include "hkdf_argon2.h"
 #include "wordlist.h"
 #include "character_classes.h"
+#include "eff_large_words.h"
 #include <stdexcept>
 #include <vector>
 #include <algorithm>
+
 
 namespace {
 
@@ -62,7 +64,7 @@ template <typename GeneratorType>
 std::string GenerateAndComposePassphraseDiceware(const Context& ctx) 
 {
     GeneratorType g(ctx.password, ctx.service);
-    Wordlist wordlist;
+    Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
     return ComposePassPhrase(g, wordlist, ctx.length);
 }
 
