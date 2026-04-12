@@ -6,6 +6,10 @@ set(SOURCES
   hkdf_argon2.cpp
   db.cpp
   wordlists/eff_large_words.cpp
+  wordlists/wordnet_nouns.cpp
+  wordlists/wordnet_verbs.cpp
+  wordlists/wordnet_adjs.cpp
+  wordlists/wordnet_advs.cpp
   )
 add_library(libmkpass STATIC ${SOURCES})
 target_include_directories(libmkpass PUBLIC .)
