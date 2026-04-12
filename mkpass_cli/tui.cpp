@@ -29,13 +29,15 @@ Algorithm AskForAlgorithm(Algorithm default_algorithm) {
         {'1', Algorithm::Argon2},
         {'2', Algorithm::SlowSha512},
         {'3', Algorithm::Old},
-        {'4', Algorithm::Passphrase_Diceware_EFF_Large}
+        {'4', Algorithm::Passphrase_Diceware_EFF_Large},
+        {'5', Algorithm::Passphrase_Wordnet_Pattern}
     };
     std::map<Algorithm, char> algo_to_char = {
         {Algorithm::Argon2, '1'},
         {Algorithm::SlowSha512, '2'},
         {Algorithm::Old, '3'},
-	{Algorithm::Passphrase_Diceware_EFF_Large, '4'}
+        {Algorithm::Passphrase_Diceware_EFF_Large, '4'},
+        {Algorithm::Passphrase_Wordnet_Pattern, '5'}
     };
 
     std::cerr << "Choose algorithm:\n";
@@ -43,6 +45,7 @@ Algorithm AskForAlgorithm(Algorithm default_algorithm) {
     std::cerr << "2. Password (SHA512 HMAC)\n";
     std::cerr << "3. OldPassword\n";
     std::cerr << "4. Passphrase Diceware EFF Large (Argon2)\n";
+    std::cerr << "5. Passphrase Wordnet Pattern (Argon2)\n";
     std::cerr << "Your choice (e.g. 1) [" << algo_to_char[default_algorithm] << "]: ";
     std::string choice;
     std::getline(std::cin, choice);
@@ -194,7 +197,9 @@ int run_tui() {
     auto algorithm = AskForAlgorithm(default_algorithm);
     std::vector<CharacterClass> char_classes;
     std::optional<std::string> custom_chars;
-    if (algorithm != Algorithm::Old && algorithm != Algorithm::Passphrase_Diceware_EFF_Large) {
+    if (algorithm != Algorithm::Old
+        && algorithm != Algorithm::Passphrase_Diceware_EFF_Large
+        && algorithm != Algorithm::Passphrase_Wordnet_Pattern) {
         std::vector<CharacterClass> default_char_classes = {
             CharacterClass::LOWERCASE,
             CharacterClass::UPPERCASE,

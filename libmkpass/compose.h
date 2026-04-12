@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <map>
 #include "character_classes.h"
 #include "wordlist.h"
 
@@ -20,3 +21,8 @@ std::string ComposePassPhrase(
     GeneratorInterface& generator,
     const Wordlist& wordlist,
     size_t length);
+
+std::string ComposePassPhrase(
+    GeneratorInterface& generator,
+    std::map<WordClasses, Wordlist> &&wordlists,
+    std::vector<WordClasses> &&pattern);

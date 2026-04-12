@@ -34,11 +34,15 @@ If the master password is found, all passwords derived from that master password
 ** TODO Passphrase composer
 *** Simple passphrase algorithm
   - [X] Diceware EFF large wordlist
-  - [ ] Simple passphare algoritm implementation
+  - [X] Simple passphare algoritm implementation
   - [ ] Make params depend on algorithm entirely
-  - [ ] Tools: txt to C-code
-  - [ ] Fix tests: TestLE, E2E
+  - [X] Tools: txt to C-code
+  - [X] Fix tests: TestLE, E2E
   - [ ] Testcases
+  - [ ] Support in TUI
+  - [ ] Support in GUI/QT
+  - [ ] Support in Android
+  - [ ] Support in Web
 *** Lexic formulas passphrase algorithm
   - [ ] WordNet sanitized wordlists: nouns, verbs, adjectives, adverbs
   - [ ] Tools: wordnet manipulation tools

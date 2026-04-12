@@ -6,6 +6,10 @@
 #include "wordlist.h"
 #include "character_classes.h"
 #include "wordlists/eff_large_words.h"
+#include "wordlists/wordnet_nouns.h"
+#include "wordlists/wordnet_verbs.h"
+#include "wordlists/wordnet_adjs.h"
+#include "wordlists/wordnet_advs.h"
 #include <stdexcept>
 #include <vector>
 #include <algorithm>
@@ -61,11 +65,38 @@ std::string GenerateAndComposePassword(const Context& ctx) {
 }
 
 template <typename GeneratorType>
-std::string GenerateAndComposePassphraseDiceware(const Context& ctx) 
+std::string GenerateAndComposePassphraseDiceware(const Context& ctx)
 {
     GeneratorType g(ctx.password, ctx.service);
     Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
     return ComposePassPhrase(g, wordlist, ctx.length);
+}
+
+template <typename GeneratorType>
+std::string GenerateAndComposePassphraseWordnetPattern(const Context& ctx)
+{
+    GeneratorType g(ctx.password, ctx.service);
+
+    Wordlist wordlist_nouns(wordnet_nouns_get_word, wordnet_nouns_get_word_count);
+    Wordlist wordlist_verbs(wordnet_verbs_get_word, wordnet_verbs_get_word_count);
+    Wordlist wordlist_adjs(wordnet_adjs_get_word, wordnet_adjs_get_word_count);
+    Wordlist wordlist_advs(wordnet_advs_get_word, wordnet_advs_get_word_count);
+
+    std::map<WordClasses, Wordlist> wordlists = {
+        {WordClasses::Noun, wordlist_nouns},
+        {WordClasses::Verb, wordlist_verbs},
+        {WordClasses::Adj, wordlist_adjs},
+        {WordClasses::Adv, wordlist_advs},};
+
+    std::vector<WordClasses> pattern = {
+        WordClasses::Adj,
+        WordClasses::Noun,
+        WordClasses::Adv,
+        WordClasses::Verb,
+        WordClasses::Noun};
+
+    return ComposePassPhrase(
+        g, std::move(wordlists), std::move(pattern));
 }
 
 } // namespace
@@ -79,8 +110,10 @@ std::string MkPass(const Context& ctx) {
             return GenerateAndComposePassword<Generator<HKDF_HMAC<SLOW_SHA512>>>(ctx);
         case Algorithm::Old:
             return ComposeOldMkpass1Password(ctx.password, ctx.service, ctx.length);
-	case Algorithm::Passphrase_Diceware_EFF_Large:
-	    return GenerateAndComposePassphraseDiceware<Generator<HKDF_Argon2>>(ctx);
+        case Algorithm::Passphrase_Diceware_EFF_Large:
+            return GenerateAndComposePassphraseDiceware<Generator<HKDF_Argon2>>(ctx);
+        case Algorithm::Passphrase_Wordnet_Pattern:
+            return GenerateAndComposePassphraseWordnetPattern<Generator<HKDF_Argon2>>(ctx);
     }
     throw std::runtime_error("Unsupported algorithm");
 }

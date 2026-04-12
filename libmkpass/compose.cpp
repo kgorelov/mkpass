@@ -153,6 +153,35 @@ std::string ComposePassPhrase(
   return result;
 }
 
+
+std::string ComposePassPhrase(
+    GeneratorInterface& generator,
+    std::map<WordClasses, Wordlist> &&wordlists,
+    std::vector<WordClasses> &&pattern)
+{
+    std::string result;
+    std::map<WordClasses, UniformDistribution<int>> distributions;
+    std::map<WordClasses, std::set<int>> used_idxs;
+
+    WordsSeparator separator;
+
+    for (auto& [wc, wl]: wordlists) {
+        distributions.emplace(wc, UniformDistribution<int>(0, wl.length()-1));
+    }
+
+    for (auto& wc: pattern) {
+        auto idx = distributions.at(wc)(generator);
+        if (used_idxs[wc].find(idx) != used_idxs[wc].end()) {
+            continue;
+        }
+        used_idxs[wc].insert(idx);
+        result += separator(wordlists.at(wc)[idx]);
+    }
+
+    return result;
+}
+
+
 // Implement Composing passphares using patterns/formulas instead of length
 // Formula: ADJ NOUN VERB NOUN
 // FormulaL ADJ NOUN ADV VERB ADJ NOUN

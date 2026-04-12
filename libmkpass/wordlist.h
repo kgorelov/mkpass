@@ -28,3 +28,10 @@ private:
   GetWordFuncType get_word_;
   GetWordCountFuncType get_word_count_;
 };
+
+enum class WordClasses {
+    Noun,
+    Verb,
+    Adj,
+    Adv
+};
