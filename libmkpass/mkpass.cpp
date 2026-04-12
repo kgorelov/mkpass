@@ -5,7 +5,7 @@
 #include "hkdf_argon2.h"
 #include "wordlist.h"
 #include "character_classes.h"
-#include "eff_large_words.h"
+#include "wordlists/eff_large_words.h"
 #include <stdexcept>
 #include <vector>
 #include <algorithm>
