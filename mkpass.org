@@ -35,6 +35,7 @@ If the master password is found, all passwords derived from that master password
 *** Simple passphrase algorithm
   - [X] Diceware EFF large wordlist
   - [ ] Simple passphare algoritm implementation
+  - [ ] Make params depend on algorithm entirely
   - [ ] Tools: txt to C-code
   - [ ] Fix tests: TestLE, E2E
   - [ ] Testcases
