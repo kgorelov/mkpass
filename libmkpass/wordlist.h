@@ -4,7 +4,6 @@
 #include <vector>
 #include <map>
 
-
 typedef const char* (*GetWordFuncType)(int);
 typedef int (*GetWordCountFuncType)();
 

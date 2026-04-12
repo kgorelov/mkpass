@@ -5,7 +5,7 @@ set(SOURCES
   mkpass.cpp
   hkdf_argon2.cpp
   db.cpp
-  eff_large_words.cpp
+  wordlists/eff_large_words.cpp
   )
 add_library(libmkpass STATIC ${SOURCES})
 target_include_directories(libmkpass PUBLIC .)
