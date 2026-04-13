@@ -25,6 +25,7 @@
 #include <QFutureWatcher>
 #include <QCompleter>
 #include <QStringListModel>
+#include <QLabel>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent) {
@@ -69,12 +70,14 @@ void MainWindow::setupUI() {
     formLayout->addRow("Service:", serviceLineEdit);
 
     algorithmComboBox = new QComboBox;
-    algorithmComboBox->addItem("Argon2", static_cast<int>(Algorithm::Argon2));
-    algorithmComboBox->addItem("SlowSha512", static_cast<int>(Algorithm::SlowSha512));
-    algorithmComboBox->addItem("Old", static_cast<int>(Algorithm::Old));
+    algorithmComboBox->addItem("Password (Argon2)", static_cast<int>(Algorithm::Argon2));
+    algorithmComboBox->addItem("Password (SHA512 HMAC)", static_cast<int>(Algorithm::SlowSha512));
+    algorithmComboBox->addItem("OldPassword", static_cast<int>(Algorithm::Old));
+    algorithmComboBox->addItem("Passphrase Diceware (Argon2)", static_cast<int>(Algorithm::Passphrase_Diceware_EFF_Large));
+    algorithmComboBox->addItem("Passphrase Wordnet Pattern (Argon2)", static_cast<int>(Algorithm::Passphrase_Wordnet_Pattern));
     formLayout->addRow("Algorithm:", algorithmComboBox);
 
-    QGroupBox *characterClassesGroupBox = new QGroupBox("Character Classes");
+    characterClassesGroupBox = new QGroupBox("Character Classes");
     QVBoxLayout *characterClassesLayout = new QVBoxLayout;
 
     QGridLayout *checkBoxesLayout = new QGridLayout;
@@ -111,7 +114,13 @@ void MainWindow::setupUI() {
     lengthSpinBox = new QSpinBox;
     lengthSpinBox->setRange(1, 128);
     lengthSpinBox->setValue(16);
-    formLayout->addRow("Password Length:", lengthSpinBox);
+    lengthWidget = new QWidget;
+    QHBoxLayout *lengthLayout = new QHBoxLayout(lengthWidget);
+    lengthLayout->setContentsMargins(0, 0, 0, 0);
+    lengthLabel = new QLabel("Password length:");
+    lengthLayout->addWidget(lengthLabel);
+    lengthLayout->addWidget(lengthSpinBox);
+    formLayout->addRow(lengthWidget);
 
     mainLayout->addLayout(formLayout);
 
@@ -131,10 +140,10 @@ void MainWindow::setupUI() {
 
     connect(masterPasswordLineEdit, &QLineEdit::textChanged, this, &MainWindow::checkPasswords);
     connect(repeatPasswordLineEdit, &QLineEdit::textChanged, this, &MainWindow::checkPasswords);
-    connect(algorithmComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::updateCharacterClassesState);
+    connect(algorithmComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::updateAlgorithmSpecificUI);
     connect(customCheckBox, &QCheckBox::toggled, this, &MainWindow::updateCustomCharsState);
 
-    updateCustomCharsState();
+    updateAlgorithmSpecificUI();
 }
 
 void MainWindow::generatePassword() {
@@ -149,13 +158,15 @@ void MainWindow::generatePassword() {
     ctx.length = lengthSpinBox->value();
     ctx.algorithm = static_cast<Algorithm>(algorithmComboBox->currentData().toInt());
 
-    if (lowerCaseCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::LOWERCASE);
-    if (upperCaseCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::UPPERCASE);
-    if (digitsCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::DIGITS);
-    if (symbolsCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::SYMBOLS);
-    if (customCheckBox->isChecked()) {
-        ctx.char_classes.push_back(CharacterClass::CUSTOM);
-        ctx.custom_chars = customCharsLineEdit->text().toStdString();
+    if (ctx.algorithm == Algorithm::Argon2 || ctx.algorithm == Algorithm::SlowSha512) {
+        if (lowerCaseCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::LOWERCASE);
+        if (upperCaseCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::UPPERCASE);
+        if (digitsCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::DIGITS);
+        if (symbolsCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::SYMBOLS);
+        if (customCheckBox->isChecked()) {
+            ctx.char_classes.push_back(CharacterClass::CUSTOM);
+            ctx.custom_chars = customCharsLineEdit->text().toStdString();
+        }
     }
 
     QFuture<std::string> future = QtConcurrent::run(MkPass, ctx);
@@ -163,8 +174,11 @@ void MainWindow::generatePassword() {
 }
 
 void MainWindow::generationFinished() {
-    progressDialog->close();
-    delete progressDialog;
+    if (progressDialog) {
+        progressDialog->close();
+        progressDialog->deleteLater();
+        progressDialog = nullptr;
+    }
 
     generatedPassword = generationWatcher->result();
     PasswordDialog dialog(QString::fromStdString(generatedPassword), this);
@@ -174,21 +188,27 @@ void MainWindow::generationFinished() {
 
     mkpass::ConfigDB db(GetConfigDBPath());
     std::vector<CharacterClass> char_classes;
-    if (lowerCaseCheckBox->isChecked()) char_classes.push_back(CharacterClass::LOWERCASE);
-    if (upperCaseCheckBox->isChecked()) char_classes.push_back(CharacterClass::UPPERCASE);
-    if (digitsCheckBox->isChecked()) char_classes.push_back(CharacterClass::DIGITS);
-    if (symbolsCheckBox->isChecked()) char_classes.push_back(CharacterClass::SYMBOLS);
-
     std::optional<std::string> custom_chars;
-    if (customCheckBox->isChecked()) {
-        char_classes.push_back(CharacterClass::CUSTOM);
-        custom_chars = customCharsLineEdit->text().toStdString();
+    Algorithm algorithm = static_cast<Algorithm>(algorithmComboBox->currentData().toInt());
+    unsigned length = lengthSpinBox->value();
+
+    if (algorithm == Algorithm::Argon2 || algorithm == Algorithm::SlowSha512) {
+        if (lowerCaseCheckBox->isChecked()) char_classes.push_back(CharacterClass::LOWERCASE);
+        if (upperCaseCheckBox->isChecked()) char_classes.push_back(CharacterClass::UPPERCASE);
+        if (digitsCheckBox->isChecked()) char_classes.push_back(CharacterClass::DIGITS);
+        if (symbolsCheckBox->isChecked()) char_classes.push_back(CharacterClass::SYMBOLS);
+        if (customCheckBox->isChecked()) {
+            char_classes.push_back(CharacterClass::CUSTOM);
+            custom_chars = customCharsLineEdit->text().toStdString();
+        }
+    } else if (algorithm == Algorithm::Passphrase_Wordnet_Pattern) {
+        length = 0;
     }
 
     db.save_service_entry({
         serviceLineEdit->text().toStdString(),
-        static_cast<Algorithm>(algorithmComboBox->currentData().toInt()),
-        static_cast<unsigned>(lengthSpinBox->value()),
+        algorithm,
+        length,
         char_classes,
         custom_chars
     });
@@ -197,11 +217,16 @@ void MainWindow::generationFinished() {
 void MainWindow::serviceChanged(const QString &service) {
     mkpass::ConfigDB db(GetConfigDBPath());
     auto entry = db.get_service_entry(service.toStdString());
+
+    Algorithm currentAlgo = static_cast<Algorithm>(algorithmComboBox->currentData().toInt());
+    Algorithm newAlgo = entry ? entry->algorithm : Algorithm::Argon2;
+
+    int index = algorithmComboBox->findData(static_cast<int>(newAlgo));
+    if (index != -1) {
+        algorithmComboBox->setCurrentIndex(index);
+    }
+
     if (entry) {
-        int index = algorithmComboBox->findData(static_cast<int>(entry->algorithm));
-        if (index != -1) {
-            algorithmComboBox->setCurrentIndex(index);
-        }
         lengthSpinBox->setValue(entry->length);
 
         lowerCaseCheckBox->setChecked(false);
@@ -221,22 +246,23 @@ void MainWindow::serviceChanged(const QString &service) {
         } else {
             customCharsLineEdit->setText("");
         }
-        updateCustomCharsState();
     } else {
-        // Reset to default values
-        int index = algorithmComboBox->findData(static_cast<int>(Algorithm::Argon2));
-        if (index != -1) {
-            algorithmComboBox->setCurrentIndex(index);
+        // Reset to default values based on algorithm
+        if (newAlgo == Algorithm::Argon2 || newAlgo == Algorithm::SlowSha512) {
+            lengthSpinBox->setValue(16);
+            lowerCaseCheckBox->setChecked(true);
+            upperCaseCheckBox->setChecked(true);
+            digitsCheckBox->setChecked(true);
+            symbolsCheckBox->setChecked(true);
+            customCheckBox->setChecked(false);
+            customCharsLineEdit->setText("");
+        } else if (newAlgo == Algorithm::Passphrase_Diceware_EFF_Large) {
+            lengthSpinBox->setValue(6);
+        } else if (newAlgo == Algorithm::Old) {
+            lengthSpinBox->setValue(8);
         }
-        lengthSpinBox->setValue(16);
-        lowerCaseCheckBox->setChecked(true);
-        upperCaseCheckBox->setChecked(true);
-        digitsCheckBox->setChecked(true);
-        symbolsCheckBox->setChecked(true);
-        customCheckBox->setChecked(false);
-        customCharsLineEdit->setText("");
-        updateCustomCharsState();
     }
+    updateAlgorithmSpecificUI();
 }
 
 void MainWindow::checkPasswords() {
@@ -269,20 +295,26 @@ void MainWindow::checkPasswords() {
     }
 }
 
-void MainWindow::updateCharacterClassesState() {
+void MainWindow::updateAlgorithmSpecificUI() {
     Algorithm algorithm = static_cast<Algorithm>(algorithmComboBox->currentData().toInt());
-    bool enabled = algorithm != Algorithm::Old;
 
-    lowerCaseCheckBox->setEnabled(enabled);
-    upperCaseCheckBox->setEnabled(enabled);
-    digitsCheckBox->setEnabled(enabled);
-    symbolsCheckBox->setEnabled(enabled);
-    customCheckBox->setEnabled(enabled);
-    if (enabled) {
-        updateCustomCharsState();
-    } else {
-        customCharsLineEdit->setVisible(false);
+    bool showCharClasses = (algorithm == Algorithm::Argon2 || algorithm == Algorithm::SlowSha512);
+    bool showLength = (algorithm != Algorithm::Passphrase_Wordnet_Pattern);
+
+    characterClassesGroupBox->setVisible(showCharClasses);
+    lengthWidget->setVisible(showLength);
+
+    if (showLength) {
+        if (algorithm == Algorithm::Passphrase_Diceware_EFF_Large) {
+            lengthLabel->setText("Passphrase words count:");
+            lengthSpinBox->setRange(1, 20);
+        } else {
+            lengthLabel->setText("Password length:");
+            lengthSpinBox->setRange(1, 128);
+        }
     }
+
+    updateCustomCharsState();
 }
 
 void MainWindow::updateCustomCharsState() {

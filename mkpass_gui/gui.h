@@ -10,6 +10,7 @@ class QSpinBox;
 class QPushButton;
 class QComboBox;
 class QGroupBox;
+class QLabel;
 class ProgressDialog;
 
 class MainWindow : public QMainWindow {
@@ -27,7 +28,7 @@ private slots:
     void generationFinished();
     void serviceChanged(const QString &service);
     void checkPasswords();
-    void updateCharacterClassesState();
+    void updateAlgorithmSpecificUI();
     void updateCustomCharsState();
 
 private:
@@ -37,12 +38,15 @@ private:
     QLineEdit *repeatPasswordLineEdit;
     QLineEdit *serviceLineEdit;
     QComboBox *algorithmComboBox;
+    QGroupBox *characterClassesGroupBox;
     QCheckBox *upperCaseCheckBox;
     QCheckBox *lowerCaseCheckBox;
     QCheckBox *digitsCheckBox;
     QCheckBox *symbolsCheckBox;
     QCheckBox *customCheckBox;
     QLineEdit *customCharsLineEdit;
+    QWidget *lengthWidget;
+    QLabel *lengthLabel;
     QSpinBox *lengthSpinBox;
     QPushButton *generateButton;
     QPushButton *closeButton;
