@@ -5,8 +5,8 @@
 #include <limits>
 #include <stdexcept>
 #include <algorithm>
-//#include <fstream>
-
+#include <set>
+#include <optional>
 
 #if defined(_WIN32)
 #include "win32_term.h"
@@ -22,7 +22,51 @@
 #include "db.h"
 #include "platform_utils.h"
 #include "linenoise.h"
-#include <set>
+
+namespace {
+
+std::set<std::string> service_names;
+
+void completion(const char *buf, linenoiseCompletions *lc) {
+    for (const auto &s : service_names) {
+        if (s.rfind(buf, 0) == 0) {
+            linenoiseAddCompletion(lc, s.c_str());
+        }
+    }
+}
+
+std::string AskForMasterPassword() {
+    std::cerr << "Enter Master Password: ";
+    std::string pwd = InputPassword();
+    std::cerr << "\n";
+    if (pwd.empty()) {
+        throw std::runtime_error("Master password must not be empty");
+    }
+
+    std::cerr << "Repeat Master Password: ";
+    std::string pwd2 = InputPassword();
+    std::cerr << "\n";
+
+    if (pwd2.empty()) {
+        std::cerr << "[NO CHECK]\n";
+    } else if (pwd2 == pwd) {
+        std::cerr << "[CORRECT]\n";
+    } else {
+        throw std::runtime_error("Passwords don't match");
+    }
+    return pwd;
+}
+
+std::string AskForService() {
+    linenoiseSetCompletionCallback(completion);
+    char *service_c_str = linenoise("Service name: ");
+    if (service_c_str == nullptr) {
+        throw std::exception(); // Will be caught in run_tui_safe and return 130
+    }
+    std::string service(service_c_str);
+    free(service_c_str);
+    return service;
+}
 
 Algorithm AskForAlgorithm(Algorithm default_algorithm) {
     std::map<char, Algorithm> choices = {
@@ -118,8 +162,7 @@ std::optional<std::string> AskForCustomChars(const std::optional<std::string>& d
 
     char *custom_chars_c_str = linenoise(prompt.c_str());
     if (custom_chars_c_str == nullptr) {
-        // Ctrl+C or Ctrl+D
-        throw std::runtime_error("Input aborted");
+        throw std::exception();
     }
     std::string custom_chars_str(custom_chars_c_str);
     free(custom_chars_c_str);
@@ -130,16 +173,85 @@ std::optional<std::string> AskForCustomChars(const std::optional<std::string>& d
     return custom_chars_str;
 }
 
+unsigned AskForLength(unsigned default_length) {
+    std::string prompt = "Length";
+    if (default_length > 0) {
+        prompt += " [" + std::to_string(default_length) + "]";
+    }
+    prompt += ": ";
 
-std::set<std::string> service_names;
+    char *length_c_str = linenoise(prompt.c_str());
+    if (length_c_str == nullptr) {
+        throw std::exception();
+    }
+    std::string length_str(length_c_str);
+    free(length_c_str);
 
-void completion(const char *buf, linenoiseCompletions *lc) {
-    for (const auto &s : service_names) {
-        if (s.rfind(buf, 0) == 0) {
-            linenoiseAddCompletion(lc, s.c_str());
+    if (length_str.empty()) {
+        if (default_length == 0) {
+            throw std::runtime_error("Length must be specified");
         }
+        return default_length;
+    }
+    try {
+        return std::stoul(length_str);
+    } catch (...) {
+        throw std::runtime_error("Invalid length: " + length_str);
     }
 }
+
+bool IsPasswordAlgo(Algorithm a) {
+    return a == Algorithm::Argon2 || a == Algorithm::SlowSha512;
+}
+
+void HandlePasswordAlgo(Context& ctx, const std::optional<mkpass::ServiceEntry>& db_entry) {
+    std::vector<CharacterClass> default_char_classes = {
+        CharacterClass::LOWERCASE,
+        CharacterClass::UPPERCASE,
+        CharacterClass::DIGITS,
+        CharacterClass::SYMBOLS
+    };
+    if (db_entry && IsPasswordAlgo(db_entry->algorithm) && !db_entry->char_classes.empty()) {
+        default_char_classes = db_entry->char_classes;
+    }
+    ctx.char_classes = AskForCharClasses(default_char_classes);
+
+    if (std::find(ctx.char_classes.begin(), ctx.char_classes.end(), CharacterClass::CUSTOM) != ctx.char_classes.end()) {
+        std::optional<std::string> default_custom_chars;
+        if (db_entry && IsPasswordAlgo(db_entry->algorithm)) {
+            default_custom_chars = db_entry->custom_chars;
+        }
+        ctx.custom_chars = AskForCustomChars(default_custom_chars);
+    }
+
+    unsigned default_length = 16;
+    if (db_entry && IsPasswordAlgo(db_entry->algorithm) && db_entry->length > 0) {
+        default_length = db_entry->length;
+    }
+    ctx.length = AskForLength(default_length);
+}
+
+void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::ServiceEntry>& db_entry) {
+    unsigned default_length = 6;
+    if (db_entry && db_entry->algorithm == Algorithm::Passphrase_Diceware_EFF_Large && db_entry->length > 0) {
+        default_length = db_entry->length;
+    }
+    ctx.length = AskForLength(default_length);
+}
+
+void HandlePassphraseWordnetPatternAlgo(Context& ctx, const std::optional<mkpass::ServiceEntry>& db_entry) {
+    // Wordnet Pattern currently doesn't use configurable length
+    ctx.length = 0;
+}
+
+void HandleOldAlgo(Context& ctx, const std::optional<mkpass::ServiceEntry>& db_entry) {
+    unsigned default_length = 8;
+    if (db_entry && db_entry->algorithm == Algorithm::Old && db_entry->length > 0) {
+        default_length = db_entry->length;
+    }
+    ctx.length = AskForLength(default_length);
+}
+} // namespace
 
 int run_tui_safe() {
     try {
@@ -148,7 +260,7 @@ int run_tui_safe() {
         std::cerr << "ERROR! " << e.what() << std::endl;
         return 1;
     } catch (const std::exception &e) {
-        // This happens on Ctrl+C
+        // This happens on Ctrl+C (when we throw std::exception())
         return 130;
     }
 }
@@ -157,109 +269,39 @@ int run_tui() {
     mkpass::ConfigDB db(GetConfigDBPath());
     service_names = db.get_all_service_names();
 
-    // Input Master Password
-    std::cerr << "Enter Master Password: ";
-    std::string pwd = InputPassword();
-    std::cerr << "\n";
-    if (pwd.empty()) {
-        throw std::runtime_error("Masster password must not be empty");
-    }
-
-    // Input second time, empty string to skip the check
-    std::cerr << "Repeat Master Password: ";
-    std::string pwd2 = InputPassword();
-    std::cerr << "\n";
-
-    if (pwd2.empty()) {
-        std::cerr << "[NO CHECK]\n";
-    } else if (pwd2 == pwd) {
-        std::cerr << "[CORRECT]\n";
-    } else {
-        throw std::runtime_error("Passwords don't match");
-    }
-
-    // Input Service
-    linenoiseSetCompletionCallback(completion);
-    char *service_c_str = linenoise("Service name: ");
-    if (service_c_str == nullptr) {
-        return 130;
-    }
-    std::string service(service_c_str);
-    free(service_c_str);
+    std::string pwd = AskForMasterPassword();
+    std::string service = AskForService();
 
     auto db_entry = db.get_service_entry(service);
 
-    Algorithm default_algorithm = Algorithm::Argon2;
-    if (db_entry) {
-        default_algorithm = db_entry->algorithm;
-    }
-
-    auto algorithm = AskForAlgorithm(default_algorithm);
-    std::vector<CharacterClass> char_classes;
-    std::optional<std::string> custom_chars;
-    if (algorithm != Algorithm::Old
-        && algorithm != Algorithm::Passphrase_Diceware_EFF_Large
-        && algorithm != Algorithm::Passphrase_Wordnet_Pattern) {
-        std::vector<CharacterClass> default_char_classes = {
-            CharacterClass::LOWERCASE,
-            CharacterClass::UPPERCASE,
-            CharacterClass::DIGITS,
-            CharacterClass::SYMBOLS
-        };
-        if (db_entry) {
-            default_char_classes = db_entry->char_classes;
-        }
-        char_classes = AskForCharClasses(default_char_classes);
-
-        if (std::find(char_classes.begin(), char_classes.end(), CharacterClass::CUSTOM) != char_classes.end()) {
-            std::optional<std::string> default_custom_chars;
-            if (db_entry) {
-                default_custom_chars = db_entry->custom_chars;
-            }
-            custom_chars = AskForCustomChars(default_custom_chars);
-        }
-    }
-
-    // Input length
-    unsigned length = 0;
-    if (db_entry) {
-        length = db_entry->length;
-    }
-
-    if (length > 0) {
-        std::string prompt = "Length [" + std::to_string(length) + "]: ";
-        char *length_c_str = linenoise(prompt.c_str());
-        if (length_c_str == nullptr) {
-            return 130;
-        }
-        std::string length_str(length_c_str);
-        free(length_c_str);
-        if (!length_str.empty()) {
-            length = std::stoul(length_str);
-        }
-    } else {
-        char *length_c_str = linenoise("Length: ");
-        if (length_c_str == nullptr) {
-            return 130;
-        }
-        std::string length_str(length_c_str);
-        free(length_c_str);
-        length = std::stoul(length_str);
-    }
+    Algorithm default_algorithm = db_entry ? db_entry->algorithm : Algorithm::Argon2;
+    Algorithm algorithm = AskForAlgorithm(default_algorithm);
 
     Context ctx = {
         .password = pwd,
         .service = service,
-        .char_classes = char_classes,
-        .algorithm = algorithm,
-        .length = length,
-        .custom_chars = custom_chars
+        .algorithm = algorithm
     };
 
-    // Get the result to stdout
+    switch (algorithm) {
+        case Algorithm::Argon2:
+        case Algorithm::SlowSha512:
+            HandlePasswordAlgo(ctx, db_entry);
+            break;
+        case Algorithm::Old:
+            HandleOldAlgo(ctx, db_entry);
+            break;
+        case Algorithm::Passphrase_Diceware_EFF_Large:
+            HandlePassphraseDicewareAlgo(ctx, db_entry);
+            break;
+        case Algorithm::Passphrase_Wordnet_Pattern:
+            HandlePassphraseWordnetPatternAlgo(ctx, db_entry);
+            break;
+    }
+
     std::cout << MkPass(ctx) << std::endl;
 
-    db.save_service_entry({service, algorithm, length, char_classes, custom_chars});
+    db.save_service_entry({service, ctx.algorithm, ctx.length, ctx.char_classes, ctx.custom_chars});
 
     return 0;
 }
