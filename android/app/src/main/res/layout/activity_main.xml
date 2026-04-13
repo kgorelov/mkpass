@@ -63,83 +63,98 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Character Classes"
-            android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
-
-        <GridLayout
+        <LinearLayout
+            android:id="@+id/characterClassesLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:columnCount="2"
-            android:rowCount="3">
+            android:orientation="vertical">
 
-            <CheckBox
-                android:id="@+id/lowerCaseCheckBox"
+            <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Lowercase" />
+                android:layout_marginTop="16dp"
+                android:text="Character Classes"
+                android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
 
-            <CheckBox
-                android:id="@+id/upperCaseCheckBox"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Uppercase" />
-
-            <CheckBox
-                android:id="@+id/digitsCheckBox"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Digits" />
-
-            <CheckBox
-                android:id="@+id/symbolsCheckBox"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Symbols" />
-
-            <CheckBox
-                android:id="@+id/customCheckBox"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Custom" />
-        </GridLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/customCharsLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Custom Characters"
-            android:visibility="gone">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/customChars"
+            <GridLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-        </com.google.android.material.textfield.TextInputLayout>
+                android:layout_height="wrap_content"
+                android:columnCount="2"
+                android:rowCount="3">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Password Length"
-            android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
+                <CheckBox
+                    android:id="@+id/lowerCaseCheckBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Lowercase" />
 
-        <SeekBar
-            android:id="@+id/lengthSeekBar"
+                <CheckBox
+                    android:id="@+id/upperCaseCheckBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Uppercase" />
+
+                <CheckBox
+                    android:id="@+id/digitsCheckBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Digits" />
+
+                <CheckBox
+                    android:id="@+id/symbolsCheckBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Symbols" />
+
+                <CheckBox
+                    android:id="@+id/customCheckBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Custom" />
+            </GridLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/customCharsLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Custom Characters"
+                android:visibility="gone">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/customChars"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/lengthContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:max="64"
-            android:min="1" />
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/lengthValue"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:text="16" />
+            <TextView
+                android:id="@+id/lengthTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Password Length"
+                android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
+
+            <SeekBar
+                android:id="@+id/lengthSeekBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="64"
+                android:min="1" />
+
+            <TextView
+                android:id="@+id/lengthValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="16" />
+        </LinearLayout>
 
         <Button
             android:id="@+id/generateButton"

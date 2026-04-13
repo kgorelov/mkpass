@@ -19,6 +19,7 @@ import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.LinearLayout;
 
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -44,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
     private TextInputEditText repeatPassword;
     private AutoCompleteTextView service;
     private Spinner algorithmSpinner;
+    private LinearLayout characterClassesLayout;
     private CheckBox lowerCaseCheckBox;
     private CheckBox upperCaseCheckBox;
     private CheckBox digitsCheckBox;
@@ -51,10 +53,20 @@ public class MainActivity extends AppCompatActivity {
     private CheckBox customCheckBox;
     private TextInputLayout customCharsLayout;
     private TextInputEditText customChars;
+    private LinearLayout lengthContainer;
+    private TextView lengthTitle;
     private SeekBar lengthSeekBar;
     private TextView lengthValue;
     private Button generateButton;
     private AlertDialog progressDialog;
+
+    private static final String[] ALGORITHMS = {
+        "Password (Argon2)",
+        "Password (SHA512 HMAC)",
+        "OldPassword",
+        "Passphrase Diceware (Argon2)",
+        "Passphrase Wordnet Pattern (Argon2)"
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,6 +79,7 @@ public class MainActivity extends AppCompatActivity {
         repeatPassword = findViewById(R.id.repeatPassword);
         service = findViewById(R.id.service);
         algorithmSpinner = findViewById(R.id.algorithmSpinner);
+        characterClassesLayout = findViewById(R.id.characterClassesLayout);
         lowerCaseCheckBox = findViewById(R.id.lowerCaseCheckBox);
         upperCaseCheckBox = findViewById(R.id.upperCaseCheckBox);
         digitsCheckBox = findViewById(R.id.digitsCheckBox);
@@ -74,14 +87,26 @@ public class MainActivity extends AppCompatActivity {
         customCheckBox = findViewById(R.id.customCheckBox);
         customCharsLayout = findViewById(R.id.customCharsLayout);
         customChars = findViewById(R.id.customChars);
+        lengthContainer = findViewById(R.id.lengthContainer);
+        lengthTitle = findViewById(R.id.lengthTitle);
         lengthSeekBar = findViewById(R.id.lengthSeekBar);
         lengthValue = findViewById(R.id.lengthValue);
         generateButton = findViewById(R.id.generateButton);
 
         // Setup Algorithm Spinner
-        ArrayAdapter<CharSequence> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new String[]{"Argon2", "SlowSha512", "Old"});
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, ALGORITHMS);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         algorithmSpinner.setAdapter(adapter);
+
+        algorithmSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                updateAlgorithmSpecificUI();
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
         // Setup Custom Chars visibility
         customCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             customCharsLayout.setVisibility(isChecked ? View.VISIBLE : View.GONE);
@@ -97,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) { }
         });
-        lengthValue.setText(String.valueOf(lengthSeekBar.getProgress()));
+
         // Set default values
         lengthSeekBar.setProgress(16);
         lowerCaseCheckBox.setChecked(true);
@@ -107,7 +132,7 @@ public class MainActivity extends AppCompatActivity {
         customCheckBox.setChecked(false);
         customChars.setText("");
 
-
+        updateAlgorithmSpecificUI();
 
         // Setup Service AutoComplete
         updateServiceSuggestions();
@@ -135,6 +160,28 @@ public class MainActivity extends AppCompatActivity {
         repeatPassword.addTextChangedListener(passwordTextWatcher);
     }
 
+    private void updateAlgorithmSpecificUI() {
+        int algorithm = algorithmSpinner.getSelectedItemPosition() + 1;
+
+        boolean showCharClasses = (algorithm == 1 || algorithm == 2); // Argon2 or SlowSha512
+        boolean showLength = (algorithm != 5); // Wordnet Pattern
+
+        characterClassesLayout.setVisibility(showCharClasses ? View.VISIBLE : View.GONE);
+        lengthContainer.setVisibility(showLength ? View.VISIBLE : View.GONE);
+
+        if (showLength) {
+            if (algorithm == 4) { // Diceware
+                lengthTitle.setText("Passphrase words count");
+                lengthSeekBar.setMax(20);
+                if (lengthSeekBar.getProgress() > 20) lengthSeekBar.setProgress(6);
+                if (lengthSeekBar.getProgress() < 1) lengthSeekBar.setProgress(6);
+            } else {
+                lengthTitle.setText("Password Length");
+                lengthSeekBar.setMax(128);
+            }
+        }
+    }
+
     private void updateServiceSuggestions() {
         String[] all_services = getAllServiceNames();
         ArrayAdapter<String> serviceAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, all_services);
@@ -143,8 +190,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void loadServiceEntry(String serviceName) {
         ServiceEntry entry = getServiceEntry(serviceName);
+        int newAlgo = entry != null ? entry.algorithm : 1;
+
+        algorithmSpinner.setSelection(newAlgo - 1);
+
         if (entry != null) {
-            algorithmSpinner.setSelection(entry.algorithm - 1);
             lengthSeekBar.setProgress(entry.length);
 
             lowerCaseCheckBox.setChecked(false);
@@ -165,16 +215,22 @@ public class MainActivity extends AppCompatActivity {
                 customChars.setText(entry.customChars);
             }
         } else {
-            // Reset to defaults
-            algorithmSpinner.setSelection(0);
-            lengthSeekBar.setProgress(16);
-            lowerCaseCheckBox.setChecked(true);
-            upperCaseCheckBox.setChecked(true);
-            digitsCheckBox.setChecked(true);
-            symbolsCheckBox.setChecked(true);
-            customCheckBox.setChecked(false);
-            customChars.setText("");
+            // Reset to defaults based on algo
+            if (newAlgo == 1 || newAlgo == 2) {
+                lengthSeekBar.setProgress(16);
+                lowerCaseCheckBox.setChecked(true);
+                upperCaseCheckBox.setChecked(true);
+                digitsCheckBox.setChecked(true);
+                symbolsCheckBox.setChecked(true);
+                customCheckBox.setChecked(false);
+                customChars.setText("");
+            } else if (newAlgo == 4) {
+                lengthSeekBar.setProgress(6);
+            } else if (newAlgo == 3) {
+                lengthSeekBar.setProgress(8);
+            }
         }
+        updateAlgorithmSpecificUI();
     }
 
     private void generatePassword() {
@@ -207,17 +263,21 @@ public class MainActivity extends AppCompatActivity {
             // Background work
             int algorithm = algorithmSpinner.getSelectedItemPosition() + 1;
             int length = lengthSeekBar.getProgress();
+            if (algorithm == 5) length = 0;
 
             List<Integer> charClasses = new ArrayList<>();
-            if (lowerCaseCheckBox.isChecked()) charClasses.add(0);
-            if (upperCaseCheckBox.isChecked()) charClasses.add(1);
-            if (digitsCheckBox.isChecked()) charClasses.add(2);
-            if (symbolsCheckBox.isChecked()) charClasses.add(3);
-
             String customCharsStr = null;
-            if (customCheckBox.isChecked()) {
-                charClasses.add(4);
-                customCharsStr = customChars.getText().toString();
+
+            if (algorithm == 1 || algorithm == 2) {
+                if (lowerCaseCheckBox.isChecked()) charClasses.add(0);
+                if (upperCaseCheckBox.isChecked()) charClasses.add(1);
+                if (digitsCheckBox.isChecked()) charClasses.add(2);
+                if (symbolsCheckBox.isChecked()) charClasses.add(3);
+
+                if (customCheckBox.isChecked()) {
+                    charClasses.add(4);
+                    customCharsStr = customChars.getText().toString();
+                }
             }
 
             int[] charClassesArray = new int[charClasses.size()];
