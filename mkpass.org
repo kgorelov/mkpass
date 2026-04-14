@@ -54,8 +54,8 @@ If the master password is found, all passwords derived from that master password
   - [X] WordNet sanitized wordlists: nouns, verbs, adjectives, adverbs
   - [X] Tools: wordnet manipulation tools
   - [X] Inial passphrase algoritm implementation
-  - [ ] Initial support for passphrases in GUI
-  - [ ] Initial support for passphrases for Android
+  - [X] Initial support for passphrases in GUI
+  - [X] Initial support for passphrases for Android
   - [ ] Add separator selection
   - [ ] Add pattern selection
   - [ ] Add symbols and numbers to patterns based algorithm
