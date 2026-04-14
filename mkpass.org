@@ -51,13 +51,23 @@ If the master password is found, all passwords derived from that master password
   - [ ] WordNet sanitized wordlists: nouns, verbs, adjectives, adverbs
   - [ ] Tools: wordnet manipulation tools
   - [ ] Passphrase algoritm implementation
+  - [X] WordNet sanitized wordlists: nouns, verbs, adjectives, adverbs
+  - [X] Tools: wordnet manipulation tools
+  - [X] Inial passphrase algoritm implementation
+  - [ ] Initial support for passphrases in GUI
+  - [ ] Initial support for passphrases for Android
+  - [ ] Add separator selection
+  - [ ] Add pattern selection
+  - [ ] Add symbols and numbers to patterns based algorithm
+  - [ ] Add symbols and numbers to the base (legth) based algorithm
+  - [ ] Implement random words transformations: letters -> symbols substitutions
+  - [ ] Rebase and support passphrases in the web version
+  - [ ] Cover passphrases algorithms with tests
 ** TODO Web version (WebAssembly)
   - [X] Essential functions
   - [X] Results dialog
   - [X] Icon
   - [X] Style
-
-
 ** Mac version
 * Bugs
 ** Android
