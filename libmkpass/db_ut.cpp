@@ -113,6 +113,39 @@ TEST_F(ConfigDBTest, CustomChars) {
     EXPECT_FALSE(rec_no_custom->custom_chars.has_value());
 }
 
+TEST_F(ConfigDBTest, Separator) {
+    mkpass::ConfigDB db(db_path);
+
+    // 1. Test with CamelCase
+    mkpass::ServiceEntry entry;
+    entry.service_name = "camel.com";
+    entry.algorithm = Algorithm::Passphrase_Diceware_EFF_Large;
+    entry.length = 6;
+    entry.char_classes = {};
+    entry.separator = PassphraseSeparator::CamelCase;
+
+    db.save_service_entry(entry);
+
+    auto rec = db.get_service_entry("camel.com");
+    ASSERT_TRUE(rec.has_value());
+    EXPECT_EQ(rec->separator, PassphraseSeparator::CamelCase);
+
+    // 2. Test with SnakeCase
+    entry.service_name = "snake.com";
+    entry.separator = PassphraseSeparator::SnakeCase;
+    db.save_service_entry(entry);
+
+    auto rec2 = db.get_service_entry("snake.com");
+    ASSERT_TRUE(rec2.has_value());
+    EXPECT_EQ(rec2->separator, PassphraseSeparator::SnakeCase);
+
+    // 3. Test default (existing record without separator column should default to SnakeCase)
+    // Actually, create_tables adds the column with DEFAULT 2 (SnakeCase)
+    auto rec_old = db.get_service_entry("user@github.com");
+    ASSERT_TRUE(rec_old.has_value());
+    EXPECT_EQ(rec_old->separator, PassphraseSeparator::SnakeCase);
+}
+
 TEST(ConfigDB, NonExistentDB) {
     mkpass::ConfigDB db("non-existent-db.db");
     auto names = db.get_all_service_names();

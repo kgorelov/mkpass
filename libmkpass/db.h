@@ -19,6 +19,7 @@ struct ServiceEntry {
     unsigned length;
     std::vector<CharacterClass> char_classes;
     std::optional<std::string> custom_chars;
+    PassphraseSeparator separator;
 };
 
 

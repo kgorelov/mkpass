@@ -5,6 +5,8 @@
 #include "character_classes.h"
 #include "wordlist.h"
 
+#include "algorithms.h"
+
 class GeneratorInterface;
 
 std::string ComposePassword(
@@ -20,9 +22,11 @@ std::string ComposeOldMkpass1Password(
 std::string ComposePassPhrase(
     GeneratorInterface& generator,
     const Wordlist& wordlist,
-    size_t length);
+    size_t length,
+    PassphraseSeparator separator_type);
 
 std::string ComposePassPhrase(
     GeneratorInterface& generator,
     std::map<WordClasses, Wordlist> &&wordlists,
-    std::vector<WordClasses> &&pattern);
+    std::vector<WordClasses> &&pattern,
+    PassphraseSeparator separator_type);

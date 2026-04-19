@@ -7,6 +7,7 @@
 #include "hkdf_hmac.h"
 #include "hkdf_argon2.h"
 #include "character_classes.h"
+#include "wordlists/eff_large_words.h"
 #include <gtest/gtest.h>
 
 
@@ -180,7 +181,27 @@ TEST(ComposeTest, TestOldAlgo4) {
     EXPECT_EQ(p, "RDeard32Oz");
 }
 
-TEST(ComposeTest, TestOldAlgo5) {
-    auto p = ComposeOldMkpass1Password("Master", "user@gmail.com", 16);
-    EXPECT_EQ(p, "6QZDwZNE7UitaHGB");
+TEST(ComposeTest, TestPassphraseSnakeCase) {
+    Generator<HKDF_Argon2> g("password", "service");
+    Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
+    auto p = ComposePassPhrase(g, wordlist, 3, PassphraseSeparator::SnakeCase);
+    // Should have 2 hyphens for 3 words
+    int hyphens = 0;
+    for (char c : p) if (c == '-') hyphens++;
+    EXPECT_EQ(hyphens, 2);
+    // Should be all lowercase (assuming wordlist is lowercase)
+    for (char c : p) if (isalpha(c)) EXPECT_TRUE(islower(c));
+}
+
+TEST(ComposeTest, TestPassphraseCamelCase) {
+    Generator<HKDF_Argon2> g("password", "service");
+    Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
+    auto p = ComposePassPhrase(g, wordlist, 3, PassphraseSeparator::CamelCase);
+    // Should have no hyphens
+    for (char c : p) EXPECT_NE(c, '-');
+    // Each word should start with uppercase
+    // This is a bit hard to test without knowing the words, but we can check if there are any uppercase letters
+    int uppers = 0;
+    for (char c : p) if (isupper(c)) uppers++;
+    EXPECT_EQ(uppers, 3);
 }

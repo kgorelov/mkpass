@@ -143,15 +143,15 @@ private:
   bool first_word = true;
 };
 
-std::string ComposePassPhrase(
+template <typename Separator>
+std::string ComposePassPhraseWithSeparator(
     GeneratorInterface& generator,
     const Wordlist& wordlist,
     size_t length)
 {
   std::string result;
   UniformDistribution distibution(0, wordlist.length()-1);
-  //CamelWordsSeparator separator;
-  SnakeWordsSeparator separator;
+  Separator separator;
   std::set<int> used_idxs;
 
   while (length > 0) {
@@ -166,8 +166,21 @@ std::string ComposePassPhrase(
   return result;
 }
 
-
 std::string ComposePassPhrase(
+    GeneratorInterface& generator,
+    const Wordlist& wordlist,
+    size_t length,
+    PassphraseSeparator separator_type)
+{
+  if (separator_type == PassphraseSeparator::CamelCase) {
+    return ComposePassPhraseWithSeparator<CamelWordsSeparator>(generator, wordlist, length);
+  } else {
+    return ComposePassPhraseWithSeparator<SnakeWordsSeparator>(generator, wordlist, length);
+  }
+}
+
+template <typename Separator>
+std::string ComposePassPhraseWithSeparator(
     GeneratorInterface& generator,
     std::map<WordClasses, Wordlist> &&wordlists,
     std::vector<WordClasses> &&pattern)
@@ -176,7 +189,7 @@ std::string ComposePassPhrase(
     std::map<WordClasses, UniformDistribution<int>> distributions;
     std::map<WordClasses, std::set<int>> used_idxs;
 
-    CamelWordsSeparator separator;
+    Separator separator;
 
     for (auto& [wc, wl]: wordlists) {
         distributions.emplace(wc, UniformDistribution<int>(0, wl.length()-1));
@@ -192,6 +205,19 @@ std::string ComposePassPhrase(
     }
 
     return result;
+}
+
+std::string ComposePassPhrase(
+    GeneratorInterface& generator,
+    std::map<WordClasses, Wordlist> &&wordlists,
+    std::vector<WordClasses> &&pattern,
+    PassphraseSeparator separator_type)
+{
+    if (separator_type == PassphraseSeparator::CamelCase) {
+        return ComposePassPhraseWithSeparator<CamelWordsSeparator>(generator, std::move(wordlists), std::move(pattern));
+    } else {
+        return ComposePassPhraseWithSeparator<SnakeWordsSeparator>(generator, std::move(wordlists), std::move(pattern));
+    }
 }
 
 

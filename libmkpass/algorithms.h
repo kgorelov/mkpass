@@ -7,3 +7,8 @@ enum class Algorithm {
     Passphrase_Diceware_EFF_Large = 4,
     Passphrase_Wordnet_Pattern = 5
 };
+
+enum class PassphraseSeparator {
+    CamelCase = 1,
+    SnakeCase = 2
+};

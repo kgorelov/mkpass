@@ -83,6 +83,14 @@ void ConfigDB::create_tables() {
             sqlite3_free(err_msg);
         }
     }
+
+    if (!column_exists(db, "service_entries", "separator")) {
+        const char *alter_sql = "ALTER TABLE service_entries ADD COLUMN separator INTEGER DEFAULT 2;"; // Default to SnakeCase
+        if (sqlite3_exec(db, alter_sql, 0, 0, &err_msg) != SQLITE_OK) {
+            std::cerr << "Failed to alter table: " << err_msg << std::endl;
+            sqlite3_free(err_msg);
+        }
+    }
 }
 
 ConfigDB::ConfigDB(const std::string &db_path) : db(nullptr) {
@@ -139,6 +147,7 @@ std::optional<ServiceEntry> ConfigDB::get_old_service_entry(const std::string& s
         entry.algorithm = Algorithm::Old;
         entry.length = sqlite3_column_int(stmt, 1);
         entry.char_classes = {};
+        entry.separator = PassphraseSeparator::SnakeCase;
         sqlite3_finalize(stmt);
         return entry;
     }
@@ -153,7 +162,7 @@ std::optional<ServiceEntry> ConfigDB::get_new_service_entry(const std::string& s
     }
 
     sqlite3_stmt *stmt;
-    const char *sql = "SELECT algorithm, length, char_classes, custom_chars FROM service_entries WHERE name = ?";
+    const char *sql = "SELECT algorithm, length, char_classes, custom_chars, separator FROM service_entries WHERE name = ?";
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
         return std::nullopt;
     }
@@ -170,6 +179,8 @@ std::optional<ServiceEntry> ConfigDB::get_new_service_entry(const std::string& s
         if (custom_chars) {
             entry.custom_chars = reinterpret_cast<const char*>(custom_chars);
         }
+        int sep_val = sqlite3_column_int(stmt, 4);
+        entry.separator = sep_val == 0 ? PassphraseSeparator::SnakeCase : static_cast<PassphraseSeparator>(sep_val);
         sqlite3_finalize(stmt);
         return entry;
     }
@@ -192,7 +203,7 @@ void ConfigDB::save_service_entry(const ServiceEntry& entry) {
     }
 
     sqlite3_stmt *stmt;
-    const char *sql = "INSERT OR REPLACE INTO service_entries (name, algorithm, length, char_classes, custom_chars) VALUES (?, ?, ?, ?, ?)";
+    const char *sql = "INSERT OR REPLACE INTO service_entries (name, algorithm, length, char_classes, custom_chars, separator) VALUES (?, ?, ?, ?, ?, ?)";
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
         return;
     }
@@ -206,6 +217,7 @@ void ConfigDB::save_service_entry(const ServiceEntry& entry) {
     } else {
         sqlite3_bind_null(stmt, 5);
     }
+    sqlite3_bind_int(stmt, 6, static_cast<int>(entry.separator));
 
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);

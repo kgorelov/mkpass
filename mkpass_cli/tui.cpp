@@ -173,6 +173,34 @@ std::optional<std::string> AskForCustomChars(const std::optional<std::string>& d
     return custom_chars_str;
 }
 
+PassphraseSeparator AskForSeparator(PassphraseSeparator default_separator) {
+    std::map<char, PassphraseSeparator> choices = {
+        {'1', PassphraseSeparator::CamelCase},
+        {'2', PassphraseSeparator::SnakeCase}
+    };
+    std::map<PassphraseSeparator, char> sep_to_char = {
+        {PassphraseSeparator::CamelCase, '1'},
+        {PassphraseSeparator::SnakeCase, '2'}
+    };
+
+    std::cerr << "Choose separator:\n";
+    std::cerr << "1. CamelCase\n";
+    std::cerr << "2. snake-case\n";
+    std::cerr << "Your choice (1 or 2) [" << sep_to_char[default_separator] << "]: ";
+    std::string choice;
+    std::getline(std::cin, choice);
+
+    if (choice.empty()) {
+        return default_separator;
+    }
+
+    if (choices.count(choice[0])) {
+        return choices[choice[0]];
+    }
+
+    return PassphraseSeparator::SnakeCase;
+}
+
 unsigned AskForLength(unsigned default_length) {
     std::string prompt = "Length";
     if (default_length > 0) {
@@ -237,11 +265,23 @@ void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::Serv
         default_length = db_entry->length;
     }
     ctx.length = AskForLength(default_length);
+
+    PassphraseSeparator default_separator = PassphraseSeparator::SnakeCase;
+    if (db_entry && db_entry->algorithm == Algorithm::Passphrase_Diceware_EFF_Large) {
+        default_separator = db_entry->separator;
+    }
+    ctx.separator = AskForSeparator(default_separator);
 }
 
 void HandlePassphraseWordnetPatternAlgo(Context& ctx, const std::optional<mkpass::ServiceEntry>& db_entry) {
     // Wordnet Pattern currently doesn't use configurable length
     ctx.length = 0;
+
+    PassphraseSeparator default_separator = PassphraseSeparator::SnakeCase;
+    if (db_entry && db_entry->algorithm == Algorithm::Passphrase_Wordnet_Pattern) {
+        default_separator = db_entry->separator;
+    }
+    ctx.separator = AskForSeparator(default_separator);
 }
 
 void HandleOldAlgo(Context& ctx, const std::optional<mkpass::ServiceEntry>& db_entry) {
@@ -301,7 +341,7 @@ int run_tui() {
 
     std::cout << MkPass(ctx) << std::endl;
 
-    db.save_service_entry({service, ctx.algorithm, ctx.length, ctx.char_classes, ctx.custom_chars});
+    db.save_service_entry({service, ctx.algorithm, ctx.length, ctx.char_classes, ctx.custom_chars, ctx.separator});
 
     return 0;
 }
