@@ -119,7 +119,7 @@ std::string ComposeOldMkpass1Password(
 // or capitilizing the first letter.
 // These must be different separator classes.
 
-class WordsSeparator {
+class CamelWordsSeparator {
 public:
   std::string operator()(const std::string& word) {
     std::string result(word);
@@ -130,6 +130,18 @@ public:
   }
 };
 
+class SnakeWordsSeparator {
+public:
+  std::string operator()(const std::string& word) {
+    if (first_word) {
+      first_word = false;
+      return word;
+    }
+    return std::string("-") + word;
+  }
+private:
+  bool first_word = true;
+};
 
 std::string ComposePassPhrase(
     GeneratorInterface& generator,
@@ -138,7 +150,8 @@ std::string ComposePassPhrase(
 {
   std::string result;
   UniformDistribution distibution(0, wordlist.length()-1);
-  WordsSeparator separator;
+  //CamelWordsSeparator separator;
+  SnakeWordsSeparator separator;
   std::set<int> used_idxs;
 
   while (length > 0) {
@@ -163,7 +176,7 @@ std::string ComposePassPhrase(
     std::map<WordClasses, UniformDistribution<int>> distributions;
     std::map<WordClasses, std::set<int>> used_idxs;
 
-    WordsSeparator separator;
+    CamelWordsSeparator separator;
 
     for (auto& [wc, wl]: wordlists) {
         distributions.emplace(wc, UniformDistribution<int>(0, wl.length()-1));
