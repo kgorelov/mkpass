@@ -15,6 +15,12 @@ export interface MkPassModule {
         Argon2: EmbindEnum;
         SlowSha512: EmbindEnum;
         Old: EmbindEnum;
+        Passphrase_Diceware_EFF_Large: EmbindEnum;
+        Passphrase_Wordnet_Pattern: EmbindEnum;
+    };
+    PassphraseSeparator: {
+        CamelCase: EmbindEnum;
+        SnakeCase: EmbindEnum;
     };
     CharacterClass: {
         LOWERCASE: EmbindEnum;
@@ -38,7 +44,8 @@ export interface MkPassModule {
         char_classes: any,
         algorithm: number,
         length: number,
-        custom_chars: string
+        custom_chars: string,
+        separator: number
     ): string;
     GenerateQrCode(text: string): QrCodeData;
     getExceptionMessage(ptr: number): string;
