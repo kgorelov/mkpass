@@ -7,6 +7,7 @@
 
 #include "algorithms.h"
 #include "character_classes.h"
+#include "word_classes.h"
 
 struct sqlite3;
 
@@ -20,6 +21,7 @@ struct ServiceEntry {
     std::vector<CharacterClass> char_classes;
     std::optional<std::string> custom_chars;
     PassphraseSeparator separator;
+    std::vector<WordClasses> passphrase_pattern;
 };
 
 

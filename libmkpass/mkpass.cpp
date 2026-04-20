@@ -88,12 +88,15 @@ std::string GenerateAndComposePassphraseWordnetPattern(const Context& ctx)
         {WordClasses::Adj, wordlist_adjs},
         {WordClasses::Adv, wordlist_advs},};
 
-    std::vector<WordClasses> pattern = {
-        WordClasses::Adj,
-        WordClasses::Noun,
-        WordClasses::Adv,
-        WordClasses::Verb,
-        WordClasses::Noun};
+    std::vector<WordClasses> pattern = ctx.passphrase_pattern;
+    if (pattern.empty()) {
+        pattern = {
+            WordClasses::Adj,
+            WordClasses::Noun,
+            WordClasses::Adv,
+            WordClasses::Verb,
+            WordClasses::Noun};
+    }
 
     return ComposePassPhrase(
         g, std::move(wordlists), std::move(pattern), ctx.separator);

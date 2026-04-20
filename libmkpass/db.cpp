@@ -38,6 +38,32 @@ std::vector<CharacterClass> BitmaskToCharClasses(int mask) {
     return char_classes;
 }
 
+std::string PatternToString(const std::vector<WordClasses>& pattern) {
+    std::string s;
+    for (auto wc : pattern) {
+        switch (wc) {
+        case WordClasses::Noun: s += 'n'; break;
+        case WordClasses::Verb: s += 'v'; break;
+        case WordClasses::Adj:  s += 'a'; break;
+        case WordClasses::Adv:  s += 'r'; break;
+        }
+    }
+    return s;
+}
+
+std::vector<WordClasses> StringToPattern(const std::string& s) {
+    std::vector<WordClasses> pattern;
+    for (char c : s) {
+        switch (c) {
+        case 'n': pattern.push_back(WordClasses::Noun); break;
+        case 'v': pattern.push_back(WordClasses::Verb); break;
+        case 'a': pattern.push_back(WordClasses::Adj);  break;
+        case 'r': pattern.push_back(WordClasses::Adv);  break;
+        }
+    }
+    return pattern;
+}
+
 bool column_exists(sqlite3 *db, const std::string& table_name, const std::string& column_name) {
     sqlite3_stmt *stmt;
     std::string sql = "PRAGMA table_info(" + table_name + ")";
@@ -86,6 +112,14 @@ void ConfigDB::create_tables() {
 
     if (!column_exists(db, "service_entries", "separator")) {
         const char *alter_sql = "ALTER TABLE service_entries ADD COLUMN separator INTEGER DEFAULT 1;"; // Default to CamelCase
+        if (sqlite3_exec(db, alter_sql, 0, 0, &err_msg) != SQLITE_OK) {
+            std::cerr << "Failed to alter table: " << err_msg << std::endl;
+            sqlite3_free(err_msg);
+        }
+    }
+
+    if (!column_exists(db, "service_entries", "passphrase_pattern")) {
+        const char *alter_sql = "ALTER TABLE service_entries ADD COLUMN passphrase_pattern TEXT;";
         if (sqlite3_exec(db, alter_sql, 0, 0, &err_msg) != SQLITE_OK) {
             std::cerr << "Failed to alter table: " << err_msg << std::endl;
             sqlite3_free(err_msg);
@@ -162,7 +196,7 @@ std::optional<ServiceEntry> ConfigDB::get_new_service_entry(const std::string& s
     }
 
     sqlite3_stmt *stmt;
-    const char *sql = "SELECT algorithm, length, char_classes, custom_chars, separator FROM service_entries WHERE name = ?";
+    const char *sql = "SELECT algorithm, length, char_classes, custom_chars, separator, passphrase_pattern FROM service_entries WHERE name = ?";
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
         return std::nullopt;
     }
@@ -181,6 +215,10 @@ std::optional<ServiceEntry> ConfigDB::get_new_service_entry(const std::string& s
         }
         int sep_val = sqlite3_column_int(stmt, 4);
         entry.separator = sep_val == 0 ? PassphraseSeparator::KebabCase : static_cast<PassphraseSeparator>(sep_val);
+        const unsigned char *pattern = sqlite3_column_text(stmt, 5);
+        if (pattern) {
+            entry.passphrase_pattern = StringToPattern(reinterpret_cast<const char*>(pattern));
+        }
         sqlite3_finalize(stmt);
         return entry;
     }
@@ -203,7 +241,7 @@ void ConfigDB::save_service_entry(const ServiceEntry& entry) {
     }
 
     sqlite3_stmt *stmt;
-    const char *sql = "INSERT OR REPLACE INTO service_entries (name, algorithm, length, char_classes, custom_chars, separator) VALUES (?, ?, ?, ?, ?, ?)";
+    const char *sql = "INSERT OR REPLACE INTO service_entries (name, algorithm, length, char_classes, custom_chars, separator, passphrase_pattern) VALUES (?, ?, ?, ?, ?, ?, ?)";
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
         return;
     }
@@ -218,6 +256,11 @@ void ConfigDB::save_service_entry(const ServiceEntry& entry) {
         sqlite3_bind_null(stmt, 5);
     }
     sqlite3_bind_int(stmt, 6, static_cast<int>(entry.separator));
+    if (!entry.passphrase_pattern.empty()) {
+        sqlite3_bind_text(stmt, 7, PatternToString(entry.passphrase_pattern).c_str(), -1, SQLITE_TRANSIENT);
+    } else {
+        sqlite3_bind_null(stmt, 7);
+    }
 
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);

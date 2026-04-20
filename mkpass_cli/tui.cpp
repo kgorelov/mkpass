@@ -201,6 +201,87 @@ PassphraseSeparator AskForSeparator(PassphraseSeparator default_separator) {
     return PassphraseSeparator::CamelCase;
 }
 
+std::vector<WordClasses> AskForPassphrasePattern(const std::vector<WordClasses>& default_pattern) {
+    std::map<char, std::vector<WordClasses>> predefined_patterns = {
+        {'2', {WordClasses::Adj, WordClasses::Noun}},
+        {'3', {WordClasses::Adj, WordClasses::Noun, WordClasses::Verb}},
+        {'4', {WordClasses::Adj, WordClasses::Noun, WordClasses::Adv, WordClasses::Verb}},
+        {'5', {WordClasses::Adj, WordClasses::Noun, WordClasses::Adv, WordClasses::Verb, WordClasses::Noun}},
+        {'6', {WordClasses::Adj, WordClasses::Noun, WordClasses::Adv, WordClasses::Verb, WordClasses::Adj, WordClasses::Noun}}
+    };
+
+    auto pattern_to_string = [](const std::vector<WordClasses>& p) {
+        std::string s;
+        for (auto wc : p) {
+            switch (wc) {
+            case WordClasses::Noun: s += 'n'; break;
+            case WordClasses::Verb: s += 'v'; break;
+            case WordClasses::Adj:  s += 'a'; break;
+            case WordClasses::Adv:  s += 'r'; break;
+            }
+        }
+        return s;
+    };
+
+    auto string_to_pattern = [](const std::string& s) {
+        std::vector<WordClasses> p;
+        for (char c : s) {
+            switch (c) {
+            case 'n': p.push_back(WordClasses::Noun); break;
+            case 'v': p.push_back(WordClasses::Verb); break;
+            case 'a': p.push_back(WordClasses::Adj);  break;
+            case 'r': p.push_back(WordClasses::Adv);  break;
+            }
+        }
+        return p;
+    };
+
+    std::cerr << "Choose pattern:\n";
+    std::cerr << "2. 2 words (Adj, Noun)\n";
+    std::cerr << "3. 3 words (Adj, Noun, Verb)\n";
+    std::cerr << "4. 4 words (Adj, Noun, Adv, Verb)\n";
+    std::cerr << "5. 5 words (Adj, Noun, Adv, Verb, Noun)\n";
+    std::cerr << "6. 6 words (Adj, Noun, Adv, Verb, Adj, Noun)\n";
+    std::cerr << "c. Custom pattern (e.g. 'navrn')\n";
+
+    std::string default_choice_str = "5";
+    std::string current_pattern_str = pattern_to_string(default_pattern);
+    for (auto const& [key, val] : predefined_patterns) {
+        if (val == default_pattern) {
+            default_choice_str = key;
+            break;
+        }
+    }
+    if (default_choice_str == "5" && current_pattern_str != "anrvn") {
+         // It might be custom if it doesn't match predefined
+         default_choice_str = "c (" + current_pattern_str + ")";
+    }
+
+    std::cerr << "Your choice (2-6 or c) [" << default_choice_str << "]: ";
+    std::string choice;
+    std::getline(std::cin, choice);
+
+    if (choice.empty()) {
+        return default_pattern;
+    }
+
+    if (predefined_patterns.count(choice[0])) {
+        return predefined_patterns[choice[0]];
+    }
+
+    if (choice[0] == 'c') {
+        std::cerr << "Enter custom pattern (n:noun, v:verb, a:adj, r:adv): ";
+        std::string custom_pattern;
+        std::getline(std::cin, custom_pattern);
+        if (custom_pattern.empty()) {
+            return default_pattern;
+        }
+        return string_to_pattern(custom_pattern);
+    }
+
+    return default_pattern;
+}
+
 unsigned AskForLength(unsigned default_length) {
     std::string prompt = "Length";
     if (default_length > 0) {
@@ -277,6 +358,17 @@ void HandlePassphraseWordnetPatternAlgo(Context& ctx, const std::optional<mkpass
     // Wordnet Pattern currently doesn't use configurable length
     ctx.length = 0;
 
+    std::vector<WordClasses> default_pattern = {
+        WordClasses::Adj,
+        WordClasses::Noun,
+        WordClasses::Adv,
+        WordClasses::Verb,
+        WordClasses::Noun};
+    if (db_entry && db_entry->algorithm == Algorithm::Passphrase_Wordnet_Pattern && !db_entry->passphrase_pattern.empty()) {
+        default_pattern = db_entry->passphrase_pattern;
+    }
+    ctx.passphrase_pattern = AskForPassphrasePattern(default_pattern);
+
     PassphraseSeparator default_separator = PassphraseSeparator::CamelCase;
     if (db_entry && db_entry->algorithm == Algorithm::Passphrase_Wordnet_Pattern) {
         default_separator = db_entry->separator;
@@ -341,7 +433,7 @@ int run_tui() {
 
     std::cout << MkPass(ctx) << std::endl;
 
-    db.save_service_entry({service, ctx.algorithm, ctx.length, ctx.char_classes, ctx.custom_chars, ctx.separator});
+    db.save_service_entry({service, ctx.algorithm, ctx.length, ctx.char_classes, ctx.custom_chars, ctx.separator, ctx.passphrase_pattern});
 
     return 0;
 }

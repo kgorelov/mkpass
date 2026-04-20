@@ -4,6 +4,9 @@
 #include <vector>
 #include <map>
 
+#include "word_classes.h"
+
+
 typedef const char* (*GetWordFuncType)(int);
 typedef int (*GetWordCountFuncType)();
 
@@ -27,11 +30,4 @@ public:
 private:
   GetWordFuncType get_word_;
   GetWordCountFuncType get_word_count_;
-};
-
-enum class WordClasses {
-    Noun,
-    Verb,
-    Adj,
-    Adv
 };

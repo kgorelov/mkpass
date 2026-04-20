@@ -139,11 +139,11 @@ TEST_F(ConfigDBTest, Separator) {
     ASSERT_TRUE(rec2.has_value());
     EXPECT_EQ(rec2->separator, PassphraseSeparator::KebabCase);
 
-    // 3. Test default (existing record without separator column should default to KebabCase)
-    // Actually, create_tables adds the column with DEFAULT 2 (KebabCase)
+    // 3. Test default (existing record without separator column should default to CamelCase)
+    // Actually, create_tables adds the column with DEFAULT 1 (CamelCase)
     auto rec_old = db.get_service_entry("user@github.com");
     ASSERT_TRUE(rec_old.has_value());
-    EXPECT_EQ(rec_old->separator, PassphraseSeparator::KebabCase);
+    EXPECT_EQ(rec_old->separator, PassphraseSeparator::CamelCase);
 }
 
 TEST(ConfigDB, NonExistentDB) {
