@@ -48,6 +48,9 @@ private:
     QWidget *lengthWidget;
     QLabel *lengthLabel;
     QSpinBox *lengthSpinBox;
+    QWidget *separatorWidget;
+    QLabel *separatorLabel;
+    QComboBox *separatorComboBox;
     QPushButton *generateButton;
     QPushButton *closeButton;
 

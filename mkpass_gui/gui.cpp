@@ -122,6 +122,17 @@ void MainWindow::setupUI() {
     lengthLayout->addWidget(lengthSpinBox);
     formLayout->addRow(lengthWidget);
 
+    separatorComboBox = new QComboBox;
+    separatorComboBox->addItem("SnakeCase", static_cast<int>(PassphraseSeparator::SnakeCase));
+    separatorComboBox->addItem("CamelCase", static_cast<int>(PassphraseSeparator::CamelCase));
+    separatorWidget = new QWidget;
+    QHBoxLayout *separatorLayout = new QHBoxLayout(separatorWidget);
+    separatorLayout->setContentsMargins(0, 0, 0, 0);
+    separatorLabel = new QLabel("Word separator:");
+    separatorLayout->addWidget(separatorLabel);
+    separatorLayout->addWidget(separatorComboBox);
+    formLayout->addRow(separatorWidget);
+
     mainLayout->addLayout(formLayout);
 
     QHBoxLayout *buttonLayout = new QHBoxLayout;
@@ -157,6 +168,7 @@ void MainWindow::generatePassword() {
     ctx.service = serviceLineEdit->text().toStdString();
     ctx.length = lengthSpinBox->value();
     ctx.algorithm = static_cast<Algorithm>(algorithmComboBox->currentData().toInt());
+    ctx.separator = static_cast<PassphraseSeparator>(separatorComboBox->currentData().toInt());
 
     if (ctx.algorithm == Algorithm::Argon2 || ctx.algorithm == Algorithm::SlowSha512) {
         if (lowerCaseCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::LOWERCASE);
@@ -191,6 +203,7 @@ void MainWindow::generationFinished() {
     std::optional<std::string> custom_chars;
     Algorithm algorithm = static_cast<Algorithm>(algorithmComboBox->currentData().toInt());
     unsigned length = lengthSpinBox->value();
+    PassphraseSeparator separator = static_cast<PassphraseSeparator>(separatorComboBox->currentData().toInt());
 
     if (algorithm == Algorithm::Argon2 || algorithm == Algorithm::SlowSha512) {
         if (lowerCaseCheckBox->isChecked()) char_classes.push_back(CharacterClass::LOWERCASE);
@@ -210,7 +223,8 @@ void MainWindow::generationFinished() {
         algorithm,
         length,
         char_classes,
-        custom_chars
+        custom_chars,
+        separator
     });
 }
 
@@ -246,6 +260,11 @@ void MainWindow::serviceChanged(const QString &service) {
         } else {
             customCharsLineEdit->setText("");
         }
+
+        int sepIndex = separatorComboBox->findData(static_cast<int>(entry->separator));
+        if (sepIndex != -1) {
+            separatorComboBox->setCurrentIndex(sepIndex);
+        }
     } else {
         // Reset to default values based on algorithm
         if (newAlgo == Algorithm::Argon2 || newAlgo == Algorithm::SlowSha512) {
@@ -261,6 +280,7 @@ void MainWindow::serviceChanged(const QString &service) {
         } else if (newAlgo == Algorithm::Old) {
             lengthSpinBox->setValue(8);
         }
+        separatorComboBox->setCurrentIndex(separatorComboBox->findData(static_cast<int>(PassphraseSeparator::SnakeCase)));
     }
     updateAlgorithmSpecificUI();
 }
@@ -300,9 +320,11 @@ void MainWindow::updateAlgorithmSpecificUI() {
 
     bool showCharClasses = (algorithm == Algorithm::Argon2 || algorithm == Algorithm::SlowSha512);
     bool showLength = (algorithm != Algorithm::Passphrase_Wordnet_Pattern);
+    bool showSeparator = (algorithm == Algorithm::Passphrase_Diceware_EFF_Large || algorithm == Algorithm::Passphrase_Wordnet_Pattern);
 
     characterClassesGroupBox->setVisible(showCharClasses);
     lengthWidget->setVisible(showLength);
+    separatorWidget->setVisible(showSeparator);
 
     if (showLength) {
         if (algorithm == Algorithm::Passphrase_Diceware_EFF_Large) {
