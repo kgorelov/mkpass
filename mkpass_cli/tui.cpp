@@ -198,7 +198,7 @@ PassphraseSeparator AskForSeparator(PassphraseSeparator default_separator) {
         return choices[choice[0]];
     }
 
-    return PassphraseSeparator::KebabCase;
+    return PassphraseSeparator::CamelCase;
 }
 
 unsigned AskForLength(unsigned default_length) {
@@ -266,7 +266,7 @@ void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::Serv
     }
     ctx.length = AskForLength(default_length);
 
-    PassphraseSeparator default_separator = PassphraseSeparator::KebabCase;
+    PassphraseSeparator default_separator = PassphraseSeparator::CamelCase;
     if (db_entry && db_entry->algorithm == Algorithm::Passphrase_Diceware_EFF_Large) {
         default_separator = db_entry->separator;
     }
@@ -277,7 +277,7 @@ void HandlePassphraseWordnetPatternAlgo(Context& ctx, const std::optional<mkpass
     // Wordnet Pattern currently doesn't use configurable length
     ctx.length = 0;
 
-    PassphraseSeparator default_separator = PassphraseSeparator::KebabCase;
+    PassphraseSeparator default_separator = PassphraseSeparator::CamelCase;
     if (db_entry && db_entry->algorithm == Algorithm::Passphrase_Wordnet_Pattern) {
         default_separator = db_entry->separator;
     }

@@ -88,7 +88,7 @@ function App() {
   const [password, setPassword] = useState('');
   const [passwordLength, setPasswordLength] = useState(16);
   const [algorithm, setAlgorithm] = useState<number>(1);
-  const [separator, setSeparator] = useState<number>(2); // KebabCase
+  const [separator, setSeparator] = useState<number>(1); // CamelCase
   const [charClassesState, setCharClassesState] = useState({
     lowercase: true,
     uppercase: true,
@@ -166,7 +166,7 @@ function App() {
           console.log("WASM Module Loaded.");
           setWasmModule(module);
           setAlgorithm(module.Algorithm.Argon2.value);
-          setSeparator(module.PassphraseSeparator.KebabCase.value);
+          setSeparator(module.PassphraseSeparator.CamelCase.value);
         });
       }
     };

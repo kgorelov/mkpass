@@ -85,7 +85,7 @@ void ConfigDB::create_tables() {
     }
 
     if (!column_exists(db, "service_entries", "separator")) {
-        const char *alter_sql = "ALTER TABLE service_entries ADD COLUMN separator INTEGER DEFAULT 2;"; // Default to KebabCase
+        const char *alter_sql = "ALTER TABLE service_entries ADD COLUMN separator INTEGER DEFAULT 1;"; // Default to CamelCase
         if (sqlite3_exec(db, alter_sql, 0, 0, &err_msg) != SQLITE_OK) {
             std::cerr << "Failed to alter table: " << err_msg << std::endl;
             sqlite3_free(err_msg);
