@@ -28,7 +28,7 @@ async function runTests() {
 
         // Test 2.1: PassphraseSeparator Enum
         assert(module.PassphraseSeparator.CamelCase.value === 1, "CamelCase enum value should be 1");
-        assert(module.PassphraseSeparator.SnakeCase.value === 2, "SnakeCase enum value should be 2");
+        assert(module.PassphraseSeparator.KebabCase.value === 2, "KebabCase enum value should be 2");
 
         // Test 3: Basic Password Generation (Argon2)
         const charClasses = new module.VectorCharacterClass();
@@ -36,15 +36,15 @@ async function runTests() {
         charClasses.push_back(module.CharacterClass.UPPERCASE);
         charClasses.push_back(module.CharacterClass.DIGITS);
 
-        const password = module.MkPass("master", "service", charClasses, module.Algorithm.Argon2.value, 16, "", module.PassphraseSeparator.SnakeCase.value);
+        const password = module.MkPass("master", "service", charClasses, module.Algorithm.Argon2.value, 16, "", module.PassphraseSeparator.KebabCase.value);
         assert(typeof password === 'string' && password.length === 16, "Password generation should return 16-char string");
 
         // Test 3.1: Passphrase Generation (Diceware)
-        const passphrase = module.MkPass("master", "service", charClasses, module.Algorithm.Passphrase_Diceware_EFF_Large.value, 6, "", module.PassphraseSeparator.SnakeCase.value);
+        const passphrase = module.MkPass("master", "service", charClasses, module.Algorithm.Passphrase_Diceware_EFF_Large.value, 6, "", module.PassphraseSeparator.KebabCase.value);
         assert(typeof passphrase === 'string' && passphrase.length > 0, "Passphrase generation should return non-empty string");
 
         // Ensure it's deterministic
-        const passwordAgain = module.MkPass("master", "service", charClasses, module.Algorithm.Argon2.value, 16, "", module.PassphraseSeparator.SnakeCase.value);
+        const passwordAgain = module.MkPass("master", "service", charClasses, module.Algorithm.Argon2.value, 16, "", module.PassphraseSeparator.KebabCase.value);
         assert(password === passwordAgain, "Password generation should be deterministic");
 
         charClasses.delete();
