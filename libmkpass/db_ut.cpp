@@ -130,20 +130,20 @@ TEST_F(ConfigDBTest, Separator) {
     ASSERT_TRUE(rec.has_value());
     EXPECT_EQ(rec->separator, PassphraseSeparator::CamelCase);
 
-    // 2. Test with SnakeCase
-    entry.service_name = "snake.com";
-    entry.separator = PassphraseSeparator::SnakeCase;
+    // 2. Test with KebabCase
+    entry.service_name = "kebab.com";
+    entry.separator = PassphraseSeparator::KebabCase;
     db.save_service_entry(entry);
 
-    auto rec2 = db.get_service_entry("snake.com");
+    auto rec2 = db.get_service_entry("kebab.com");
     ASSERT_TRUE(rec2.has_value());
-    EXPECT_EQ(rec2->separator, PassphraseSeparator::SnakeCase);
+    EXPECT_EQ(rec2->separator, PassphraseSeparator::KebabCase);
 
-    // 3. Test default (existing record without separator column should default to SnakeCase)
-    // Actually, create_tables adds the column with DEFAULT 2 (SnakeCase)
+    // 3. Test default (existing record without separator column should default to KebabCase)
+    // Actually, create_tables adds the column with DEFAULT 2 (KebabCase)
     auto rec_old = db.get_service_entry("user@github.com");
     ASSERT_TRUE(rec_old.has_value());
-    EXPECT_EQ(rec_old->separator, PassphraseSeparator::SnakeCase);
+    EXPECT_EQ(rec_old->separator, PassphraseSeparator::KebabCase);
 }
 
 TEST(ConfigDB, NonExistentDB) {

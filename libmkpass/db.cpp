@@ -85,7 +85,7 @@ void ConfigDB::create_tables() {
     }
 
     if (!column_exists(db, "service_entries", "separator")) {
-        const char *alter_sql = "ALTER TABLE service_entries ADD COLUMN separator INTEGER DEFAULT 2;"; // Default to SnakeCase
+        const char *alter_sql = "ALTER TABLE service_entries ADD COLUMN separator INTEGER DEFAULT 2;"; // Default to KebabCase
         if (sqlite3_exec(db, alter_sql, 0, 0, &err_msg) != SQLITE_OK) {
             std::cerr << "Failed to alter table: " << err_msg << std::endl;
             sqlite3_free(err_msg);
@@ -147,7 +147,7 @@ std::optional<ServiceEntry> ConfigDB::get_old_service_entry(const std::string& s
         entry.algorithm = Algorithm::Old;
         entry.length = sqlite3_column_int(stmt, 1);
         entry.char_classes = {};
-        entry.separator = PassphraseSeparator::SnakeCase;
+        entry.separator = PassphraseSeparator::KebabCase;
         sqlite3_finalize(stmt);
         return entry;
     }
@@ -180,7 +180,7 @@ std::optional<ServiceEntry> ConfigDB::get_new_service_entry(const std::string& s
             entry.custom_chars = reinterpret_cast<const char*>(custom_chars);
         }
         int sep_val = sqlite3_column_int(stmt, 4);
-        entry.separator = sep_val == 0 ? PassphraseSeparator::SnakeCase : static_cast<PassphraseSeparator>(sep_val);
+        entry.separator = sep_val == 0 ? PassphraseSeparator::KebabCase : static_cast<PassphraseSeparator>(sep_val);
         sqlite3_finalize(stmt);
         return entry;
     }

@@ -130,7 +130,7 @@ public:
   }
 };
 
-class SnakeWordsSeparator {
+class KebabWordsSeparator {
 public:
   std::string operator()(const std::string& word) {
     if (first_word) {
@@ -175,7 +175,7 @@ std::string ComposePassPhrase(
   if (separator_type == PassphraseSeparator::CamelCase) {
     return ComposePassPhraseWithSeparator<CamelWordsSeparator>(generator, wordlist, length);
   } else {
-    return ComposePassPhraseWithSeparator<SnakeWordsSeparator>(generator, wordlist, length);
+    return ComposePassPhraseWithSeparator<KebabWordsSeparator>(generator, wordlist, length);
   }
 }
 
@@ -216,7 +216,7 @@ std::string ComposePassPhrase(
     if (separator_type == PassphraseSeparator::CamelCase) {
         return ComposePassPhraseWithSeparator<CamelWordsSeparator>(generator, std::move(wordlists), std::move(pattern));
     } else {
-        return ComposePassPhraseWithSeparator<SnakeWordsSeparator>(generator, std::move(wordlists), std::move(pattern));
+        return ComposePassPhraseWithSeparator<KebabWordsSeparator>(generator, std::move(wordlists), std::move(pattern));
     }
 }
 

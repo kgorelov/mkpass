@@ -123,7 +123,7 @@ void MainWindow::setupUI() {
     formLayout->addRow(lengthWidget);
 
     separatorComboBox = new QComboBox;
-    separatorComboBox->addItem("SnakeCase", static_cast<int>(PassphraseSeparator::SnakeCase));
+    separatorComboBox->addItem("KebabCase", static_cast<int>(PassphraseSeparator::KebabCase));
     separatorComboBox->addItem("CamelCase", static_cast<int>(PassphraseSeparator::CamelCase));
     separatorWidget = new QWidget;
     QHBoxLayout *separatorLayout = new QHBoxLayout(separatorWidget);
@@ -280,7 +280,7 @@ void MainWindow::serviceChanged(const QString &service) {
         } else if (newAlgo == Algorithm::Old) {
             lengthSpinBox->setValue(8);
         }
-        separatorComboBox->setCurrentIndex(separatorComboBox->findData(static_cast<int>(PassphraseSeparator::SnakeCase)));
+        separatorComboBox->setCurrentIndex(separatorComboBox->findData(static_cast<int>(PassphraseSeparator::KebabCase)));
     }
     updateAlgorithmSpecificUI();
 }

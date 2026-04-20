@@ -20,7 +20,7 @@ export interface MkPassModule {
     };
     PassphraseSeparator: {
         CamelCase: EmbindEnum;
-        SnakeCase: EmbindEnum;
+        KebabCase: EmbindEnum;
     };
     CharacterClass: {
         LOWERCASE: EmbindEnum;

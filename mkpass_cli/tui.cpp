@@ -176,16 +176,16 @@ std::optional<std::string> AskForCustomChars(const std::optional<std::string>& d
 PassphraseSeparator AskForSeparator(PassphraseSeparator default_separator) {
     std::map<char, PassphraseSeparator> choices = {
         {'1', PassphraseSeparator::CamelCase},
-        {'2', PassphraseSeparator::SnakeCase}
+        {'2', PassphraseSeparator::KebabCase}
     };
     std::map<PassphraseSeparator, char> sep_to_char = {
         {PassphraseSeparator::CamelCase, '1'},
-        {PassphraseSeparator::SnakeCase, '2'}
+        {PassphraseSeparator::KebabCase, '2'}
     };
 
     std::cerr << "Choose separator:\n";
     std::cerr << "1. CamelCase\n";
-    std::cerr << "2. snake-case\n";
+    std::cerr << "2. kebab-case\n";
     std::cerr << "Your choice (1 or 2) [" << sep_to_char[default_separator] << "]: ";
     std::string choice;
     std::getline(std::cin, choice);
@@ -198,7 +198,7 @@ PassphraseSeparator AskForSeparator(PassphraseSeparator default_separator) {
         return choices[choice[0]];
     }
 
-    return PassphraseSeparator::SnakeCase;
+    return PassphraseSeparator::KebabCase;
 }
 
 unsigned AskForLength(unsigned default_length) {
@@ -266,7 +266,7 @@ void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::Serv
     }
     ctx.length = AskForLength(default_length);
 
-    PassphraseSeparator default_separator = PassphraseSeparator::SnakeCase;
+    PassphraseSeparator default_separator = PassphraseSeparator::KebabCase;
     if (db_entry && db_entry->algorithm == Algorithm::Passphrase_Diceware_EFF_Large) {
         default_separator = db_entry->separator;
     }
@@ -277,7 +277,7 @@ void HandlePassphraseWordnetPatternAlgo(Context& ctx, const std::optional<mkpass
     // Wordnet Pattern currently doesn't use configurable length
     ctx.length = 0;
 
-    PassphraseSeparator default_separator = PassphraseSeparator::SnakeCase;
+    PassphraseSeparator default_separator = PassphraseSeparator::KebabCase;
     if (db_entry && db_entry->algorithm == Algorithm::Passphrase_Wordnet_Pattern) {
         default_separator = db_entry->separator;
     }

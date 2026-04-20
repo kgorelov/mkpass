@@ -10,5 +10,5 @@ enum class Algorithm {
 
 enum class PassphraseSeparator {
     CamelCase = 1,
-    SnakeCase = 2
+    KebabCase = 2
 };

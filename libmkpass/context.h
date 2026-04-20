@@ -13,7 +13,7 @@ struct Context {
     std::string service;
     std::vector<CharacterClass> char_classes;
     Algorithm algorithm = Algorithm::Argon2;
-    PassphraseSeparator separator = PassphraseSeparator::SnakeCase;
+    PassphraseSeparator separator = PassphraseSeparator::KebabCase;
 
     unsigned length = 0;
     std::optional<std::string> custom_chars;
