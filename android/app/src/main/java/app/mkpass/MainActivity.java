@@ -72,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String[] SEPARATORS = {
         "CamelCase",
-        "SnakeCase"
+        "KebabCase"
     };
 
     @Override
@@ -110,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
         ArrayAdapter<String> sepAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, SEPARATORS);
         sepAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         separatorSpinner.setAdapter(sepAdapter);
-        separatorSpinner.setSelection(1); // Default to SnakeCase
+        separatorSpinner.setSelection(1); // Default to KebabCase
 
         algorithmSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -236,7 +236,7 @@ public class MainActivity extends AppCompatActivity {
             }
         } else {
             // Reset to defaults based on algo
-            separatorSpinner.setSelection(1); // Default to SnakeCase
+            separatorSpinner.setSelection(1); // Default to KebabCase
             if (newAlgo == 1 || newAlgo == 2) {
                 lowerCaseCheckBox.setChecked(true);
                 upperCaseCheckBox.setChecked(true);
