@@ -55,7 +55,7 @@ EMSCRIPTEN_BINDINGS(mkpass_module) {
 
     enum_<PassphraseSeparator>("PassphraseSeparator")
         .value("CamelCase", PassphraseSeparator::CamelCase)
-        .value("SnakeCase", PassphraseSeparator::SnakeCase);
+        .value("KebabCase", PassphraseSeparator::KebabCase);
 
     enum_<CharacterClass>("CharacterClass")
         .value("LOWERCASE", CharacterClass::LOWERCASE)
