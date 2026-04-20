@@ -53,6 +53,8 @@ public class MainActivity extends AppCompatActivity {
     private CheckBox customCheckBox;
     private TextInputLayout customCharsLayout;
     private TextInputEditText customChars;
+    private LinearLayout separatorContainer;
+    private Spinner separatorSpinner;
     private LinearLayout lengthContainer;
     private TextView lengthTitle;
     private SeekBar lengthSeekBar;
@@ -66,6 +68,11 @@ public class MainActivity extends AppCompatActivity {
         "OldPassword",
         "Passphrase Diceware (Argon2)",
         "Passphrase Wordnet Pattern (Argon2)"
+    };
+
+    private static final String[] SEPARATORS = {
+        "CamelCase",
+        "SnakeCase"
     };
 
     @Override
@@ -87,6 +94,8 @@ public class MainActivity extends AppCompatActivity {
         customCheckBox = findViewById(R.id.customCheckBox);
         customCharsLayout = findViewById(R.id.customCharsLayout);
         customChars = findViewById(R.id.customChars);
+        separatorContainer = findViewById(R.id.separatorContainer);
+        separatorSpinner = findViewById(R.id.separatorSpinner);
         lengthContainer = findViewById(R.id.lengthContainer);
         lengthTitle = findViewById(R.id.lengthTitle);
         lengthSeekBar = findViewById(R.id.lengthSeekBar);
@@ -97,6 +106,11 @@ public class MainActivity extends AppCompatActivity {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, ALGORITHMS);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         algorithmSpinner.setAdapter(adapter);
+
+        ArrayAdapter<String> sepAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, SEPARATORS);
+        sepAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        separatorSpinner.setAdapter(sepAdapter);
+        separatorSpinner.setSelection(1); // Default to SnakeCase
 
         algorithmSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -165,9 +179,11 @@ public class MainActivity extends AppCompatActivity {
 
         boolean showCharClasses = (algorithm == 1 || algorithm == 2); // Argon2 or SlowSha512
         boolean showLength = (algorithm != 5); // Wordnet Pattern
+        boolean showSeparator = (algorithm == 4 || algorithm == 5);
 
         characterClassesLayout.setVisibility(showCharClasses ? View.VISIBLE : View.GONE);
         lengthContainer.setVisibility(showLength ? View.VISIBLE : View.GONE);
+        separatorContainer.setVisibility(showSeparator ? View.VISIBLE : View.GONE);
 
         if (showLength) {
             if (algorithm == 4) { // Diceware
@@ -214,10 +230,14 @@ public class MainActivity extends AppCompatActivity {
             if (entry.customChars != null) {
                 customChars.setText(entry.customChars);
             }
+
+            if (entry.separator >= 1 && entry.separator <= 2) {
+                separatorSpinner.setSelection(entry.separator - 1);
+            }
         } else {
             // Reset to defaults based on algo
+            separatorSpinner.setSelection(1); // Default to SnakeCase
             if (newAlgo == 1 || newAlgo == 2) {
-                lengthSeekBar.setProgress(16);
                 lowerCaseCheckBox.setChecked(true);
                 upperCaseCheckBox.setChecked(true);
                 digitsCheckBox.setChecked(true);
@@ -264,6 +284,7 @@ public class MainActivity extends AppCompatActivity {
             int algorithm = algorithmSpinner.getSelectedItemPosition() + 1;
             int length = lengthSeekBar.getProgress();
             if (algorithm == 5) length = 0;
+            int separator = separatorSpinner.getSelectedItemPosition() + 1;
 
             List<Integer> charClasses = new ArrayList<>();
             String customCharsStr = null;
@@ -285,10 +306,10 @@ public class MainActivity extends AppCompatActivity {
                 charClassesArray[i] = charClasses.get(i);
             }
 
-            String generatedPassword = generatePasswordNative(masterPwd, serviceName, algorithm, length, charClassesArray, customCharsStr);
+            String generatedPassword = generatePasswordNative(masterPwd, serviceName, algorithm, length, charClassesArray, customCharsStr, separator);
 
             // Save entry in background
-            saveServiceEntry(serviceName, algorithm, length, charClassesArray, customCharsStr);
+            saveServiceEntry(serviceName, algorithm, length, charClassesArray, customCharsStr, separator);
 
             // Post result to UI thread
             handler.post(() -> {
@@ -362,8 +383,8 @@ public class MainActivity extends AppCompatActivity {
     public native void init(String dbPath);
     public native String[] getAllServiceNames();
     public native ServiceEntry getServiceEntry(String serviceName);
-    public native void saveServiceEntry(String serviceName, int algorithm, int length, int[] charClasses, String customChars);
-    public native String generatePasswordNative(String password, String service, int algorithm, int length, int[] charClasses, String customChars);
+    public native void saveServiceEntry(String serviceName, int algorithm, int length, int[] charClasses, String customChars, int separator);
+    public native String generatePasswordNative(String password, String service, int algorithm, int length, int[] charClasses, String customChars, int separator);
     public native android.graphics.Bitmap generateQrCode(String text);
 }
 
@@ -373,4 +394,5 @@ class ServiceEntry {
     public int length;
     public int[] charClasses;
     public String customChars;
+    public int separator;
 }
