@@ -373,6 +373,8 @@ void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::Serv
 }
 
 void HandlePassphraseWordnetPatternAlgo(Context& ctx, const std::optional<mkpass::ServiceEntry>& db_entry) {
+    bool same_algo = db_entry && db_entry->algorithm == ctx.algorithm;
+
     // Wordnet Pattern currently doesn't use configurable length
     ctx.length = 0;
 
@@ -382,16 +384,20 @@ void HandlePassphraseWordnetPatternAlgo(Context& ctx, const std::optional<mkpass
         WordClasses::Adv,
         WordClasses::Verb,
         WordClasses::Noun};
-    if (db_entry && db_entry->algorithm == Algorithm::Passphrase_Wordnet_Pattern && !db_entry->passphrase_pattern.empty()) {
-        default_pattern = db_entry->passphrase_pattern;
-    }
-    ctx.passphrase_pattern = AskForPassphrasePattern(default_pattern);
 
-    PassphraseSeparator default_separator = PassphraseSeparator::CamelCase;
-    if (db_entry && db_entry->algorithm == Algorithm::Passphrase_Wordnet_Pattern) {
-        default_separator = db_entry->separator;
-    }
-    ctx.separator = AskForSeparator(default_separator);
+    ctx.passphrase_pattern = AskForPassphrasePattern(same_algo ? db_entry->passphrase_pattern : default_pattern);
+
+    auto ask_and_add = [&](const std::string& question, CharacterClass cls) {
+        bool dflt = same_algo ? std::ranges::count(db_entry->char_classes, cls) > 0 : true;
+        if (AskYesNoQuestion(question, dflt)) {
+            ctx.char_classes.push_back(cls);
+        }
+    };
+
+    ask_and_add("Include digits?", CharacterClass::DIGITS);
+    ask_and_add("Include symbols?", CharacterClass::SYMBOLS);
+
+    ctx.separator = AskForSeparator(same_algo ? db_entry->separator : PassphraseSeparator::CamelCase);
 }
 
 void HandleOldAlgo(Context& ctx, const std::optional<mkpass::ServiceEntry>& db_entry) {

@@ -231,25 +231,31 @@ template <typename Separator>
 std::string ComposePassPhraseWithSeparator(
     GeneratorInterface& generator,
     std::map<WordClasses, Wordlist> &&wordlists,
+    const std::vector<CharacterClass>& char_classes,
     std::vector<WordClasses> &&pattern)
 {
     std::string result;
     std::map<WordClasses, UniformDistribution<int>> distributions;
     std::map<WordClasses, std::set<int>> used_idxs;
-
     Separator separator;
+    auto modifiers = GetWordModifiers(generator, char_classes, pattern.size());
 
     for (auto& [wc, wl]: wordlists) {
         distributions.emplace(wc, UniformDistribution<int>(0, wl.length()-1));
     }
 
-    for (auto& wc: pattern) {
+    for (size_t pos = 0; pos < pattern.size(); ++pos) {
+        auto& wc = pattern[pos];
         auto idx = distributions.at(wc)(generator);
         if (used_idxs[wc].find(idx) != used_idxs[wc].end()) {
             continue;
         }
         used_idxs[wc].insert(idx);
-        result += separator(wordlists.at(wc)[idx]);
+        auto word = separator(wordlists.at(wc)[idx]);
+        for (auto& modifier: modifiers) {
+            word = modifier(word, pos);
+        }
+        result += word;
     }
 
     return result;
@@ -258,13 +264,14 @@ std::string ComposePassPhraseWithSeparator(
 std::string ComposePassPhrase(
     GeneratorInterface& generator,
     std::map<WordClasses, Wordlist> &&wordlists,
+    const std::vector<CharacterClass>& char_classes,
     std::vector<WordClasses> &&pattern,
     PassphraseSeparator separator_type)
 {
     if (separator_type == PassphraseSeparator::CamelCase) {
-        return ComposePassPhraseWithSeparator<CamelWordsSeparator>(generator, std::move(wordlists), std::move(pattern));
+        return ComposePassPhraseWithSeparator<CamelWordsSeparator>(generator, std::move(wordlists), char_classes, std::move(pattern));
     } else {
-        return ComposePassPhraseWithSeparator<KebabWordsSeparator>(generator, std::move(wordlists), std::move(pattern));
+        return ComposePassPhraseWithSeparator<KebabWordsSeparator>(generator, std::move(wordlists), char_classes, std::move(pattern));
     }
 }
 

@@ -29,5 +29,6 @@ std::string ComposePassPhrase(
 std::string ComposePassPhrase(
     GeneratorInterface& generator,
     std::map<WordClasses, Wordlist> &&wordlists,
+    const std::vector<CharacterClass>& char_classes,
     std::vector<WordClasses> &&pattern,
     PassphraseSeparator separator_type);

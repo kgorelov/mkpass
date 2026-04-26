@@ -87,7 +87,7 @@ std::string GenerateAndComposePassphraseWordnetPattern(const Context& ctx)
     }
 
     return ComposePassPhrase(
-        g, std::move(wordlists), std::move(pattern), ctx.separator);
+        g, std::move(wordlists), ctx.char_classes, std::move(pattern), ctx.separator);
 }
 
 } // namespace
