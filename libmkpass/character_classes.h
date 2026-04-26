@@ -1,6 +1,6 @@
 #pragma once
+#include <string>
 
-// constexpr?
 const std::string LowercaseLetters = "abcdefghijklmnopqrstuvwxyz";
 const std::string UppercaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const std::string Digits = "0123456789";
@@ -16,4 +16,4 @@ enum class CharacterClass {
     CUSTOM = 4
 };
 
-// TODO: define an enum here
+std::string GetCharClassString(CharacterClass cls);

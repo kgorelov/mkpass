@@ -143,25 +143,72 @@ private:
   bool first_word = true;
 };
 
+
+class WordModifier {
+public:
+    WordModifier(
+        GeneratorInterface& generator,
+        int word_position,
+        const std::string& char_class_string)
+        : generator_(generator)
+        , word_position_(word_position)
+        , char_class_string_(char_class_string)
+        , distibution_(0, char_class_string.length()-1)
+    {
+    }
+
+    std::string operator()(const std::string& word, int pos) {
+        if (pos != word_position_) {
+            return word;
+        }
+        return word + char_class_string_[distibution_(generator_)];
+    }
+
+private:
+    GeneratorInterface& generator_;
+    int word_position_;
+    std::string char_class_string_;
+    UniformDistribution<int> distibution_;
+};
+
+std::vector<WordModifier> GetWordModifiers(
+    GeneratorInterface& generator,
+    const std::vector<CharacterClass>& char_classes,
+    int passprhase_length) {
+    UniformDistribution distibution(0, passprhase_length - 1);
+    std::vector<WordModifier> result;
+    for (auto& cls: char_classes) {
+        auto word_idx = distibution(generator);
+        auto chars_cls_str = GetCharClassString(cls);
+        result.push_back(WordModifier(generator, word_idx, chars_cls_str));
+    }
+    return result;
+}
+
 template <typename Separator>
 std::string ComposePassPhraseWithSeparator(
     GeneratorInterface& generator,
     const Wordlist& wordlist,
+    const std::vector<CharacterClass>& char_classes,
     size_t length)
 {
   std::string result;
   UniformDistribution distibution(0, wordlist.length()-1);
   Separator separator;
+  auto modifiers = GetWordModifiers(generator, char_classes, length);
   std::set<int> used_idxs;
 
-  while (length > 0) {
+  for (size_t pos = 0; pos < length; ++pos) {
     auto idx = distibution(generator);
     if (used_idxs.find(idx) != used_idxs.end()) {
       continue;
     }
     used_idxs.insert(idx);
-    result += separator(wordlist[idx]);
-    --length;
+    auto word = wordlist[idx];
+    for (auto& modifier: modifiers) {
+        word = modifier(word, pos);
+    }
+    result += separator(word);
   }
   return result;
 }
@@ -169,13 +216,14 @@ std::string ComposePassPhraseWithSeparator(
 std::string ComposePassPhrase(
     GeneratorInterface& generator,
     const Wordlist& wordlist,
+    const std::vector<CharacterClass>& char_classes,
     size_t length,
     PassphraseSeparator separator_type)
 {
   if (separator_type == PassphraseSeparator::CamelCase) {
-    return ComposePassPhraseWithSeparator<CamelWordsSeparator>(generator, wordlist, length);
+    return ComposePassPhraseWithSeparator<CamelWordsSeparator>(generator, wordlist, char_classes, length);
   } else {
-    return ComposePassPhraseWithSeparator<KebabWordsSeparator>(generator, wordlist, length);
+    return ComposePassPhraseWithSeparator<KebabWordsSeparator>(generator, wordlist, char_classes, length);
   }
 }
 

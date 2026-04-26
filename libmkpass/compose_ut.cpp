@@ -184,7 +184,8 @@ TEST(ComposeTest, TestOldAlgo4) {
 TEST(ComposeTest, TestPassphraseKebabCase) {
     Generator<HKDF_Argon2> g("password", "service");
     Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
-    auto p = ComposePassPhrase(g, wordlist, 3, PassphraseSeparator::KebabCase);
+    std::vector<CharacterClass> char_classes;
+    auto p = ComposePassPhrase(g, wordlist, std::move(char_classes), 3, PassphraseSeparator::KebabCase);
     // Should have 2 hyphens for 3 words
     int hyphens = 0;
     for (char c : p) {
@@ -204,7 +205,8 @@ TEST(ComposeTest, TestPassphraseKebabCase) {
 TEST(ComposeTest, TestPassphraseCamelCase) {
     Generator<HKDF_Argon2> g("password", "service");
     Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
-    auto p = ComposePassPhrase(g, wordlist, 3, PassphraseSeparator::CamelCase);
+    std::vector<CharacterClass> char_classes;
+    auto p = ComposePassPhrase(g, wordlist, std::move(char_classes), 3, PassphraseSeparator::CamelCase);
     // Should have no hyphens
     for (char c : p) {
         EXPECT_NE(c, '-');

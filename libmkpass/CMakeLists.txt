@@ -5,6 +5,7 @@ set(SOURCES
   mkpass.cpp
   hkdf_argon2.cpp
   db.cpp
+  character_classes.cpp
   wordlists/eff_large_words.cpp
   wordlists/wordnet_nouns.cpp
   wordlists/wordnet_verbs.cpp

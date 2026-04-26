@@ -22,6 +22,7 @@ std::string ComposeOldMkpass1Password(
 std::string ComposePassPhrase(
     GeneratorInterface& generator,
     const Wordlist& wordlist,
+    const std::vector<CharacterClass>& char_classes,
     size_t length,
     PassphraseSeparator separator_type);
 

@@ -309,6 +309,20 @@ unsigned AskForLength(unsigned default_length) {
     }
 }
 
+bool AskYesNoQuestion(const std::string& question, bool dflt) {
+    std::cerr << question
+              << " (y/n) [" << (dflt ? "y" : "n") << "]: ";
+    std::string choice;
+    std::getline(std::cin, choice);
+    if (choice.empty()) {
+        return dflt;
+    }
+    if (std::tolower(choice[0]) == 'y') {
+        return true;
+    }
+    return false;
+}
+
 bool IsPasswordAlgo(Algorithm a) {
     return a == Algorithm::Argon2 || a == Algorithm::SlowSha512;
 }
@@ -346,6 +360,47 @@ void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::Serv
         default_length = db_entry->length;
     }
     ctx.length = AskForLength(default_length);
+
+    bool default_include_digits = true;
+    bool default_include_symbols = true;
+
+    if (db_entry && db_entry->algorithm == Algorithm::Passphrase_Diceware_EFF_Large) {
+        default_include_digits = std::ranges::count(db_entry->char_classes, CharacterClass::DIGITS);
+        default_include_symbols = std::ranges::count(db_entry->char_classes, CharacterClass::SYMBOLS);
+    }
+
+    bool include_digits = AskYesNoQuestion("Include digits?", default_include_digits);
+    bool include_symbols = AskYesNoQuestion("Include symbols?", default_include_symbols);
+
+    if (include_digits && !std::ranges::count(ctx.char_classes, CharacterClass::DIGITS)) {
+        ctx.char_classes.push_back(CharacterClass::DIGITS);
+        std::cerr << "DBG added digits\n";
+    }
+
+    if (!include_digits && std::ranges::count(ctx.char_classes, CharacterClass::DIGITS)) {
+        ctx.char_classes.erase(
+            std::remove(
+                ctx.char_classes.begin(),
+                ctx.char_classes.end(),
+                CharacterClass::DIGITS),
+            ctx.char_classes.end());
+        std::cerr << "DBG removed digits\n";
+    }
+
+    if (include_symbols && !std::ranges::count(ctx.char_classes, CharacterClass::SYMBOLS)) {
+        ctx.char_classes.push_back(CharacterClass::SYMBOLS);
+        std::cerr << "DBG added symbols\n";
+    }
+
+    if (!include_symbols && std::ranges::count(ctx.char_classes, CharacterClass::SYMBOLS)) {
+        ctx.char_classes.erase(
+            std::remove(
+                ctx.char_classes.begin(),
+                ctx.char_classes.end(),
+                CharacterClass::SYMBOLS),
+            ctx.char_classes.end());
+        std::cerr << "DBG removed symbols\n";
+    }
 
     PassphraseSeparator default_separator = PassphraseSeparator::CamelCase;
     if (db_entry && db_entry->algorithm == Algorithm::Passphrase_Diceware_EFF_Large) {

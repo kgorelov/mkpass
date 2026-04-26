@@ -33,24 +33,12 @@ std::string GenerateAndComposePassword(const Context& ctx) {
     std::sort(char_classes_to_use.begin(), char_classes_to_use.end());
 
     for (auto cc : char_classes_to_use) {
-        switch (cc) {
-        case CharacterClass::LOWERCASE:
-            active_char_classes.push_back(LowercaseLetters);
-            break;
-        case CharacterClass::UPPERCASE:
-            active_char_classes.push_back(UppercaseLetters);
-            break;
-        case CharacterClass::DIGITS:
-            active_char_classes.push_back(Digits);
-            break;
-        case CharacterClass::SYMBOLS:
-            active_char_classes.push_back(Symbols);
-            break;
-        case CharacterClass::CUSTOM:
-            if (ctx.custom_chars && !ctx.custom_chars->empty()) {
-                active_char_classes.push_back(*ctx.custom_chars);
-            }
-            break;
+        if (cc == CharacterClass::CUSTOM
+            && ctx.custom_chars
+            && !ctx.custom_chars->empty()) {
+            active_char_classes.push_back(*ctx.custom_chars);
+        } else {
+            active_char_classes.push_back(GetCharClassString(cc));
         }
     }
 
@@ -69,7 +57,7 @@ std::string GenerateAndComposePassphraseDiceware(const Context& ctx)
 {
     GeneratorType g(ctx.password, ctx.service);
     Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
-    return ComposePassPhrase(g, wordlist, ctx.length, ctx.separator);
+    return ComposePassPhrase(g, wordlist, ctx.char_classes, ctx.length, ctx.separator);
 }
 
 template <typename GeneratorType>
