@@ -355,58 +355,21 @@ void HandlePasswordAlgo(Context& ctx, const std::optional<mkpass::ServiceEntry>&
 }
 
 void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::ServiceEntry>& db_entry) {
-    unsigned default_length = 6;
-    if (db_entry && db_entry->algorithm == Algorithm::Passphrase_Diceware_EFF_Large && db_entry->length > 0) {
-        default_length = db_entry->length;
-    }
-    ctx.length = AskForLength(default_length);
+    bool same_algo = db_entry && db_entry->algorithm == ctx.algorithm;
 
-    bool default_include_digits = true;
-    bool default_include_symbols = true;
+    ctx.length = AskForLength(same_algo && db_entry->length > 0 ? db_entry->length : 6);
 
-    if (db_entry && db_entry->algorithm == Algorithm::Passphrase_Diceware_EFF_Large) {
-        default_include_digits = std::ranges::count(db_entry->char_classes, CharacterClass::DIGITS);
-        default_include_symbols = std::ranges::count(db_entry->char_classes, CharacterClass::SYMBOLS);
-    }
+    auto ask_and_add = [&](const std::string& question, CharacterClass cls) {
+        bool dflt = same_algo ? std::ranges::count(db_entry->char_classes, cls) > 0 : true;
+        if (AskYesNoQuestion(question, dflt)) {
+            ctx.char_classes.push_back(cls);
+        }
+    };
 
-    bool include_digits = AskYesNoQuestion("Include digits?", default_include_digits);
-    bool include_symbols = AskYesNoQuestion("Include symbols?", default_include_symbols);
+    ask_and_add("Include digits?", CharacterClass::DIGITS);
+    ask_and_add("Include symbols?", CharacterClass::SYMBOLS);
 
-    if (include_digits && !std::ranges::count(ctx.char_classes, CharacterClass::DIGITS)) {
-        ctx.char_classes.push_back(CharacterClass::DIGITS);
-        std::cerr << "DBG added digits\n";
-    }
-
-    if (!include_digits && std::ranges::count(ctx.char_classes, CharacterClass::DIGITS)) {
-        ctx.char_classes.erase(
-            std::remove(
-                ctx.char_classes.begin(),
-                ctx.char_classes.end(),
-                CharacterClass::DIGITS),
-            ctx.char_classes.end());
-        std::cerr << "DBG removed digits\n";
-    }
-
-    if (include_symbols && !std::ranges::count(ctx.char_classes, CharacterClass::SYMBOLS)) {
-        ctx.char_classes.push_back(CharacterClass::SYMBOLS);
-        std::cerr << "DBG added symbols\n";
-    }
-
-    if (!include_symbols && std::ranges::count(ctx.char_classes, CharacterClass::SYMBOLS)) {
-        ctx.char_classes.erase(
-            std::remove(
-                ctx.char_classes.begin(),
-                ctx.char_classes.end(),
-                CharacterClass::SYMBOLS),
-            ctx.char_classes.end());
-        std::cerr << "DBG removed symbols\n";
-    }
-
-    PassphraseSeparator default_separator = PassphraseSeparator::CamelCase;
-    if (db_entry && db_entry->algorithm == Algorithm::Passphrase_Diceware_EFF_Large) {
-        default_separator = db_entry->separator;
-    }
-    ctx.separator = AskForSeparator(default_separator);
+    ctx.separator = AskForSeparator(same_algo ? db_entry->separator : PassphraseSeparator::CamelCase);
 }
 
 void HandlePassphraseWordnetPatternAlgo(Context& ctx, const std::optional<mkpass::ServiceEntry>& db_entry) {
