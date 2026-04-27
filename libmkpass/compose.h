@@ -22,13 +22,13 @@ std::string ComposeOldMkpass1Password(
 std::string ComposePassPhrase(
     GeneratorInterface& generator,
     const Wordlist& wordlist,
-    const std::vector<CharacterClass>& char_classes,
     size_t length,
-    PassphraseSeparator separator_type);
+    PassphraseSeparator separator_type,
+    const std::vector<CharacterClass>& char_classes);
 
 std::string ComposePassPhrase(
     GeneratorInterface& generator,
     std::map<WordClasses, Wordlist> &&wordlists,
-    const std::vector<CharacterClass>& char_classes,
     std::vector<WordClasses> &&pattern,
-    PassphraseSeparator separator_type);
+    PassphraseSeparator separator_type,
+    const std::vector<CharacterClass>& char_classes);

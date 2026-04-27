@@ -174,7 +174,8 @@ private:
 std::vector<WordModifier> GetWordModifiers(
     GeneratorInterface& generator,
     const std::vector<CharacterClass>& char_classes,
-    int passprhase_length) {
+    int passprhase_length)
+{
     UniformDistribution distibution(0, passprhase_length - 1);
     std::vector<WordModifier> result;
     for (auto& cls: char_classes) {
@@ -189,8 +190,8 @@ template <typename Separator>
 std::string ComposePassPhraseWithSeparator(
     GeneratorInterface& generator,
     const Wordlist& wordlist,
-    const std::vector<CharacterClass>& char_classes,
-    size_t length)
+    size_t length,
+    const std::vector<CharacterClass>& char_classes)
 {
   std::string result;
   UniformDistribution distibution(0, wordlist.length()-1);
@@ -216,14 +217,14 @@ std::string ComposePassPhraseWithSeparator(
 std::string ComposePassPhrase(
     GeneratorInterface& generator,
     const Wordlist& wordlist,
-    const std::vector<CharacterClass>& char_classes,
     size_t length,
-    PassphraseSeparator separator_type)
+    PassphraseSeparator separator_type,
+    const std::vector<CharacterClass>& char_classes)
 {
   if (separator_type == PassphraseSeparator::CamelCase) {
-    return ComposePassPhraseWithSeparator<CamelWordsSeparator>(generator, wordlist, char_classes, length);
+    return ComposePassPhraseWithSeparator<CamelWordsSeparator>(generator, wordlist, length, char_classes);
   } else {
-    return ComposePassPhraseWithSeparator<KebabWordsSeparator>(generator, wordlist, char_classes, length);
+    return ComposePassPhraseWithSeparator<KebabWordsSeparator>(generator, wordlist, length, char_classes);
   }
 }
 
@@ -231,8 +232,8 @@ template <typename Separator>
 std::string ComposePassPhraseWithSeparator(
     GeneratorInterface& generator,
     std::map<WordClasses, Wordlist> &&wordlists,
-    const std::vector<CharacterClass>& char_classes,
-    std::vector<WordClasses> &&pattern)
+    std::vector<WordClasses> &&pattern,
+    const std::vector<CharacterClass>& char_classes)
 {
     std::string result;
     std::map<WordClasses, UniformDistribution<int>> distributions;
@@ -264,14 +265,14 @@ std::string ComposePassPhraseWithSeparator(
 std::string ComposePassPhrase(
     GeneratorInterface& generator,
     std::map<WordClasses, Wordlist> &&wordlists,
-    const std::vector<CharacterClass>& char_classes,
     std::vector<WordClasses> &&pattern,
-    PassphraseSeparator separator_type)
+    PassphraseSeparator separator_type,
+    const std::vector<CharacterClass>& char_classes)
 {
     if (separator_type == PassphraseSeparator::CamelCase) {
-        return ComposePassPhraseWithSeparator<CamelWordsSeparator>(generator, std::move(wordlists), char_classes, std::move(pattern));
+        return ComposePassPhraseWithSeparator<CamelWordsSeparator>(generator, std::move(wordlists), std::move(pattern), char_classes);
     } else {
-        return ComposePassPhraseWithSeparator<KebabWordsSeparator>(generator, std::move(wordlists), char_classes, std::move(pattern));
+        return ComposePassPhraseWithSeparator<KebabWordsSeparator>(generator, std::move(wordlists), std::move(pattern), char_classes);
     }
 }
 

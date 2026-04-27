@@ -57,7 +57,7 @@ std::string GenerateAndComposePassphraseDiceware(const Context& ctx)
 {
     GeneratorType g(ctx.password, ctx.service);
     Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
-    return ComposePassPhrase(g, wordlist, ctx.char_classes, ctx.length, ctx.separator);
+    return ComposePassPhrase(g, wordlist, ctx.length, ctx.separator, ctx.char_classes);
 }
 
 template <typename GeneratorType>
@@ -87,7 +87,7 @@ std::string GenerateAndComposePassphraseWordnetPattern(const Context& ctx)
     }
 
     return ComposePassPhrase(
-        g, std::move(wordlists), ctx.char_classes, std::move(pattern), ctx.separator);
+        g, std::move(wordlists), std::move(pattern), ctx.separator, ctx.char_classes);
 }
 
 } // namespace
