@@ -221,3 +221,66 @@ TEST(ComposeTest, TestPassphraseCamelCase) {
     }
     EXPECT_EQ(uppers, 3);
 }
+
+TEST(ComposeTest, TestPassphraseSubstitutionsDigits) {
+    Generator<HKDF_Argon2> g("password", "service");
+    Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
+    std::vector<CharacterClass> char_classes = {CharacterClass::DIGITS};
+    // We want to check if any of the substituted characters appear in the output
+    // letters_to_digits contains '4' for 'a', '3' for 'e', etc.
+    // By allowing substitutions, we expect to see digits instead of some letters OR appended.
+    // To be sure, we can run it multiple times or check if the result contains digits.
+    bool found_digit = false;
+    for (int i = 0; i < 10; ++i) {
+        auto p = ComposePassPhrase(g, wordlist, 3, PassphraseSeparator::KebabCase, char_classes, true);
+        for (char c : p) {
+            if (isdigit(c)) {
+                found_digit = true;
+                break;
+            }
+        }
+        if (found_digit) break;
+    }
+    EXPECT_TRUE(found_digit);
+}
+
+TEST(ComposeTest, TestPassphraseSubstitutionsSymbols) {
+    Generator<HKDF_Argon2> g("password", "service");
+    Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
+    std::vector<CharacterClass> char_classes = {CharacterClass::SYMBOLS};
+    bool found_symbol = false;
+    std::string symbols = "!@#$%^&*()-_=+[]{}|;:,.<>?/"; // more than we have but safe
+    for (int i = 0; i < 10; ++i) {
+        auto p = ComposePassPhrase(g, wordlist, 3, PassphraseSeparator::KebabCase, char_classes, true);
+        for (char c : p) {
+            if (Symbols.find(c) != std::string::npos) {
+                found_symbol = true;
+                break;
+            }
+        }
+        if (found_symbol) break;
+    }
+    EXPECT_TRUE(found_symbol);
+}
+
+TEST(ComposeTest, TestPassphraseNoSubstitutions) {
+    Generator<HKDF_Argon2> g("password", "service");
+    Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
+    std::vector<CharacterClass> char_classes = {CharacterClass::DIGITS};
+    // When allow_substitutions is false, digits should ONLY be appended at the end of some word.
+    // They should not replace any letter.
+    auto p = ComposePassPhrase(g, wordlist, 3, PassphraseSeparator::KebabCase, char_classes, false);
+
+    // In KebabCase, it's easy: words are separated by '-'.
+    // If a digit is present, it must be either before a '-' or at the end of the string.
+    bool found_digit = false;
+    for (size_t i = 0; i < p.length(); ++i) {
+        if (isdigit(p[i])) {
+            found_digit = true;
+            // Check if it's at the end of a word
+            bool at_end_of_word = (i + 1 == p.length()) || (p[i+1] == '-');
+            EXPECT_TRUE(at_end_of_word) << "Digit " << p[i] << " found at index " << i << " in " << p << " is not at the end of a word";
+        }
+    }
+    EXPECT_TRUE(found_digit);
+}

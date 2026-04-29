@@ -170,7 +170,7 @@ public:
             std::string sword = word;
             auto substituions = MakeSubstitutionsList(sword);
             if (substituions.size() > 0) {
-                UniformDistribution<int> d(0, substituions.size());
+                UniformDistribution<int> d(0, substituions.size() - 1);
                 auto subst = substituions[d(generator_)];
                 (*subst.first) = subst.second;
                 return sword;
