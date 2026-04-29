@@ -86,6 +86,7 @@ void MainWindow::setupUI() {
     digitsCheckBox = new QCheckBox("Digits");
     symbolsCheckBox = new QCheckBox("Symbols");
     customCheckBox = new QCheckBox("Custom:");
+    allowSubstitutionsCheckBox = new QCheckBox("Allow substitutions (e.g. a -> 4)");
 
     lowerCaseCheckBox->setChecked(true);
     upperCaseCheckBox->setChecked(true);
@@ -97,6 +98,7 @@ void MainWindow::setupUI() {
     checkBoxesLayout->addWidget(digitsCheckBox, 1, 0);
     checkBoxesLayout->addWidget(symbolsCheckBox, 1, 1);
     checkBoxesLayout->addWidget(customCheckBox, 2, 0);
+    checkBoxesLayout->addWidget(allowSubstitutionsCheckBox, 3, 0, 1, 2);
 
     characterClassesLayout->addLayout(checkBoxesLayout);
 
@@ -169,8 +171,10 @@ void MainWindow::generatePassword() {
     ctx.length = lengthSpinBox->value();
     ctx.algorithm = static_cast<Algorithm>(algorithmComboBox->currentData().toInt());
     ctx.separator = static_cast<PassphraseSeparator>(separatorComboBox->currentData().toInt());
+    ctx.allow_substitutions = allowSubstitutionsCheckBox->isChecked();
 
-    if (ctx.algorithm == Algorithm::Argon2 || ctx.algorithm == Algorithm::SlowSha512) {
+    if (algorithmComboBox->currentData().toInt() == static_cast<int>(Algorithm::Argon2) ||
+        algorithmComboBox->currentData().toInt() == static_cast<int>(Algorithm::SlowSha512)) {
         if (lowerCaseCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::LOWERCASE);
         if (upperCaseCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::UPPERCASE);
         if (digitsCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::DIGITS);
@@ -179,6 +183,9 @@ void MainWindow::generatePassword() {
             ctx.char_classes.push_back(CharacterClass::CUSTOM);
             ctx.custom_chars = customCharsLineEdit->text().toStdString();
         }
+    } else {
+        if (digitsCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::DIGITS);
+        if (symbolsCheckBox->isChecked()) ctx.char_classes.push_back(CharacterClass::SYMBOLS);
     }
 
     QFuture<std::string> future = QtConcurrent::run(MkPass, ctx);
@@ -214,8 +221,12 @@ void MainWindow::generationFinished() {
             char_classes.push_back(CharacterClass::CUSTOM);
             custom_chars = customCharsLineEdit->text().toStdString();
         }
-    } else if (algorithm == Algorithm::Passphrase_Wordnet_Pattern) {
-        length = 0;
+    } else if (algorithm == Algorithm::Passphrase_Wordnet_Pattern || algorithm == Algorithm::Passphrase_Diceware_EFF_Large) {
+        if (digitsCheckBox->isChecked()) char_classes.push_back(CharacterClass::DIGITS);
+        if (symbolsCheckBox->isChecked()) char_classes.push_back(CharacterClass::SYMBOLS);
+        if (algorithm == Algorithm::Passphrase_Wordnet_Pattern) {
+            length = 0;
+        }
     }
 
     db.save_service_entry({
@@ -224,7 +235,9 @@ void MainWindow::generationFinished() {
         length,
         char_classes,
         custom_chars,
-        separator
+        separator,
+        {}, // passphrase_pattern
+        allowSubstitutionsCheckBox->isChecked()
     });
 }
 
@@ -265,8 +278,11 @@ void MainWindow::serviceChanged(const QString &service) {
         if (sepIndex != -1) {
             separatorComboBox->setCurrentIndex(sepIndex);
         }
+
+        allowSubstitutionsCheckBox->setChecked(entry->allow_substitutions);
     } else {
         // Reset to default values based on algorithm
+        allowSubstitutionsCheckBox->setChecked(false);
         if (newAlgo == Algorithm::Argon2 || newAlgo == Algorithm::SlowSha512) {
             lengthSpinBox->setValue(16);
             lowerCaseCheckBox->setChecked(true);
@@ -275,8 +291,12 @@ void MainWindow::serviceChanged(const QString &service) {
             symbolsCheckBox->setChecked(true);
             customCheckBox->setChecked(false);
             customCharsLineEdit->setText("");
-        } else if (newAlgo == Algorithm::Passphrase_Diceware_EFF_Large) {
-            lengthSpinBox->setValue(6);
+        } else if (newAlgo == Algorithm::Passphrase_Diceware_EFF_Large || newAlgo == Algorithm::Passphrase_Wordnet_Pattern) {
+            digitsCheckBox->setChecked(true);
+            symbolsCheckBox->setChecked(true);
+            if (newAlgo == Algorithm::Passphrase_Diceware_EFF_Large) {
+                lengthSpinBox->setValue(6);
+            }
         } else if (newAlgo == Algorithm::Old) {
             lengthSpinBox->setValue(8);
         }
@@ -318,11 +338,21 @@ void MainWindow::checkPasswords() {
 void MainWindow::updateAlgorithmSpecificUI() {
     Algorithm algorithm = static_cast<Algorithm>(algorithmComboBox->currentData().toInt());
 
-    bool showCharClasses = (algorithm == Algorithm::Argon2 || algorithm == Algorithm::SlowSha512);
-    bool showLength = (algorithm != Algorithm::Passphrase_Wordnet_Pattern);
-    bool showSeparator = (algorithm == Algorithm::Passphrase_Diceware_EFF_Large || algorithm == Algorithm::Passphrase_Wordnet_Pattern);
+    bool isPassword = (algorithm == Algorithm::Argon2 || algorithm == Algorithm::SlowSha512);
+    bool isPassphrase = (algorithm == Algorithm::Passphrase_Diceware_EFF_Large || algorithm == Algorithm::Passphrase_Wordnet_Pattern);
 
-    characterClassesGroupBox->setVisible(showCharClasses);
+    characterClassesGroupBox->setVisible(isPassword || isPassphrase);
+    lowerCaseCheckBox->setVisible(isPassword);
+    upperCaseCheckBox->setVisible(isPassword);
+    customCheckBox->setVisible(isPassword);
+
+    digitsCheckBox->setVisible(isPassword || isPassphrase);
+    symbolsCheckBox->setVisible(isPassword || isPassphrase);
+    allowSubstitutionsCheckBox->setVisible(isPassphrase);
+
+    bool showLength = (algorithm != Algorithm::Passphrase_Wordnet_Pattern);
+    bool showSeparator = isPassphrase;
+
     lengthWidget->setVisible(showLength);
     separatorWidget->setVisible(showSeparator);
 
