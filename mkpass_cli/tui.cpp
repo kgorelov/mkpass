@@ -369,7 +369,7 @@ void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::Serv
     ask_and_add("Include digits?", CharacterClass::DIGITS);
     ask_and_add("Include symbols?", CharacterClass::SYMBOLS);
 
-    ctx.allow_substitutions = true; // XXX TODO Ask user, support in database
+    ctx.allow_substitutions = AskYesNoQuestion("Allow character substitutions (e.g. a -> 4, s -> $)?", same_algo ? db_entry->allow_substitutions : false);
 
     ctx.separator = AskForSeparator(same_algo ? db_entry->separator : PassphraseSeparator::CamelCase);
 }
@@ -399,7 +399,7 @@ void HandlePassphraseWordnetPatternAlgo(Context& ctx, const std::optional<mkpass
     ask_and_add("Include digits?", CharacterClass::DIGITS);
     ask_and_add("Include symbols?", CharacterClass::SYMBOLS);
 
-    ctx.allow_substitutions = true; // XXX TODO Ask user, support in database
+    ctx.allow_substitutions = AskYesNoQuestion("Allow character substitutions (e.g. a -> 4, s -> $)?", same_algo ? db_entry->allow_substitutions : false);
 
     ctx.separator = AskForSeparator(same_algo ? db_entry->separator : PassphraseSeparator::CamelCase);
 }
@@ -461,7 +461,7 @@ int run_tui() {
 
     std::cout << MkPass(ctx) << std::endl;
 
-    db.save_service_entry({service, ctx.algorithm, ctx.length, ctx.char_classes, ctx.custom_chars, ctx.separator, ctx.passphrase_pattern});
+    db.save_service_entry({service, ctx.algorithm, ctx.length, ctx.char_classes, ctx.custom_chars, ctx.separator, ctx.passphrase_pattern, ctx.allow_substitutions});
 
     return 0;
 }

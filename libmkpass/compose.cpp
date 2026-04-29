@@ -196,7 +196,6 @@ private:
             }
             if (subit != substitution_map_.end()) {
                 result.push_back({first, subit->second});
-                std::cerr << "SUBST: " << *first << " -> " << subit->second << "\n";
             }
             ++first;
         }

@@ -154,7 +154,9 @@ Java_app_mkpass_MainActivity_saveServiceEntry(JNIEnv *env, jobject /* this */, j
         static_cast<unsigned>(length),
         cc_vec,
         custom_chars_opt,
-        static_cast<PassphraseSeparator>(separator)
+        static_cast<PassphraseSeparator>(separator),
+        {}, // passphrase_pattern
+        false // allow_substitutions
     });
 }
 

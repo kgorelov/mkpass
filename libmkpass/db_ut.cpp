@@ -146,6 +146,34 @@ TEST_F(ConfigDBTest, Separator) {
     EXPECT_EQ(rec_old->separator, PassphraseSeparator::CamelCase);
 }
 
+TEST_F(ConfigDBTest, AllowSubstitutions) {
+    mkpass::ConfigDB db(db_path);
+
+    // 1. Test with allow_substitutions = true
+    mkpass::ServiceEntry entry;
+    entry.service_name = "subst.com";
+    entry.algorithm = Algorithm::Passphrase_Diceware_EFF_Large;
+    entry.length = 6;
+    entry.char_classes = {};
+    entry.separator = PassphraseSeparator::CamelCase;
+    entry.allow_substitutions = true;
+
+    db.save_service_entry(entry);
+
+    auto rec = db.get_service_entry("subst.com");
+    ASSERT_TRUE(rec.has_value());
+    EXPECT_TRUE(rec->allow_substitutions);
+
+    // 2. Test with allow_substitutions = false
+    entry.service_name = "nosubst.com";
+    entry.allow_substitutions = false;
+    db.save_service_entry(entry);
+
+    auto rec2 = db.get_service_entry("nosubst.com");
+    ASSERT_TRUE(rec2.has_value());
+    EXPECT_FALSE(rec2->allow_substitutions);
+}
+
 TEST(ConfigDB, NonExistentDB) {
     mkpass::ConfigDB db("non-existent-db.db");
     auto names = db.get_all_service_names();
