@@ -24,11 +24,13 @@ std::string ComposePassPhrase(
     const Wordlist& wordlist,
     size_t length,
     PassphraseSeparator separator_type,
-    const std::vector<CharacterClass>& char_classes);
+    const std::vector<CharacterClass>& char_classes,
+    bool allow_substitutions);
 
 std::string ComposePassPhrase(
     GeneratorInterface& generator,
     std::map<WordClasses, Wordlist> &&wordlists,
     std::vector<WordClasses> &&pattern,
     PassphraseSeparator separator_type,
-    const std::vector<CharacterClass>& char_classes);
+    const std::vector<CharacterClass>& char_classes,
+    bool allow_substitutions);

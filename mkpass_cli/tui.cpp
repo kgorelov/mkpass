@@ -369,6 +369,8 @@ void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::Serv
     ask_and_add("Include digits?", CharacterClass::DIGITS);
     ask_and_add("Include symbols?", CharacterClass::SYMBOLS);
 
+    ctx.allow_substitutions = true; // XXX TODO Ask user, support in database
+
     ctx.separator = AskForSeparator(same_algo ? db_entry->separator : PassphraseSeparator::CamelCase);
 }
 
@@ -396,6 +398,8 @@ void HandlePassphraseWordnetPatternAlgo(Context& ctx, const std::optional<mkpass
 
     ask_and_add("Include digits?", CharacterClass::DIGITS);
     ask_and_add("Include symbols?", CharacterClass::SYMBOLS);
+
+    ctx.allow_substitutions = true; // XXX TODO Ask user, support in database
 
     ctx.separator = AskForSeparator(same_algo ? db_entry->separator : PassphraseSeparator::CamelCase);
 }
