@@ -80,6 +80,8 @@ interface SavedService {
   customChars: string;
   separator: string;
   capitalizeWords: boolean;
+  pattern: string;
+  allowSubstitutions: boolean;
 }
 
 function App() {
@@ -91,6 +93,8 @@ function App() {
   const [algorithm, setAlgorithm] = useState<number>(1);
   const [separator, setSeparator] = useState<string>('');
   const [capitalizeWords, setCapitalizeWords] = useState(true);
+  const [pattern, setPattern] = useState<string>('anv');
+  const [allowSubstitutions, setAllowSubstitutions] = useState(false);
   const [charClassesState, setCharClassesState] = useState({
     lowercase: true,
     uppercase: true,
@@ -193,6 +197,12 @@ function App() {
       if (s.capitalizeWords !== undefined) {
         setCapitalizeWords(s.capitalizeWords);
       }
+      if (s.pattern !== undefined) {
+        setPattern(s.pattern);
+      }
+      if (s.allowSubstitutions !== undefined) {
+        setAllowSubstitutions(s.allowSubstitutions);
+      }
     }
   };
 
@@ -206,6 +216,19 @@ function App() {
           digits: false,
           symbols: false
         });
+        setAllowSubstitutions(false);
+        setSeparator('');
+        setCapitalizeWords(true);
+      } else if (newAlgo === wasmModule.Algorithm.Passphrase_Wordnet_Pattern.value) {
+        setPattern('anv');
+        setCharClassesState({
+          ...charClassesState,
+          digits: false,
+          symbols: false
+        });
+        setAllowSubstitutions(false);
+        setSeparator('');
+        setCapitalizeWords(true);
       } else if (newAlgo === wasmModule.Algorithm.Old.value) {
         setPasswordLength(8);
       } else if (newAlgo === wasmModule.Algorithm.Argon2.value || newAlgo === wasmModule.Algorithm.SlowSha512.value) {
@@ -244,7 +267,9 @@ function App() {
           charClasses: charClassesState,
           customChars,
           separator,
-          capitalizeWords
+          capitalizeWords,
+          pattern,
+          allowSubstitutions
         }
       };
       setSavedServices(newSaved);
@@ -262,7 +287,7 @@ function App() {
       }
 
       try {
-        const result = wasmModule.MkPass(masterPassword, service, charClasses, algorithm, passwordLength, customChars, separator, capitalizeWords);
+        const result = wasmModule.MkPass(masterPassword, service, charClasses, algorithm, passwordLength, customChars, separator, capitalizeWords, pattern, allowSubstitutions);
         setPassword(result);
         setIsModalOpen(true);
         setIsPasswordVisible(false);
@@ -397,7 +422,11 @@ function App() {
                   <input
                     type="checkbox"
                     checked={charClassesState.digits}
-                    onChange={(e) => setCharClassesState({ ...charClassesState, digits: e.target.checked })}
+                    onChange={(e) => {
+                        const val = e.target.checked;
+                        setCharClassesState({ ...charClassesState, digits: val });
+                        if (!val && !charClassesState.symbols) setAllowSubstitutions(false);
+                    }}
                   />
                   Digits
                 </label>
@@ -405,7 +434,11 @@ function App() {
                   <input
                     type="checkbox"
                     checked={charClassesState.symbols}
-                    onChange={(e) => setCharClassesState({ ...charClassesState, symbols: e.target.checked })}
+                    onChange={(e) => {
+                        const val = e.target.checked;
+                        setCharClassesState({ ...charClassesState, symbols: val });
+                        if (!val && !charClassesState.digits) setAllowSubstitutions(false);
+                    }}
                   />
                   Symbols
                 </label>
@@ -432,6 +465,22 @@ function App() {
 
           {isPassphraseAlgo() && wasmModule && (
             <div className="input-group">
+              {algorithm === wasmModule.Algorithm.Passphrase_Wordnet_Pattern.value && (
+                <>
+                  <label>Pattern:</label>
+                  <select
+                    value={pattern}
+                    onChange={(e) => setPattern(e.target.value)}
+                    className="select-algorithm"
+                  >
+                    <option value="an">2 words (Adj, Noun)</option>
+                    <option value="anv">3 words (Adj, Noun, Verb)</option>
+                    <option value="anrv">4 words (Adj, Noun, Adv, Verb)</option>
+                    <option value="anrvn">5 words (Adj, Noun, Adv, Verb, Noun)</option>
+                    <option value="anrvnan">6 words (Adj, Noun, Adv, Verb, Adj, Noun)</option>
+                  </select>
+                </>
+              )}
               <label>Separator:</label>
               <select
                 value={separator}
@@ -443,14 +492,25 @@ function App() {
                 <option value=" ">Space ( )</option>
                 <option value="/">Slash (/)</option>
               </select>
-              <label className="save-checkbox">
-                <input
-                  type="checkbox"
-                  checked={capitalizeWords}
-                  onChange={(e) => setCapitalizeWords(e.target.checked)}
-                />
-                Capitalize words
-              </label>
+              <div className="checkbox-grid">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={capitalizeWords}
+                    onChange={(e) => setCapitalizeWords(e.target.checked)}
+                  />
+                  Capitalize words
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={allowSubstitutions}
+                    disabled={!charClassesState.digits && !charClassesState.symbols}
+                    onChange={(e) => setAllowSubstitutions(e.target.checked)}
+                  />
+                  Allow substitutions
+                </label>
+              </div>
             </div>
           )}
 

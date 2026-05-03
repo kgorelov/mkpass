@@ -18,10 +18,6 @@ export interface MkPassModule {
         Passphrase_Diceware_EFF_Large: EmbindEnum;
         Passphrase_Wordnet_Pattern: EmbindEnum;
     };
-    PassphraseSeparator: {
-        CamelCase: EmbindEnum;
-        KebabCase: EmbindEnum;
-    };
     CharacterClass: {
         LOWERCASE: EmbindEnum;
         UPPERCASE: EmbindEnum;
@@ -45,7 +41,10 @@ export interface MkPassModule {
         algorithm: number,
         length: number,
         custom_chars: string,
-        separator: number
+        separator: string,
+        capitalize_words: boolean,
+        pattern: string,
+        allow_substitutions: boolean
     ): string;
     GenerateQrCode(text: string): QrCodeData;
     getExceptionMessage(ptr: number): string;

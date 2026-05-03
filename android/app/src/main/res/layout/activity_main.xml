@@ -80,7 +80,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:columnCount="2"
-                android:rowCount="3">
+                android:rowCount="4">
 
                 <CheckBox
                     android:id="@+id/lowerCaseCheckBox"
@@ -111,8 +111,21 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Custom" />
-            </GridLayout>
 
+                <CheckBox
+                    android:id="@+id/allowSubstitutionsCheckBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Allow Substitutions"
+                    android:visibility="gone" />
+
+                <CheckBox
+                    android:id="@+id/capitalizeWordsCheckBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Capitalize Words"
+                    android:visibility="gone" />
+                </GridLayout>
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/customCharsLayout"
                 android:layout_width="match_parent"
@@ -145,12 +158,26 @@
                 android:id="@+id/separatorSpinner"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
+        </LinearLayout>
 
-            <CheckBox
-                android:id="@+id/capitalizeWordsCheckBox"
+        <LinearLayout
+            android:id="@+id/passphrasePatternContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Capitalize Words" />
+                android:layout_marginTop="16dp"
+                android:text="Passphrase Pattern"
+                android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
+
+            <Spinner
+                android:id="@+id/patternSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
         </LinearLayout>
 
         <LinearLayout

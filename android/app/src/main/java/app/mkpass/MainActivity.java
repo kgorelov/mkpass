@@ -51,11 +51,14 @@ public class MainActivity extends AppCompatActivity {
     private CheckBox digitsCheckBox;
     private CheckBox symbolsCheckBox;
     private CheckBox customCheckBox;
+    private CheckBox allowSubstitutionsCheckBox;
     private TextInputLayout customCharsLayout;
     private TextInputEditText customChars;
     private LinearLayout separatorContainer;
     private Spinner separatorSpinner;
     private CheckBox capitalizeWordsCheckBox;
+    private LinearLayout passphrasePatternContainer;
+    private Spinner patternSpinner;
     private LinearLayout lengthContainer;
     private TextView lengthTitle;
     private SeekBar lengthSeekBar;
@@ -85,6 +88,22 @@ public class MainActivity extends AppCompatActivity {
         "/"
     };
 
+    private static final String[] PATTERNS = {
+        "2 words (Adj, Noun)",
+        "3 words (Adj, Noun, Verb)",
+        "4 words (Adj, Noun, Adv, Verb)",
+        "5 words (Adj, Noun, Adv, Verb, Noun)",
+        "6 words (Adj, Noun, Adv, Verb, Adj, Noun)"
+    };
+
+    private static final String[] PATTERN_VALUES = {
+        "an",
+        "anv",
+        "anrv",
+        "anrvn",
+        "anrvnan"
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -102,11 +121,14 @@ public class MainActivity extends AppCompatActivity {
         digitsCheckBox = findViewById(R.id.digitsCheckBox);
         symbolsCheckBox = findViewById(R.id.symbolsCheckBox);
         customCheckBox = findViewById(R.id.customCheckBox);
+        allowSubstitutionsCheckBox = findViewById(R.id.allowSubstitutionsCheckBox);
         customCharsLayout = findViewById(R.id.customCharsLayout);
         customChars = findViewById(R.id.customChars);
         separatorContainer = findViewById(R.id.separatorContainer);
         separatorSpinner = findViewById(R.id.separatorSpinner);
         capitalizeWordsCheckBox = findViewById(R.id.capitalizeWordsCheckBox);
+        passphrasePatternContainer = findViewById(R.id.passphrasePatternContainer);
+        patternSpinner = findViewById(R.id.patternSpinner);
         lengthContainer = findViewById(R.id.lengthContainer);
         lengthTitle = findViewById(R.id.lengthTitle);
         lengthSeekBar = findViewById(R.id.lengthSeekBar);
@@ -123,6 +145,11 @@ public class MainActivity extends AppCompatActivity {
         separatorSpinner.setAdapter(sepAdapter);
         separatorSpinner.setSelection(0); // Default to None
 
+        ArrayAdapter<String> patternAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, PATTERNS);
+        patternAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        patternSpinner.setAdapter(patternAdapter);
+        patternSpinner.setSelection(1); // Default to anv
+
         algorithmSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -136,6 +163,11 @@ public class MainActivity extends AppCompatActivity {
         customCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             customCharsLayout.setVisibility(isChecked ? View.VISIBLE : View.GONE);
         });
+
+        digitsCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> updateSubstitutionsState());
+        symbolsCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> updateSubstitutionsState());
+        capitalizeWordsCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> updateSubstitutionsState());
+        allowSubstitutionsCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> updateSubstitutionsState());
         // Setup Length SeekBar
         lengthSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -157,6 +189,7 @@ public class MainActivity extends AppCompatActivity {
         customCheckBox.setChecked(false);
         customChars.setText("");
         capitalizeWordsCheckBox.setChecked(true);
+        allowSubstitutionsCheckBox.setChecked(false);
 
         updateAlgorithmSpecificUI();
 
@@ -186,27 +219,78 @@ public class MainActivity extends AppCompatActivity {
         repeatPassword.addTextChangedListener(passwordTextWatcher);
     }
 
+    private int lastAlgorithm = -1;
+
     private void updateAlgorithmSpecificUI() {
         int algorithm = algorithmSpinner.getSelectedItemPosition() + 1;
 
-        boolean showCharClasses = (algorithm == 1 || algorithm == 2); // Argon2 or SlowSha512
-        boolean showLength = (algorithm != 5); // Wordnet Pattern
+        boolean showCharClasses = (algorithm == 1 || algorithm == 2 || algorithm == 4 || algorithm == 5);
+        boolean showLength = (algorithm != 5 && algorithm != 3); // Diceware or Password
+        if (algorithm == 3) showLength = true; // Old algo has length
         boolean showSeparator = (algorithm == 4 || algorithm == 5);
+        boolean showPattern = (algorithm == 5);
 
         characterClassesLayout.setVisibility(showCharClasses ? View.VISIBLE : View.GONE);
+        lowerCaseCheckBox.setVisibility((algorithm == 1 || algorithm == 2) ? View.VISIBLE : View.GONE);
+        upperCaseCheckBox.setVisibility((algorithm == 1 || algorithm == 2) ? View.VISIBLE : View.GONE);
+        customCheckBox.setVisibility((algorithm == 1 || algorithm == 2) ? View.VISIBLE : View.GONE);
+        allowSubstitutionsCheckBox.setVisibility((algorithm == 4 || algorithm == 5) ? View.VISIBLE : View.GONE);
+        capitalizeWordsCheckBox.setVisibility((algorithm == 4 || algorithm == 5) ? View.VISIBLE : View.GONE);
+
         lengthContainer.setVisibility(showLength ? View.VISIBLE : View.GONE);
         separatorContainer.setVisibility(showSeparator ? View.VISIBLE : View.GONE);
+        passphrasePatternContainer.setVisibility(showPattern ? View.VISIBLE : View.GONE);
+
+        // Defaults
+        if (lastAlgorithm != algorithm) {
+            if (algorithm == 4 || algorithm == 5) {
+                digitsCheckBox.setChecked(false);
+                symbolsCheckBox.setChecked(false);
+                capitalizeWordsCheckBox.setChecked(true);
+                allowSubstitutionsCheckBox.setChecked(false);
+                if (algorithm == 4) {
+                    lengthSeekBar.setProgress(3);
+                }
+                separatorSpinner.setSelection(0);
+                if (algorithm == 5) {
+                    patternSpinner.setSelection(1);
+                }
+            } else if (algorithm == 1 || algorithm == 2) {
+                digitsCheckBox.setChecked(true);
+                symbolsCheckBox.setChecked(true);
+                lowerCaseCheckBox.setChecked(true);
+                upperCaseCheckBox.setChecked(true);
+                lengthSeekBar.setProgress(16);
+            }
+        }
+        lastAlgorithm = algorithm;
 
         if (showLength) {
             if (algorithm == 4) { // Diceware
                 lengthTitle.setText("Passphrase words count");
                 lengthSeekBar.setMax(20);
-                if (lengthSeekBar.getProgress() > 20) lengthSeekBar.setProgress(6);
-                if (lengthSeekBar.getProgress() < 1) lengthSeekBar.setProgress(6);
+                // Ensure valid range
+                if (lengthSeekBar.getProgress() < 3) lengthSeekBar.setProgress(3);
             } else {
                 lengthTitle.setText("Password Length");
                 lengthSeekBar.setMax(128);
+                if (lengthSeekBar.getProgress() < 1) lengthSeekBar.setProgress(1);
             }
+        }
+        updateSubstitutionsState();
+    }
+
+    private void updateSubstitutionsState() {
+        int algorithm = algorithmSpinner.getSelectedItemPosition() + 1;
+        boolean isPassphrase = (algorithm == 4 || algorithm == 5);
+        if (isPassphrase) {
+            boolean enabled = digitsCheckBox.isChecked() || symbolsCheckBox.isChecked();
+            allowSubstitutionsCheckBox.setEnabled(enabled);
+            if (!enabled) {
+                allowSubstitutionsCheckBox.setChecked(false);
+            }
+        } else {
+            allowSubstitutionsCheckBox.setEnabled(true);
         }
     }
 
@@ -252,10 +336,24 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             capitalizeWordsCheckBox.setChecked(entry.capitalizeWords);
+
+            if (entry.pattern != null) {
+                for (int i = 0; i < PATTERN_VALUES.length; i++) {
+                    if (PATTERN_VALUES[i].equals(entry.pattern)) {
+                        patternSpinner.setSelection(i);
+                        break;
+                    }
+                }
+            } else {
+                patternSpinner.setSelection(1); // anv
+            }
+            allowSubstitutionsCheckBox.setChecked(entry.allowSubstitutions);
         } else {
             // Reset to defaults based on algo
             separatorSpinner.setSelection(0); // Default to None
             capitalizeWordsCheckBox.setChecked(true);
+            patternSpinner.setSelection(1); // anv
+            allowSubstitutionsCheckBox.setChecked(false);
             if (newAlgo == 1 || newAlgo == 2) {
                 lowerCaseCheckBox.setChecked(true);
                 upperCaseCheckBox.setChecked(true);
@@ -309,7 +407,9 @@ public class MainActivity extends AppCompatActivity {
             int length = lengthSeekBar.getProgress();
             if (algorithm == 5) length = 0;
             String separator = SEPARATOR_VALUES[separatorSpinner.getSelectedItemPosition()];
+            String pattern = (algorithm == 5) ? PATTERN_VALUES[patternSpinner.getSelectedItemPosition()] : "";
             boolean capitalizeWords = capitalizeWordsCheckBox.isChecked();
+            boolean allowSubstitutions = allowSubstitutionsCheckBox.isChecked();
 
             List<Integer> charClasses = new ArrayList<>();
             String customCharsStr = null;
@@ -331,10 +431,10 @@ public class MainActivity extends AppCompatActivity {
                 charClassesArray[i] = charClasses.get(i);
             }
 
-            String generatedPassword = generatePasswordNative(masterPwd, serviceName, algorithm, length, charClassesArray, customCharsStr, separator, capitalizeWords);
+            String generatedPassword = generatePasswordNative(masterPwd, serviceName, algorithm, length, charClassesArray, customCharsStr, separator, capitalizeWords, pattern, allowSubstitutions);
 
             // Save entry in background
-            saveServiceEntry(serviceName, algorithm, length, charClassesArray, customCharsStr, separator, capitalizeWords);
+            saveServiceEntry(serviceName, algorithm, length, charClassesArray, customCharsStr, separator, capitalizeWords, pattern, allowSubstitutions);
 
             // Post result to UI thread
             handler.post(() -> {
@@ -408,8 +508,8 @@ public class MainActivity extends AppCompatActivity {
     public native void init(String dbPath);
     public native String[] getAllServiceNames();
     public native ServiceEntry getServiceEntry(String serviceName);
-    public native void saveServiceEntry(String serviceName, int algorithm, int length, int[] charClasses, String customChars, String separator, boolean capitalizeWords);
-    public native String generatePasswordNative(String password, String service, int algorithm, int length, int[] charClasses, String customChars, String separator, boolean capitalizeWords);
+    public native void saveServiceEntry(String serviceName, int algorithm, int length, int[] charClasses, String customChars, String separator, boolean capitalizeWords, String pattern, boolean allowSubstitutions);
+    public native String generatePasswordNative(String password, String service, int algorithm, int length, int[] charClasses, String customChars, String separator, boolean capitalizeWords, String pattern, boolean allowSubstitutions);
     public native android.graphics.Bitmap generateQrCode(String text);
 }
 
@@ -421,4 +521,6 @@ class ServiceEntry {
     public String customChars;
     public String separator;
     public boolean capitalizeWords;
+    public String pattern;
+    public boolean allowSubstitutions;
 }

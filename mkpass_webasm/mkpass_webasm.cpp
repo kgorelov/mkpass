@@ -12,7 +12,7 @@ using namespace emscripten;
 using qrcodegen::QrCode;
 
 //std::string MkPassWasm(std::string password, std::string service, std::vector<CharacterClass> char_classes, Algorithm algorithm, unsigned length, std::string custom_chars) {
-std::string MkPassWasm(std::string password, std::string service, std::vector<CharacterClass> char_classes, int algorithm, unsigned length, std::string custom_chars, std::string separator, bool capitalize_words) {
+std::string MkPassWasm(std::string password, std::string service, std::vector<CharacterClass> char_classes, int algorithm, unsigned length, std::string custom_chars, std::string separator, bool capitalize_words, std::string pattern, bool allow_substitutions) {
     Context ctx;
     ctx.password = password;
     ctx.service = service;
@@ -26,6 +26,8 @@ std::string MkPassWasm(std::string password, std::string service, std::vector<Ch
     }
     ctx.separator = separator;
     ctx.capitalize_words = capitalize_words;
+    ctx.passphrase_pattern = mkpass::StringToPattern(pattern);
+    ctx.allow_substitutions = allow_substitutions;
     return MkPass(ctx);
 }
 

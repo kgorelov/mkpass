@@ -114,11 +114,15 @@ Java_app_mkpass_MainActivity_getServiceEntry(JNIEnv *env, jobject /* this */, js
     jfieldID customCharsField = env->GetFieldID(serviceEntryClass, "customChars", "Ljava/lang/String;");
     jfieldID separatorField = env->GetFieldID(serviceEntryClass, "separator", "Ljava/lang/String;");
     jfieldID capitalizeWordsField = env->GetFieldID(serviceEntryClass, "capitalizeWords", "Z");
+    jfieldID patternField = env->GetFieldID(serviceEntryClass, "pattern", "Ljava/lang/String;");
+    jfieldID allowSubstitutionsField = env->GetFieldID(serviceEntryClass, "allowSubstitutions", "Z");
 
     env->SetIntField(result, algorithmField, static_cast<int>(entry->algorithm));
     env->SetIntField(result, lengthField, entry->length);
     env->SetObjectField(result, separatorField, stringToJstring(env, entry->separator));
     env->SetBooleanField(result, capitalizeWordsField, entry->capitalize_words);
+    env->SetObjectField(result, patternField, stringToJstring(env, mkpass::PatternToString(entry->passphrase_pattern)));
+    env->SetBooleanField(result, allowSubstitutionsField, entry->allow_substitutions);
     jintArray charClassesArray = env->NewIntArray(entry->char_classes.size());
     std::vector<jint> temp;
     for(const auto& cc : entry->char_classes) {
@@ -135,7 +139,7 @@ Java_app_mkpass_MainActivity_getServiceEntry(JNIEnv *env, jobject /* this */, js
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_app_mkpass_MainActivity_saveServiceEntry(JNIEnv *env, jobject /* this */, jstring serviceName, jint algorithm, jint length, jintArray charClasses, jstring customChars, jstring separator, jboolean capitalizeWords) {
+Java_app_mkpass_MainActivity_saveServiceEntry(JNIEnv *env, jobject /* this */, jstring serviceName, jint algorithm, jint length, jintArray charClasses, jstring customChars, jstring separator, jboolean capitalizeWords, jstring pattern, jboolean allowSubstitutions) {
     std::vector<CharacterClass> cc_vec;
     jint* cc_arr = env->GetIntArrayElements(charClasses, nullptr);
     int len = env->GetArrayLength(charClasses);
@@ -156,14 +160,14 @@ Java_app_mkpass_MainActivity_saveServiceEntry(JNIEnv *env, jobject /* this */, j
         cc_vec,
         custom_chars_opt,
         jstringToString(env, separator),
-        {}, // passphrase_pattern
-        false, // allow_substitutions
+        mkpass::StringToPattern(jstringToString(env, pattern)),
+        static_cast<bool>(allowSubstitutions),
         static_cast<bool>(capitalizeWords)
     });
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_app_mkpass_MainActivity_generatePasswordNative(JNIEnv *env, jobject /* this */, jstring password, jstring service, jint algorithm, jint length, jintArray charClasses, jstring customChars, jstring separator, jboolean capitalizeWords) {
+Java_app_mkpass_MainActivity_generatePasswordNative(JNIEnv *env, jobject /* this */, jstring password, jstring service, jint algorithm, jint length, jintArray charClasses, jstring customChars, jstring separator, jboolean capitalizeWords, jstring pattern, jboolean allowSubstitutions) {
     std::vector<CharacterClass> cc_vec;
     jint* cc_arr = env->GetIntArrayElements(charClasses, nullptr);
     int len = env->GetArrayLength(charClasses);
@@ -185,8 +189,11 @@ Java_app_mkpass_MainActivity_generatePasswordNative(JNIEnv *env, jobject /* this
         .separator = jstringToString(env, separator),
         .length = static_cast<unsigned>(length),
         .custom_chars = custom_chars_opt,
+        .passphrase_pattern = mkpass::StringToPattern(jstringToString(env, pattern)),
+        .allow_substitutions = static_cast<bool>(allowSubstitutions),
         .capitalize_words = static_cast<bool>(capitalizeWords)
     };
+
 
     std::string result = MkPass(ctx);
     return stringToJstring(env, result);

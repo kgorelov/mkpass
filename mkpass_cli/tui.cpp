@@ -410,9 +410,7 @@ void HandlePassphraseWordnetPatternAlgo(Context& ctx, const std::optional<mkpass
     std::vector<WordClasses> default_pattern = {
         WordClasses::Adj,
         WordClasses::Noun,
-        WordClasses::Adv,
-        WordClasses::Verb,
-        WordClasses::Noun};
+        WordClasses::Verb};
 
     ctx.passphrase_pattern = AskForPassphrasePattern(same_algo ? db_entry->passphrase_pattern : default_pattern);
 

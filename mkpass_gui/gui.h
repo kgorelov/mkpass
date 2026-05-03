@@ -54,6 +54,9 @@ private:
     QWidget *separatorWidget;
     QLabel *separatorLabel;
     QComboBox *separatorComboBox;
+    QWidget *patternWidget;
+    QLabel *patternLabel;
+    QComboBox *patternComboBox;
     QPushButton *generateButton;
     QPushButton *closeButton;
 

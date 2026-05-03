@@ -38,6 +38,8 @@ std::vector<CharacterClass> BitmaskToCharClasses(int mask) {
     return char_classes;
 }
 
+} // namespace
+
 std::string PatternToString(const std::vector<WordClasses>& pattern) {
     std::string s;
     for (auto wc : pattern) {
@@ -63,6 +65,8 @@ std::vector<WordClasses> StringToPattern(const std::string& s) {
     }
     return pattern;
 }
+
+namespace {
 
 bool column_exists(sqlite3 *db, const std::string& table_name, const std::string& column_name) {
     sqlite3_stmt *stmt;

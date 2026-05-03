@@ -46,4 +46,7 @@ private:
     sqlite3 *db;
 };
 
+std::string PatternToString(const std::vector<WordClasses>& pattern);
+std::vector<WordClasses> StringToPattern(const std::string& s);
+
 } // namespace mkpass
