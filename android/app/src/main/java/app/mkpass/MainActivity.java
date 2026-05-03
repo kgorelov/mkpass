@@ -424,6 +424,9 @@ public class MainActivity extends AppCompatActivity {
                     charClasses.add(4);
                     customCharsStr = customChars.getText().toString();
                 }
+            } else if (algorithm == 4 || algorithm == 5) {
+                if (digitsCheckBox.isChecked()) charClasses.add(2);
+                if (symbolsCheckBox.isChecked()) charClasses.add(3);
             }
 
             int[] charClassesArray = new int[charClasses.size()];

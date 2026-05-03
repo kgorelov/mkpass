@@ -257,15 +257,15 @@ std::vector<WordClasses> AskForPassphrasePattern(const std::vector<WordClasses>&
     std::cerr << "6. 6 words (Adj, Noun, Adv, Verb, Adj, Noun)\n";
     std::cerr << "c. Custom pattern (e.g. 'navrn')\n";
 
-    std::string default_choice_str = "5";
-    std::string current_pattern_str = pattern_to_string(default_pattern);
+    std::string default_choice_str = "3";
+    std::string current_pattern_str = mkpass::PatternToString(default_pattern);
     for (auto const& [key, val] : predefined_patterns) {
         if (val == default_pattern) {
             default_choice_str = key;
             break;
         }
     }
-    if (default_choice_str == "5" && current_pattern_str != "anrvn") {
+    if (default_choice_str == "3" && current_pattern_str != "anv") {
          // It might be custom if it doesn't match predefined
          default_choice_str = "c (" + current_pattern_str + ")";
     }
@@ -289,7 +289,7 @@ std::vector<WordClasses> AskForPassphrasePattern(const std::vector<WordClasses>&
         if (custom_pattern.empty()) {
             return default_pattern;
         }
-        return string_to_pattern(custom_pattern);
+        return mkpass::StringToPattern(custom_pattern);
     }
 
     return default_pattern;

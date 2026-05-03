@@ -284,6 +284,9 @@ function App() {
         if (charClassesState.digits) charClasses.push_back(wasmModule.CharacterClass.DIGITS);
         if (charClassesState.symbols) charClasses.push_back(wasmModule.CharacterClass.SYMBOLS);
         if (charClassesState.custom) charClasses.push_back(wasmModule.CharacterClass.CUSTOM);
+      } else if (isPassphraseAlgo()) {
+        if (charClassesState.digits) charClasses.push_back(wasmModule.CharacterClass.DIGITS);
+        if (charClassesState.symbols) charClasses.push_back(wasmModule.CharacterClass.SYMBOLS);
       }
 
       try {
