@@ -200,7 +200,12 @@ function App() {
     setAlgorithm(newAlgo);
     if (wasmModule) {
       if (newAlgo === wasmModule.Algorithm.Passphrase_Diceware_EFF_Large.value) {
-        setPasswordLength(6);
+        setPasswordLength(3);
+        setCharClassesState({
+          ...charClassesState,
+          digits: false,
+          symbols: false
+        });
       } else if (newAlgo === wasmModule.Algorithm.Old.value) {
         setPasswordLength(8);
       } else if (newAlgo === wasmModule.Algorithm.Argon2.value || newAlgo === wasmModule.Algorithm.SlowSha512.value) {

@@ -11,6 +11,7 @@ set(CPP_SOURCES
   ${PROJECT_ROOT}/libmkpass/mkpass.cpp
   ${PROJECT_ROOT}/libmkpass/hkdf_argon2.cpp
   ${PROJECT_ROOT}/libmkpass/db.cpp
+  ${PROJECT_ROOT}/libmkpass/character_classes.cpp
   ${PROJECT_ROOT}/libmkpass/wordlists/eff_large_words.cpp
   ${PROJECT_ROOT}/libmkpass/wordlists/wordnet_nouns.cpp
   ${PROJECT_ROOT}/libmkpass/wordlists/wordnet_verbs.cpp

@@ -263,9 +263,13 @@ public class MainActivity extends AppCompatActivity {
                 symbolsCheckBox.setChecked(true);
                 customCheckBox.setChecked(false);
                 customChars.setText("");
-        capitalizeWordsCheckBox.setChecked(true);
-            } else if (newAlgo == 4) {
-                lengthSeekBar.setProgress(6);
+                capitalizeWordsCheckBox.setChecked(true);
+            } else if (newAlgo == 4 || newAlgo == 5) {
+                digitsCheckBox.setChecked(false);
+                symbolsCheckBox.setChecked(false);
+                if (newAlgo == 4) {
+                    lengthSeekBar.setProgress(3);
+                }
             } else if (newAlgo == 3) {
                 lengthSeekBar.setProgress(8);
             }

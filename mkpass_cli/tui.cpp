@@ -370,10 +370,10 @@ void HandlePasswordAlgo(Context& ctx, const std::optional<mkpass::ServiceEntry>&
 void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::ServiceEntry>& db_entry) {
     bool same_algo = db_entry && db_entry->algorithm == ctx.algorithm;
 
-    ctx.length = AskForLength(same_algo && db_entry->length > 0 ? db_entry->length : 6);
+    ctx.length = AskForLength(same_algo && db_entry->length > 0 ? db_entry->length : 3);
 
     auto ask_and_add = [&](const std::string& question, CharacterClass cls) {
-        bool dflt = same_algo ? std::ranges::count(db_entry->char_classes, cls) > 0 : true;
+        bool dflt = same_algo ? std::ranges::count(db_entry->char_classes, cls) > 0 : false;
         if (AskYesNoQuestion(question, dflt)) {
             ctx.char_classes.push_back(cls);
         }
@@ -382,7 +382,19 @@ void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::Serv
     ask_and_add("Include digits?", CharacterClass::DIGITS);
     ask_and_add("Include symbols?", CharacterClass::SYMBOLS);
 
-    ctx.allow_substitutions = AskYesNoQuestion("Allow character substitutions (e.g. a -> 4, s -> $)?", same_algo ? db_entry->allow_substitutions : false);
+    bool has_digits_or_symbols = false;
+    for (auto cc : ctx.char_classes) {
+        if (cc == CharacterClass::DIGITS || cc == CharacterClass::SYMBOLS) {
+            has_digits_or_symbols = true;
+            break;
+        }
+    }
+
+    if (has_digits_or_symbols) {
+        ctx.allow_substitutions = AskYesNoQuestion("Allow character substitutions (e.g. a -> 4, s -> $)?", same_algo ? db_entry->allow_substitutions : false);
+    } else {
+        ctx.allow_substitutions = false;
+    }
 
     ctx.capitalize_words = AskYesNoQuestion("Capitalize words?", same_algo ? db_entry->capitalize_words : true);
 
@@ -405,7 +417,7 @@ void HandlePassphraseWordnetPatternAlgo(Context& ctx, const std::optional<mkpass
     ctx.passphrase_pattern = AskForPassphrasePattern(same_algo ? db_entry->passphrase_pattern : default_pattern);
 
     auto ask_and_add = [&](const std::string& question, CharacterClass cls) {
-        bool dflt = same_algo ? std::ranges::count(db_entry->char_classes, cls) > 0 : true;
+        bool dflt = same_algo ? std::ranges::count(db_entry->char_classes, cls) > 0 : false;
         if (AskYesNoQuestion(question, dflt)) {
             ctx.char_classes.push_back(cls);
         }
@@ -414,7 +426,19 @@ void HandlePassphraseWordnetPatternAlgo(Context& ctx, const std::optional<mkpass
     ask_and_add("Include digits?", CharacterClass::DIGITS);
     ask_and_add("Include symbols?", CharacterClass::SYMBOLS);
 
-    ctx.allow_substitutions = AskYesNoQuestion("Allow character substitutions (e.g. a -> 4, s -> $)?", same_algo ? db_entry->allow_substitutions : false);
+    bool has_digits_or_symbols = false;
+    for (auto cc : ctx.char_classes) {
+        if (cc == CharacterClass::DIGITS || cc == CharacterClass::SYMBOLS) {
+            has_digits_or_symbols = true;
+            break;
+        }
+    }
+
+    if (has_digits_or_symbols) {
+        ctx.allow_substitutions = AskYesNoQuestion("Allow character substitutions (e.g. a -> 4, s -> $)?", same_algo ? db_entry->allow_substitutions : false);
+    } else {
+        ctx.allow_substitutions = false;
+    }
 
     ctx.capitalize_words = AskYesNoQuestion("Capitalize words?", same_algo ? db_entry->capitalize_words : true);
 

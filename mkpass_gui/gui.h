@@ -30,6 +30,7 @@ private slots:
     void checkPasswords();
     void updateAlgorithmSpecificUI();
     void updateCustomCharsState();
+    void updateSubstitutionsState();
 
 private:
     void setupUI();

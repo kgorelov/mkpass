@@ -160,6 +160,8 @@ void MainWindow::setupUI() {
     connect(repeatPasswordLineEdit, &QLineEdit::textChanged, this, &MainWindow::checkPasswords);
     connect(algorithmComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::updateAlgorithmSpecificUI);
     connect(customCheckBox, &QCheckBox::toggled, this, &MainWindow::updateCustomCharsState);
+    connect(digitsCheckBox, &QCheckBox::toggled, this, &MainWindow::updateSubstitutionsState);
+    connect(symbolsCheckBox, &QCheckBox::toggled, this, &MainWindow::updateSubstitutionsState);
 
     updateAlgorithmSpecificUI();
 }
@@ -302,10 +304,10 @@ void MainWindow::serviceChanged(const QString &service) {
             customCheckBox->setChecked(false);
             customCharsLineEdit->setText("");
         } else if (newAlgo == Algorithm::Passphrase_Diceware_EFF_Large || newAlgo == Algorithm::Passphrase_Wordnet_Pattern) {
-            digitsCheckBox->setChecked(true);
-            symbolsCheckBox->setChecked(true);
+            digitsCheckBox->setChecked(false);
+            symbolsCheckBox->setChecked(false);
             if (newAlgo == Algorithm::Passphrase_Diceware_EFF_Large) {
-                lengthSpinBox->setValue(6);
+                lengthSpinBox->setValue(3);
             }
         } else if (newAlgo == Algorithm::Old) {
             lengthSpinBox->setValue(8);
@@ -351,6 +353,26 @@ void MainWindow::updateAlgorithmSpecificUI() {
     bool isPassword = (algorithm == Algorithm::Argon2 || algorithm == Algorithm::SlowSha512);
     bool isPassphrase = (algorithm == Algorithm::Passphrase_Diceware_EFF_Large || algorithm == Algorithm::Passphrase_Wordnet_Pattern);
 
+    // Apply defaults if switching to passphrase
+    static Algorithm lastAlgo = Algorithm::Argon2;
+    if (isPassphrase && !(lastAlgo == Algorithm::Passphrase_Diceware_EFF_Large || lastAlgo == Algorithm::Passphrase_Wordnet_Pattern)) {
+        digitsCheckBox->setChecked(false);
+        symbolsCheckBox->setChecked(false);
+        allowSubstitutionsCheckBox->setChecked(false);
+        capitalizeCheckBox->setChecked(true);
+        if (algorithm == Algorithm::Passphrase_Diceware_EFF_Large) {
+            lengthSpinBox->setValue(3);
+        }
+        separatorComboBox->setCurrentIndex(0);
+    } else if (isPassword && !(lastAlgo == Algorithm::Argon2 || lastAlgo == Algorithm::SlowSha512)) {
+        digitsCheckBox->setChecked(true);
+        symbolsCheckBox->setChecked(true);
+        lowerCaseCheckBox->setChecked(true);
+        upperCaseCheckBox->setChecked(true);
+        lengthSpinBox->setValue(16);
+    }
+    lastAlgo = algorithm;
+
     characterClassesGroupBox->setVisible(isPassword || isPassphrase);
     lowerCaseCheckBox->setVisible(isPassword);
     upperCaseCheckBox->setVisible(isPassword);
@@ -378,6 +400,22 @@ void MainWindow::updateAlgorithmSpecificUI() {
     }
 
     updateCustomCharsState();
+    updateSubstitutionsState();
+}
+
+void MainWindow::updateSubstitutionsState() {
+    Algorithm algorithm = static_cast<Algorithm>(algorithmComboBox->currentData().toInt());
+    bool isPassphrase = (algorithm == Algorithm::Passphrase_Diceware_EFF_Large || algorithm == Algorithm::Passphrase_Wordnet_Pattern);
+
+    if (isPassphrase) {
+        bool enabled = digitsCheckBox->isChecked() || symbolsCheckBox->isChecked();
+        allowSubstitutionsCheckBox->setEnabled(enabled);
+        if (!enabled) {
+            allowSubstitutionsCheckBox->setChecked(false);
+        }
+    } else {
+        allowSubstitutionsCheckBox->setEnabled(true);
+    }
 }
 
 void MainWindow::updateCustomCharsState() {
