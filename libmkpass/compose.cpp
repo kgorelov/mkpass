@@ -27,7 +27,7 @@ int total_length(const Container& strings) {
         [](int sum, const std::string& s) {
             return sum + s.size();
         }
-    );
+        );
 }
 
 
@@ -114,26 +114,6 @@ std::string ComposeOldMkpass1Password(
     return czkz::base64_encode(hash).substr(0, length);
 }
 
-// Separator algorithm modifies the current selected word:
-// either adding '-' at the front if it's not the fist word
-// the state is in the separator class itself
-// or capitilizing the first letter.
-// These must be different separator classes.
-
-
-// class KebabWordsSeparator {
-// public:
-//   std::string operator()(const std::string& word) {
-//     if (first_word) {
-//       first_word = false;
-//       return word;
-//     }
-//     return std::string("-") + word;
-//   }
-// private:
-//   bool first_word = true;
-// };
-
 
 class WordSeparator {
 public:
@@ -148,11 +128,8 @@ public:
             first_word = false;
             return word;
         }
-        // if (separator_.empty()) {
-        //     return word_;
-        // }
         return separator_ + word;
-  }
+    }
 
 private:
     std::string separator_;
@@ -167,15 +144,15 @@ public:
 };
 
 
-class WordCapitalizer: public WordModifierBase { /* ex CamelWordsSeparator*/
+class WordCapitalizer: public WordModifierBase {
 public:
-  std::string operator()(const std::string& word) {
-    std::string result(word);
-    if (result.length() > 0) {
-      result[0] = std::toupper(result[0]);
+    std::string operator()(const std::string& word) {
+        std::string result(word);
+        if (result.length() > 0) {
+            result[0] = std::toupper(result[0]);
+        }
+        return result;
     }
-    return result;
-  }
 };
 
 
@@ -333,6 +310,7 @@ std::string ComposePassPhrase(
     return result;
 
 }
+
 
 std::string ComposePassPhrase(
     GeneratorInterface& generator,
