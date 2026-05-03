@@ -78,7 +78,8 @@ interface SavedService {
     custom: boolean;
   };
   customChars: string;
-  separator: number;
+  separator: string;
+  capitalizeWords: boolean;
 }
 
 function App() {
@@ -88,7 +89,8 @@ function App() {
   const [password, setPassword] = useState('');
   const [passwordLength, setPasswordLength] = useState(16);
   const [algorithm, setAlgorithm] = useState<number>(1);
-  const [separator, setSeparator] = useState<number>(1); // CamelCase
+  const [separator, setSeparator] = useState<string>('');
+  const [capitalizeWords, setCapitalizeWords] = useState(true);
   const [charClassesState, setCharClassesState] = useState({
     lowercase: true,
     uppercase: true,
@@ -166,7 +168,8 @@ function App() {
           console.log("WASM Module Loaded.");
           setWasmModule(module);
           setAlgorithm(module.Algorithm.Argon2.value);
-          setSeparator(module.PassphraseSeparator.CamelCase.value);
+          setSeparator('');
+          setCapitalizeWords(true);
         });
       }
     };
@@ -186,6 +189,9 @@ function App() {
       setCustomChars(s.customChars);
       if (s.separator !== undefined) {
         setSeparator(s.separator);
+      }
+      if (s.capitalizeWords !== undefined) {
+        setCapitalizeWords(s.capitalizeWords);
       }
     }
   };
@@ -232,7 +238,8 @@ function App() {
           length: passwordLength,
           charClasses: charClassesState,
           customChars,
-          separator
+          separator,
+          capitalizeWords
         }
       };
       setSavedServices(newSaved);
@@ -250,7 +257,7 @@ function App() {
       }
 
       try {
-        const result = wasmModule.MkPass(masterPassword, service, charClasses, algorithm, passwordLength, customChars, separator);
+        const result = wasmModule.MkPass(masterPassword, service, charClasses, algorithm, passwordLength, customChars, separator, capitalizeWords);
         setPassword(result);
         setIsModalOpen(true);
         setIsPasswordVisible(false);
@@ -423,12 +430,22 @@ function App() {
               <label>Separator:</label>
               <select
                 value={separator}
-                onChange={(e) => setSeparator(Number(e.target.value))}
+                onChange={(e) => setSeparator(e.target.value)}
                 className="select-algorithm"
               >
-                <option value={wasmModule.PassphraseSeparator.CamelCase.value}>CamelCase</option>
-                <option value={wasmModule.PassphraseSeparator.KebabCase.value}>kebab-case</option>
+                <option value="">None</option>
+                <option value="-">Hyphen (-)</option>
+                <option value=" ">Space ( )</option>
+                <option value="/">Slash (/)</option>
               </select>
+              <label className="save-checkbox">
+                <input
+                  type="checkbox"
+                  checked={capitalizeWords}
+                  onChange={(e) => setCapitalizeWords(e.target.checked)}
+                />
+                Capitalize words
+              </label>
             </div>
           )}
 

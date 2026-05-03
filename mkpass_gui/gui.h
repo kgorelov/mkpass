@@ -45,6 +45,7 @@ private:
     QCheckBox *symbolsCheckBox;
     QCheckBox *customCheckBox;
     QCheckBox *allowSubstitutionsCheckBox;
+    QCheckBox *capitalizeCheckBox;
     QLineEdit *customCharsLineEdit;
     QWidget *lengthWidget;
     QLabel *lengthLabel;

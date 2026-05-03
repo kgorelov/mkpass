@@ -20,9 +20,10 @@ struct ServiceEntry {
     unsigned length;
     std::vector<CharacterClass> char_classes;
     std::optional<std::string> custom_chars;
-    PassphraseSeparator separator;
+    std::string separator;
     std::vector<WordClasses> passphrase_pattern;
     bool allow_substitutions;
+    bool capitalize_words;
 };
 
 

@@ -55,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
     private TextInputEditText customChars;
     private LinearLayout separatorContainer;
     private Spinner separatorSpinner;
+    private CheckBox capitalizeWordsCheckBox;
     private LinearLayout lengthContainer;
     private TextView lengthTitle;
     private SeekBar lengthSeekBar;
@@ -71,8 +72,17 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private static final String[] SEPARATORS = {
-        "CamelCase",
-        "kebab-case"
+        "None",
+        "Hyphen (-)",
+        "Space ( )",
+        "Slash (/)"
+    };
+
+    private static final String[] SEPARATOR_VALUES = {
+        "",
+        "-",
+        " ",
+        "/"
     };
 
     @Override
@@ -96,6 +106,7 @@ public class MainActivity extends AppCompatActivity {
         customChars = findViewById(R.id.customChars);
         separatorContainer = findViewById(R.id.separatorContainer);
         separatorSpinner = findViewById(R.id.separatorSpinner);
+        capitalizeWordsCheckBox = findViewById(R.id.capitalizeWordsCheckBox);
         lengthContainer = findViewById(R.id.lengthContainer);
         lengthTitle = findViewById(R.id.lengthTitle);
         lengthSeekBar = findViewById(R.id.lengthSeekBar);
@@ -110,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
         ArrayAdapter<String> sepAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, SEPARATORS);
         sepAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         separatorSpinner.setAdapter(sepAdapter);
-        separatorSpinner.setSelection(0); // Default to CamelCase
+        separatorSpinner.setSelection(0); // Default to None
 
         algorithmSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -145,6 +156,7 @@ public class MainActivity extends AppCompatActivity {
         symbolsCheckBox.setChecked(true);
         customCheckBox.setChecked(false);
         customChars.setText("");
+        capitalizeWordsCheckBox.setChecked(true);
 
         updateAlgorithmSpecificUI();
 
@@ -231,12 +243,19 @@ public class MainActivity extends AppCompatActivity {
                 customChars.setText(entry.customChars);
             }
 
-            if (entry.separator >= 1 && entry.separator <= 2) {
-                separatorSpinner.setSelection(entry.separator - 1);
+            if (entry.separator != null) {
+                for (int i = 0; i < SEPARATOR_VALUES.length; i++) {
+                    if (SEPARATOR_VALUES[i].equals(entry.separator)) {
+                        separatorSpinner.setSelection(i);
+                        break;
+                    }
+                }
             }
+            capitalizeWordsCheckBox.setChecked(entry.capitalizeWords);
         } else {
             // Reset to defaults based on algo
-            separatorSpinner.setSelection(0); // Default to CamelCase
+            separatorSpinner.setSelection(0); // Default to None
+            capitalizeWordsCheckBox.setChecked(true);
             if (newAlgo == 1 || newAlgo == 2) {
                 lowerCaseCheckBox.setChecked(true);
                 upperCaseCheckBox.setChecked(true);
@@ -244,6 +263,7 @@ public class MainActivity extends AppCompatActivity {
                 symbolsCheckBox.setChecked(true);
                 customCheckBox.setChecked(false);
                 customChars.setText("");
+        capitalizeWordsCheckBox.setChecked(true);
             } else if (newAlgo == 4) {
                 lengthSeekBar.setProgress(6);
             } else if (newAlgo == 3) {
@@ -284,7 +304,8 @@ public class MainActivity extends AppCompatActivity {
             int algorithm = algorithmSpinner.getSelectedItemPosition() + 1;
             int length = lengthSeekBar.getProgress();
             if (algorithm == 5) length = 0;
-            int separator = separatorSpinner.getSelectedItemPosition() + 1;
+            String separator = SEPARATOR_VALUES[separatorSpinner.getSelectedItemPosition()];
+            boolean capitalizeWords = capitalizeWordsCheckBox.isChecked();
 
             List<Integer> charClasses = new ArrayList<>();
             String customCharsStr = null;
@@ -306,10 +327,10 @@ public class MainActivity extends AppCompatActivity {
                 charClassesArray[i] = charClasses.get(i);
             }
 
-            String generatedPassword = generatePasswordNative(masterPwd, serviceName, algorithm, length, charClassesArray, customCharsStr, separator);
+            String generatedPassword = generatePasswordNative(masterPwd, serviceName, algorithm, length, charClassesArray, customCharsStr, separator, capitalizeWords);
 
             // Save entry in background
-            saveServiceEntry(serviceName, algorithm, length, charClassesArray, customCharsStr, separator);
+            saveServiceEntry(serviceName, algorithm, length, charClassesArray, customCharsStr, separator, capitalizeWords);
 
             // Post result to UI thread
             handler.post(() -> {
@@ -383,8 +404,8 @@ public class MainActivity extends AppCompatActivity {
     public native void init(String dbPath);
     public native String[] getAllServiceNames();
     public native ServiceEntry getServiceEntry(String serviceName);
-    public native void saveServiceEntry(String serviceName, int algorithm, int length, int[] charClasses, String customChars, int separator);
-    public native String generatePasswordNative(String password, String service, int algorithm, int length, int[] charClasses, String customChars, int separator);
+    public native void saveServiceEntry(String serviceName, int algorithm, int length, int[] charClasses, String customChars, String separator, boolean capitalizeWords);
+    public native String generatePasswordNative(String password, String service, int algorithm, int length, int[] charClasses, String customChars, String separator, boolean capitalizeWords);
     public native android.graphics.Bitmap generateQrCode(String text);
 }
 
@@ -394,5 +415,6 @@ class ServiceEntry {
     public int length;
     public int[] charClasses;
     public String customChars;
-    public int separator;
+    public String separator;
+    public boolean capitalizeWords;
 }

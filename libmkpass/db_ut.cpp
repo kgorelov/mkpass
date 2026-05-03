@@ -116,34 +116,36 @@ TEST_F(ConfigDBTest, CustomChars) {
 TEST_F(ConfigDBTest, Separator) {
     mkpass::ConfigDB db(db_path);
 
-    // 1. Test with CamelCase
+    // 1. Test with empty separator and capitalize_words
     mkpass::ServiceEntry entry;
     entry.service_name = "camel.com";
     entry.algorithm = Algorithm::Passphrase_Diceware_EFF_Large;
     entry.length = 6;
     entry.char_classes = {};
-    entry.separator = PassphraseSeparator::CamelCase;
+    entry.separator = "";
+    entry.capitalize_words = true;
 
     db.save_service_entry(entry);
 
     auto rec = db.get_service_entry("camel.com");
     ASSERT_TRUE(rec.has_value());
-    EXPECT_EQ(rec->separator, PassphraseSeparator::CamelCase);
+    EXPECT_EQ(rec->separator, "");
+    EXPECT_TRUE(rec->capitalize_words);
 
-    // 2. Test with KebabCase
+    // 2. Test with KebabCase (-)
     entry.service_name = "kebab.com";
-    entry.separator = PassphraseSeparator::KebabCase;
+    entry.separator = "-";
+    entry.capitalize_words = false;
     db.save_service_entry(entry);
 
     auto rec2 = db.get_service_entry("kebab.com");
     ASSERT_TRUE(rec2.has_value());
-    EXPECT_EQ(rec2->separator, PassphraseSeparator::KebabCase);
+    EXPECT_EQ(rec2->separator, "-");
+    EXPECT_FALSE(rec2->capitalize_words);
 
-    // 3. Test default (existing record without separator column should default to CamelCase)
-    // Actually, create_tables adds the column with DEFAULT 1 (CamelCase)
+    // 3. Test default (existing record without separator column should default to empty/false if no mapping found)
     auto rec_old = db.get_service_entry("user@github.com");
     ASSERT_TRUE(rec_old.has_value());
-    EXPECT_EQ(rec_old->separator, PassphraseSeparator::CamelCase);
 }
 
 TEST_F(ConfigDBTest, AllowSubstitutions) {
@@ -155,7 +157,8 @@ TEST_F(ConfigDBTest, AllowSubstitutions) {
     entry.algorithm = Algorithm::Passphrase_Diceware_EFF_Large;
     entry.length = 6;
     entry.char_classes = {};
-    entry.separator = PassphraseSeparator::CamelCase;
+    entry.separator = "";
+    entry.capitalize_words = true;
     entry.allow_substitutions = true;
 
     db.save_service_entry(entry);

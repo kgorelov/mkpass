@@ -145,6 +145,12 @@
                 android:id="@+id/separatorSpinner"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
+
+            <CheckBox
+                android:id="@+id/capitalizeWordsCheckBox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Capitalize Words" />
         </LinearLayout>
 
         <LinearLayout

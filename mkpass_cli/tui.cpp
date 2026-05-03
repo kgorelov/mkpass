@@ -173,32 +173,45 @@ std::optional<std::string> AskForCustomChars(const std::optional<std::string>& d
     return custom_chars_str;
 }
 
-PassphraseSeparator AskForSeparator(PassphraseSeparator default_separator) {
-    std::map<char, PassphraseSeparator> choices = {
-        {'1', PassphraseSeparator::CamelCase},
-        {'2', PassphraseSeparator::KebabCase}
+std::string AskForSeparator(const std::string& default_separator) {
+    std::map<char, std::string> choices = {
+        {'1', ""},
+        {'2', "-"},
+        {'3', " "},
+        {'4', "/"}
     };
-    std::map<PassphraseSeparator, char> sep_to_char = {
-        {PassphraseSeparator::CamelCase, '1'},
-        {PassphraseSeparator::KebabCase, '2'}
+    std::map<std::string, char> sep_to_char = {
+        {"", '1'},
+        {"-", '2'},
+        {" ", '3'},
+        {"/", '4'}
     };
 
     std::cerr << "Choose separator:\n";
-    std::cerr << "1. CamelCase\n";
-    std::cerr << "2. kebab-case\n";
-    std::cerr << "Your choice (1 or 2) [" << sep_to_char[default_separator] << "]: ";
+    std::cerr << "1. None\n";
+    std::cerr << "2. Hyphen (-)\n";
+    std::cerr << "3. Space ( )\n";
+    std::cerr << "4. Slash (/)\n";
+
+    char dflt_char = '1'; // Default to None
+    if (sep_to_char.count(default_separator)) {
+        dflt_char = sep_to_char[default_separator];
+    }
+
+    std::cerr << "Your choice (1-4) [" << dflt_char << "]: ";
     std::string choice;
     std::getline(std::cin, choice);
 
     if (choice.empty()) {
-        return default_separator;
+        if (default_separator.empty() && dflt_char == '1') return "";
+        return default_separator.empty() ? "" : default_separator;
     }
 
     if (choices.count(choice[0])) {
         return choices[choice[0]];
     }
 
-    return PassphraseSeparator::CamelCase;
+    return "-";
 }
 
 std::vector<WordClasses> AskForPassphrasePattern(const std::vector<WordClasses>& default_pattern) {
@@ -371,7 +384,9 @@ void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::Serv
 
     ctx.allow_substitutions = AskYesNoQuestion("Allow character substitutions (e.g. a -> 4, s -> $)?", same_algo ? db_entry->allow_substitutions : false);
 
-    ctx.separator = AskForSeparator(same_algo ? db_entry->separator : PassphraseSeparator::CamelCase);
+    ctx.capitalize_words = AskYesNoQuestion("Capitalize words?", same_algo ? db_entry->capitalize_words : true);
+
+    ctx.separator = AskForSeparator(same_algo ? db_entry->separator : "");
 }
 
 void HandlePassphraseWordnetPatternAlgo(Context& ctx, const std::optional<mkpass::ServiceEntry>& db_entry) {
@@ -401,7 +416,9 @@ void HandlePassphraseWordnetPatternAlgo(Context& ctx, const std::optional<mkpass
 
     ctx.allow_substitutions = AskYesNoQuestion("Allow character substitutions (e.g. a -> 4, s -> $)?", same_algo ? db_entry->allow_substitutions : false);
 
-    ctx.separator = AskForSeparator(same_algo ? db_entry->separator : PassphraseSeparator::CamelCase);
+    ctx.capitalize_words = AskYesNoQuestion("Capitalize words?", same_algo ? db_entry->capitalize_words : true);
+
+    ctx.separator = AskForSeparator(same_algo ? db_entry->separator : "");
 }
 
 void HandleOldAlgo(Context& ctx, const std::optional<mkpass::ServiceEntry>& db_entry) {
@@ -461,7 +478,7 @@ int run_tui() {
 
     std::cout << MkPass(ctx) << std::endl;
 
-    db.save_service_entry({service, ctx.algorithm, ctx.length, ctx.char_classes, ctx.custom_chars, ctx.separator, ctx.passphrase_pattern, ctx.allow_substitutions});
+    db.save_service_entry({service, ctx.algorithm, ctx.length, ctx.char_classes, ctx.custom_chars, ctx.separator, ctx.passphrase_pattern, ctx.allow_substitutions, ctx.capitalize_words});
 
     return 0;
 }

@@ -87,6 +87,7 @@ void MainWindow::setupUI() {
     symbolsCheckBox = new QCheckBox("Symbols");
     customCheckBox = new QCheckBox("Custom:");
     allowSubstitutionsCheckBox = new QCheckBox("Allow substitutions (e.g. a -> 4)");
+    capitalizeCheckBox = new QCheckBox("Capitalize words");
 
     lowerCaseCheckBox->setChecked(true);
     upperCaseCheckBox->setChecked(true);
@@ -98,7 +99,8 @@ void MainWindow::setupUI() {
     checkBoxesLayout->addWidget(digitsCheckBox, 1, 0);
     checkBoxesLayout->addWidget(symbolsCheckBox, 1, 1);
     checkBoxesLayout->addWidget(customCheckBox, 2, 0);
-    checkBoxesLayout->addWidget(allowSubstitutionsCheckBox, 3, 0, 1, 2);
+    checkBoxesLayout->addWidget(allowSubstitutionsCheckBox, 3, 0);
+    checkBoxesLayout->addWidget(capitalizeCheckBox, 3, 1);
 
     characterClassesLayout->addLayout(checkBoxesLayout);
 
@@ -125,8 +127,11 @@ void MainWindow::setupUI() {
     formLayout->addRow(lengthWidget);
 
     separatorComboBox = new QComboBox;
-    separatorComboBox->addItem("CamelCase", static_cast<int>(PassphraseSeparator::CamelCase));
-    separatorComboBox->addItem("KebabCase", static_cast<int>(PassphraseSeparator::KebabCase));
+    separatorComboBox->addItem("None", QString(""));
+    separatorComboBox->addItem("Hyphen (-)", QString("-"));
+    separatorComboBox->addItem("Space ( )", QString(" "));
+    separatorComboBox->addItem("Slash (/)", QString("/"));
+    separatorComboBox->setCurrentIndex(0); // Default to None
     separatorWidget = new QWidget;
     QHBoxLayout *separatorLayout = new QHBoxLayout(separatorWidget);
     separatorLayout->setContentsMargins(0, 0, 0, 0);
@@ -170,7 +175,8 @@ void MainWindow::generatePassword() {
     ctx.service = serviceLineEdit->text().toStdString();
     ctx.length = lengthSpinBox->value();
     ctx.algorithm = static_cast<Algorithm>(algorithmComboBox->currentData().toInt());
-    ctx.separator = static_cast<PassphraseSeparator>(separatorComboBox->currentData().toInt());
+    ctx.separator = separatorComboBox->currentData().toString().toStdString();
+    ctx.capitalize_words = capitalizeCheckBox->isChecked();
     ctx.allow_substitutions = allowSubstitutionsCheckBox->isChecked();
 
     if (algorithmComboBox->currentData().toInt() == static_cast<int>(Algorithm::Argon2) ||
@@ -210,7 +216,8 @@ void MainWindow::generationFinished() {
     std::optional<std::string> custom_chars;
     Algorithm algorithm = static_cast<Algorithm>(algorithmComboBox->currentData().toInt());
     unsigned length = lengthSpinBox->value();
-    PassphraseSeparator separator = static_cast<PassphraseSeparator>(separatorComboBox->currentData().toInt());
+    std::string separator = separatorComboBox->currentData().toString().toStdString();
+    bool capitalize_words = capitalizeCheckBox->isChecked();
 
     if (algorithm == Algorithm::Argon2 || algorithm == Algorithm::SlowSha512) {
         if (lowerCaseCheckBox->isChecked()) char_classes.push_back(CharacterClass::LOWERCASE);
@@ -237,7 +244,8 @@ void MainWindow::generationFinished() {
         custom_chars,
         separator,
         {}, // passphrase_pattern
-        allowSubstitutionsCheckBox->isChecked()
+        allowSubstitutionsCheckBox->isChecked(),
+        capitalize_words
     });
 }
 
@@ -274,15 +282,17 @@ void MainWindow::serviceChanged(const QString &service) {
             customCharsLineEdit->setText("");
         }
 
-        int sepIndex = separatorComboBox->findData(static_cast<int>(entry->separator));
+        int sepIndex = separatorComboBox->findData(QString::fromStdString(entry->separator));
         if (sepIndex != -1) {
             separatorComboBox->setCurrentIndex(sepIndex);
         }
+        capitalizeCheckBox->setChecked(entry->capitalize_words);
 
         allowSubstitutionsCheckBox->setChecked(entry->allow_substitutions);
     } else {
         // Reset to default values based on algorithm
         allowSubstitutionsCheckBox->setChecked(false);
+        capitalizeCheckBox->setChecked(true);
         if (newAlgo == Algorithm::Argon2 || newAlgo == Algorithm::SlowSha512) {
             lengthSpinBox->setValue(16);
             lowerCaseCheckBox->setChecked(true);
@@ -300,7 +310,7 @@ void MainWindow::serviceChanged(const QString &service) {
         } else if (newAlgo == Algorithm::Old) {
             lengthSpinBox->setValue(8);
         }
-        separatorComboBox->setCurrentIndex(separatorComboBox->findData(static_cast<int>(PassphraseSeparator::CamelCase)));
+        separatorComboBox->setCurrentIndex(0); // Default to None
     }
     updateAlgorithmSpecificUI();
 }
@@ -347,10 +357,11 @@ void MainWindow::updateAlgorithmSpecificUI() {
     customCheckBox->setVisible(isPassword);
 
     digitsCheckBox->setVisible(isPassword || isPassphrase);
-    symbolsCheckBox->setVisible(isPassword || isPassphrase);
     allowSubstitutionsCheckBox->setVisible(isPassphrase);
+    capitalizeCheckBox->setVisible(isPassphrase);
 
     bool showLength = (algorithm != Algorithm::Passphrase_Wordnet_Pattern);
+
     bool showSeparator = isPassphrase;
 
     lengthWidget->setVisible(showLength);

@@ -12,7 +12,7 @@ using namespace emscripten;
 using qrcodegen::QrCode;
 
 //std::string MkPassWasm(std::string password, std::string service, std::vector<CharacterClass> char_classes, Algorithm algorithm, unsigned length, std::string custom_chars) {
-std::string MkPassWasm(std::string password, std::string service, std::vector<CharacterClass> char_classes, int algorithm, unsigned length, std::string custom_chars, int separator) {
+std::string MkPassWasm(std::string password, std::string service, std::vector<CharacterClass> char_classes, int algorithm, unsigned length, std::string custom_chars, std::string separator, bool capitalize_words) {
     Context ctx;
     ctx.password = password;
     ctx.service = service;
@@ -24,7 +24,8 @@ std::string MkPassWasm(std::string password, std::string service, std::vector<Ch
     } else {
         ctx.custom_chars = std::nullopt;
     }
-    ctx.separator = (PassphraseSeparator)separator;
+    ctx.separator = separator;
+    ctx.capitalize_words = capitalize_words;
     return MkPass(ctx);
 }
 
@@ -52,10 +53,6 @@ EMSCRIPTEN_BINDINGS(mkpass_module) {
         .value("Old", Algorithm::Old)
         .value("Passphrase_Diceware_EFF_Large", Algorithm::Passphrase_Diceware_EFF_Large)
         .value("Passphrase_Wordnet_Pattern", Algorithm::Passphrase_Wordnet_Pattern);
-
-    enum_<PassphraseSeparator>("PassphraseSeparator")
-        .value("CamelCase", PassphraseSeparator::CamelCase)
-        .value("KebabCase", PassphraseSeparator::KebabCase);
 
     enum_<CharacterClass>("CharacterClass")
         .value("LOWERCASE", CharacterClass::LOWERCASE)
