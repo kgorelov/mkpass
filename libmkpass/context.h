@@ -14,9 +14,10 @@ struct Context {
     std::string service;
     std::vector<CharacterClass> char_classes;
     Algorithm algorithm = Algorithm::Argon2;
-    PassphraseSeparator separator = PassphraseSeparator::KebabCase;
+    PassphraseSeparator separator = PassphraseSeparator::KebabCase; // TODO change to string
     unsigned length = 0;
     std::optional<std::string> custom_chars;
     std::vector<WordClasses> passphrase_pattern;
     bool allow_substitutions;
+    bool capitalize_words;
 };

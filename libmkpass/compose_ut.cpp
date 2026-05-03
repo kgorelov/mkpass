@@ -185,7 +185,7 @@ TEST(ComposeTest, TestPassphraseKebabCase) {
     Generator<HKDF_Argon2> g("password", "service");
     Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
     std::vector<CharacterClass> char_classes;
-    auto p = ComposePassPhrase(g, wordlist, 3, PassphraseSeparator::KebabCase, char_classes, false);
+    auto p = ComposePassPhrase(g, wordlist, 3, "-", char_classes, false, false);
     // Should have 2 hyphens for 3 words
     int hyphens = 0;
     for (char c : p) {
@@ -206,7 +206,8 @@ TEST(ComposeTest, TestPassphraseCamelCase) {
     Generator<HKDF_Argon2> g("password", "service");
     Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
     std::vector<CharacterClass> char_classes;
-    auto p = ComposePassPhrase(g, wordlist, 3, PassphraseSeparator::CamelCase, char_classes, false);
+    bool capitalize_words = true;
+    auto p = ComposePassPhrase(g, wordlist, 3, "", char_classes, false, capitalize_words);
     // Should have no hyphens
     for (char c : p) {
         EXPECT_NE(c, '-');
@@ -232,7 +233,7 @@ TEST(ComposeTest, TestPassphraseSubstitutionsDigits) {
     // To be sure, we can run it multiple times or check if the result contains digits.
     bool found_digit = false;
     for (int i = 0; i < 10; ++i) {
-        auto p = ComposePassPhrase(g, wordlist, 3, PassphraseSeparator::KebabCase, char_classes, true);
+        auto p = ComposePassPhrase(g, wordlist, 3, "-", char_classes, true, false);
         for (char c : p) {
             if (isdigit(c)) {
                 found_digit = true;
@@ -251,7 +252,7 @@ TEST(ComposeTest, TestPassphraseSubstitutionsSymbols) {
     bool found_symbol = false;
     std::string symbols = "!@#$%^&*()-_=+[]{}|;:,.<>?/"; // more than we have but safe
     for (int i = 0; i < 10; ++i) {
-        auto p = ComposePassPhrase(g, wordlist, 3, PassphraseSeparator::KebabCase, char_classes, true);
+        auto p = ComposePassPhrase(g, wordlist, 3, "-", char_classes, true, false);
         for (char c : p) {
             if (Symbols.find(c) != std::string::npos) {
                 found_symbol = true;
@@ -269,7 +270,7 @@ TEST(ComposeTest, TestPassphraseNoSubstitutions) {
     std::vector<CharacterClass> char_classes = {CharacterClass::DIGITS};
     // When allow_substitutions is false, digits should ONLY be appended at the end of some word.
     // They should not replace any letter.
-    auto p = ComposePassPhrase(g, wordlist, 3, PassphraseSeparator::KebabCase, char_classes, false);
+    auto p = ComposePassPhrase(g, wordlist, 3, "-", char_classes, false, false);
 
     // In KebabCase, it's easy: words are separated by '-'.
     // If a digit is present, it must be either before a '-' or at the end of the string.

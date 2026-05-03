@@ -10,6 +10,7 @@
 #include <iostream>
 #include <set>
 #include <cctype>
+#include <memory>
 
 #include "compose.h"
 #include "generator.h"
@@ -119,7 +120,54 @@ std::string ComposeOldMkpass1Password(
 // or capitilizing the first letter.
 // These must be different separator classes.
 
-class CamelWordsSeparator {
+
+// class KebabWordsSeparator {
+// public:
+//   std::string operator()(const std::string& word) {
+//     if (first_word) {
+//       first_word = false;
+//       return word;
+//     }
+//     return std::string("-") + word;
+//   }
+// private:
+//   bool first_word = true;
+// };
+
+
+class WordSeparator {
+public:
+    WordSeparator(const std::string& separator)
+        : separator_(separator)
+    {
+    }
+
+    std::string operator()(const std::string& word)
+    {
+        if (first_word) {
+            first_word = false;
+            return word;
+        }
+        // if (separator_.empty()) {
+        //     return word_;
+        // }
+        return separator_ + word;
+  }
+
+private:
+    std::string separator_;
+    bool first_word = true;
+};
+
+
+class WordModifierBase {
+public:
+    virtual std::string operator()(const std::string& word) = 0;
+    virtual ~WordModifierBase() = default;
+};
+
+
+class WordCapitalizer: public WordModifierBase { /* ex CamelWordsSeparator*/
 public:
   std::string operator()(const std::string& word) {
     std::string result(word);
@@ -130,30 +178,15 @@ public:
   }
 };
 
-class KebabWordsSeparator {
-public:
-  std::string operator()(const std::string& word) {
-    if (first_word) {
-      first_word = false;
-      return word;
-    }
-    return std::string("-") + word;
-  }
-private:
-  bool first_word = true;
-};
 
-
-class WordModifier {
+class WordModifier: public WordModifierBase {
 public:
     WordModifier(
         GeneratorInterface& generator,
-        int word_position,
         const std::string& char_class_string,
         const CharMap& substitution_map,
         bool allow_substitutions)
         : generator_(generator)
-        , word_position_(word_position)
         , char_class_string_(char_class_string)
         , substitution_map_(substitution_map)
         , distibution_(0, char_class_string.length()-1)
@@ -161,11 +194,8 @@ public:
     {
     }
 
-    std::string operator()(const std::string& word, int pos)
+    std::string operator()(const std::string& word)
     {
-        if (pos != word_position_) {
-            return word;
-        }
         if (allow_substitutions_) {
             std::string sword = word;
             auto substituions = MakeSubstitutionsList(sword);
@@ -204,89 +234,122 @@ private:
 
 private:
     GeneratorInterface& generator_;
-    int word_position_;
     std::string char_class_string_;
     CharMap substitution_map_;
     UniformDistribution<int> distibution_;
     bool allow_substitutions_;
 };
 
-std::vector<WordModifier> GetWordModifiers(
+std::multimap<int, CharacterClass> GetModWordPositions(
     GeneratorInterface& generator,
     const std::vector<CharacterClass>& char_classes,
-    int passprhase_length,
-    bool allow_substitutions)
+    int passprhase_length)
 {
     UniformDistribution distibution(0, passprhase_length - 1);
-    std::vector<WordModifier> result;
+    std::multimap<int, CharacterClass> result;
+
     for (auto& cls: char_classes) {
         auto word_idx = distibution(generator);
-        auto chars_cls_str = GetCharClassString(cls);
-        auto substitution_map = GetCharClassSubstitutions(cls);
-        result.push_back(WordModifier(
-            generator, word_idx, chars_cls_str,
-            substitution_map, allow_substitutions));
+        result.insert({word_idx, cls});
     }
     return result;
 }
 
-template <typename Separator>
-std::string ComposePassPhraseWithSeparator(
-    GeneratorInterface& generator,
-    const Wordlist& wordlist,
-    size_t length,
-    const std::vector<CharacterClass>& char_classes,
-    bool allow_substitutions)
+std::vector<CharacterClass> GetWordCharClasses(
+    std::multimap<int, CharacterClass> wtmmap,
+    int word_pos)
 {
-  std::string result;
-  UniformDistribution distibution(0, wordlist.length()-1);
-  Separator separator;
-  auto modifiers = GetWordModifiers(generator, char_classes, length, allow_substitutions);
-  std::set<int> used_idxs;
-
-  for (size_t pos = 0; pos < length; ++pos) {
-    auto idx = distibution(generator);
-    if (used_idxs.find(idx) != used_idxs.end()) {
-      continue;
-    }
-    used_idxs.insert(idx);
-    auto word = wordlist[idx];
-    for (auto& modifier: modifiers) {
-        word = modifier(word, pos);
-    }
-    result += separator(word);
-  }
-  return result;
+    auto [first, last] = wtmmap.equal_range(word_pos);
+    std::vector<CharacterClass> result;
+    std::transform(first, last, std::back_inserter(result),
+                   [](const auto& kv) { return kv.second; });
+    return result;
 }
+
+using ModifiersList = std::vector<std::unique_ptr<WordModifierBase>>;
+
+ModifiersList GetWordModifiers(
+    GeneratorInterface& generator,
+    const std::vector<CharacterClass>& char_classes,
+    bool allow_substitutions,
+    bool capitalize_words)
+{
+    ModifiersList result;
+
+    if (capitalize_words) {
+        auto uptr = std::make_unique<WordCapitalizer>();
+        result.push_back(std::move(uptr));
+    }
+
+    for (auto& cls: char_classes) {
+        auto chars_cls_str = GetCharClassString(cls);
+        auto substitution_map = GetCharClassSubstitutions(cls);
+        auto uptr = std::make_unique<WordModifier>(
+            generator,
+            chars_cls_str,
+            substitution_map,
+            allow_substitutions);
+        result.push_back(std::move(uptr));
+    }
+    return result;
+}
+
 
 std::string ComposePassPhrase(
     GeneratorInterface& generator,
     const Wordlist& wordlist,
     size_t length,
-    PassphraseSeparator separator_type,
+    const std::string& separator_str,
     const std::vector<CharacterClass>& char_classes,
-    bool allow_substitutions)
+    bool allow_substitutions,
+    bool capitalize_words)
 {
-  if (separator_type == PassphraseSeparator::CamelCase) {
-      return ComposePassPhraseWithSeparator<CamelWordsSeparator>(generator, wordlist, length, char_classes, allow_substitutions);
-  } else {
-      return ComposePassPhraseWithSeparator<KebabWordsSeparator>(generator, wordlist, length, char_classes, allow_substitutions);
-  }
+
+    std::string result;
+    UniformDistribution distibution(0, wordlist.length()-1);
+    WordSeparator separator(separator_str);
+    std::set<int> used_idxs;
+
+    auto words_to_modify = GetModWordPositions(
+        generator, char_classes, length);
+
+    for (size_t pos = 0; pos < length; ++pos) {
+        auto idx = distibution(generator);
+        if (used_idxs.find(idx) != used_idxs.end()) {
+            continue;
+        }
+        used_idxs.insert(idx);
+        auto word = wordlist[idx];
+        auto modifiers = GetWordModifiers(
+            generator,
+            GetWordCharClasses(words_to_modify, pos),
+            allow_substitutions,
+            capitalize_words);
+        for (auto& modifier: modifiers) {
+            word = (*modifier)(word);
+        }
+        result += separator(word);
+    }
+    return result;
+
 }
 
-template <typename Separator>
-std::string ComposePassPhraseWithSeparator(
+std::string ComposePassPhrase(
     GeneratorInterface& generator,
     std::map<WordClasses, Wordlist> &&wordlists,
     std::vector<WordClasses> &&pattern,
+    const std::string& separator_str,
     const std::vector<CharacterClass>& char_classes,
-    bool allow_substitutions)
+    bool allow_substitutions,
+    bool capitalize_words)
 {
     std::string result;
     std::map<WordClasses, UniformDistribution<int>> distributions;
     std::map<WordClasses, std::set<int>> used_idxs;
-    Separator separator;
-    auto modifiers = GetWordModifiers(generator, char_classes, pattern.size(), allow_substitutions);
+    WordSeparator separator(separator_str);
+    auto words_to_modify = GetModWordPositions(
+        generator, char_classes, pattern.size());
+
 
     for (auto& [wc, wl]: wordlists) {
         distributions.emplace(wc, UniformDistribution<int>(0, wl.length()-1));
@@ -299,34 +362,17 @@ std::string ComposePassPhraseWithSeparator(
             continue;
         }
         used_idxs[wc].insert(idx);
-        auto word = separator(wordlists.at(wc)[idx]);
+        auto word = wordlists.at(wc)[idx];
+        auto modifiers = GetWordModifiers(
+            generator,
+            GetWordCharClasses(words_to_modify, pos),
+            allow_substitutions,
+            capitalize_words);
         for (auto& modifier: modifiers) {
-            word = modifier(word, pos);
+            word = (*modifier)(word);
         }
-        result += word;
+        result += separator(word);
     }
 
     return result;
 }
-
-std::string ComposePassPhrase(
-    GeneratorInterface& generator,
-    std::map<WordClasses, Wordlist> &&wordlists,
-    std::vector<WordClasses> &&pattern,
-    PassphraseSeparator separator_type,
-    const std::vector<CharacterClass>& char_classes,
-    bool allow_substitutions)
-{
-    if (separator_type == PassphraseSeparator::CamelCase) {
-        return ComposePassPhraseWithSeparator<CamelWordsSeparator>(generator, std::move(wordlists), std::move(pattern), char_classes, allow_substitutions);
-    } else {
-        return ComposePassPhraseWithSeparator<KebabWordsSeparator>(generator, std::move(wordlists), std::move(pattern), char_classes, allow_substitutions);
-    }
-}
-
-
-// Implement Composing passphares using patterns/formulas instead of length
-// Formula: ADJ NOUN VERB NOUN
-// FormulaL ADJ NOUN ADV VERB ADJ NOUN
-// Separator: '-' ' ' CAPITILIZE UPPER
-
