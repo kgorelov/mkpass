@@ -37,31 +37,32 @@ If the master password is found, all passwords derived from that master password
 *** Simple passphrase algorithm
   - [X] Diceware EFF large wordlist
   - [X] Simple passphare algoritm implementation
-  - [ ] Make params depend on algorithm entirely
+  - [X] Make params depend on algorithm entirely
   - [X] Tools: txt to C-code
   - [X] Fix tests: TestLE, E2E
   - [ ] Testcases
-  - [ ] Support in TUI
-  - [ ] Support in GUI/QT
-  - [ ] Support in Android
-  - [ ] Support in Web
-  - [ ] Simple passphare algoritm implementation
-  - [ ] Tools: txt to C-code
+  - [X] Support in TUI
+  - [X] Support in GUI/QT
+  - [X] Support in Android
+  - [X] Support in Web
+  - [X] Simple passphare algoritm implementation
+  - [X] Tools: txt to C-code
+  - [ ] cleanup database code
 *** Lexic formulas passphrase algorithm
-  - [ ] WordNet sanitized wordlists: nouns, verbs, adjectives, adverbs
-  - [ ] Tools: wordnet manipulation tools
-  - [ ] Passphrase algoritm implementation
+  - [X] WordNet sanitized wordlists: nouns, verbs, adjectives, adverbs
+  - [X] Tools: wordnet manipulation tools
+  - [X] Passphrase algoritm implementation
   - [X] WordNet sanitized wordlists: nouns, verbs, adjectives, adverbs
   - [X] Tools: wordnet manipulation tools
   - [X] Inial passphrase algoritm implementation
   - [X] Initial support for passphrases in GUI
   - [X] Initial support for passphrases for Android
-  - [ ] Add separator selection
-  - [ ] Add pattern selection
-  - [ ] Add symbols and numbers to patterns based algorithm
-  - [ ] Add symbols and numbers to the base (legth) based algorithm
-  - [ ] Implement random words transformations: letters -> symbols substitutions
-  - [ ] Rebase and support passphrases in the web version
+  - [X] Add separator selection
+  - [X] Add pattern selection
+  - [X] Add symbols and numbers to patterns based algorithm
+  - [X] Add symbols and numbers to the base (legth) based algorithm
+  - [X] Implement random words transformations: letters -> symbols substitutions
+  - [X] Rebase and support passphrases in the web version
   - [ ] Cover passphrases algorithms with tests
 ** TODO Web version (WebAssembly)
   - [X] Essential functions
