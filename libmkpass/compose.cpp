@@ -19,6 +19,7 @@
 #include "base64.hpp"
 #include "passphrase_patterns.h"
 
+
 template <typename Container>
 int total_length(const Container& strings) {
     return std::accumulate(
@@ -102,6 +103,7 @@ std::string ComposePassword(
 
     return result;
 }
+
 
 std::string ComposeOldMkpass1Password(
     const std::string& master_password,
@@ -218,6 +220,7 @@ private:
     bool allow_substitutions_;
 };
 
+
 std::multimap<int, CharacterClass> GetModWordPositions(
     GeneratorInterface& generator,
     const std::vector<CharacterClass>& char_classes,
@@ -233,6 +236,7 @@ std::multimap<int, CharacterClass> GetModWordPositions(
     return result;
 }
 
+
 std::vector<CharacterClass> GetWordCharClasses(
     std::multimap<int, CharacterClass> wtmmap,
     int word_pos)
@@ -244,7 +248,9 @@ std::vector<CharacterClass> GetWordCharClasses(
     return result;
 }
 
+
 using ModifiersList = std::vector<std::unique_ptr<WordModifierBase>>;
+
 
 ModifiersList GetWordModifiers(
     GeneratorInterface& generator,
@@ -273,6 +279,33 @@ ModifiersList GetWordModifiers(
 }
 
 
+template <typename T>
+class UniqueRandom
+{
+public:
+    UniqueRandom(GeneratorInterface& generator,
+                 UniformDistribution<T> distibution)
+        : generator_(generator)
+        , distibution_(distibution)
+    {
+    }
+
+    T operator()() {
+        while (true) {
+            T value = distibution_(generator_);
+            auto [it, inserted] = seen_.insert(value);
+            if (inserted) {
+                return value;
+            }
+        }
+    }
+private:
+    GeneratorInterface& generator_;
+    UniformDistribution<T> distibution_;
+    std::set<T> seen_;
+};
+
+
 std::string ComposePassPhrase(
     GeneratorInterface& generator,
     const Wordlist& wordlist,
@@ -286,17 +319,14 @@ std::string ComposePassPhrase(
     std::string result;
     UniformDistribution distibution(0, wordlist.length()-1);
     WordSeparator separator(separator_str);
-    std::set<int> used_idxs;
 
     auto words_to_modify = GetModWordPositions(
         generator, char_classes, length);
 
+    UniqueRandom urandom(generator, distibution);
+
     for (size_t pos = 0; pos < length; ++pos) {
-        auto idx = distibution(generator);
-        if (used_idxs.find(idx) != used_idxs.end()) {
-            continue;
-        }
-        used_idxs.insert(idx);
+        auto idx = urandom();
         auto word = wordlist[idx];
         auto modifiers = GetWordModifiers(
             generator,
@@ -309,7 +339,6 @@ std::string ComposePassPhrase(
         result += separator(word);
     }
     return result;
-
 }
 
 
@@ -333,24 +362,20 @@ std::string ComposePassPhrase(
     }
 
     std::string result;
-    std::map<WordClasses, UniformDistribution<int>> distributions;
-    std::map<WordClasses, std::set<int>> used_idxs;
+    std::map<WordClasses, UniqueRandom<int>> urandoms;
+
     WordSeparator separator(separator_str);
     auto words_to_modify = GetModWordPositions(
         generator, char_classes, pattern.size());
 
-
     for (auto& [wc, wl]: wordlists) {
-        distributions.emplace(wc, UniformDistribution<int>(0, wl.length()-1));
+        auto d = UniformDistribution<int>(0, wl.length()-1);
+        urandoms.emplace(wc, UniqueRandom<int>(generator, d));
     }
 
     for (size_t pos = 0; pos < pattern.size(); ++pos) {
         auto& wc = pattern[pos];
-        auto idx = distributions.at(wc)(generator);
-        if (used_idxs[wc].find(idx) != used_idxs[wc].end()) {
-            continue;
-        }
-        used_idxs[wc].insert(idx);
+        auto idx = urandoms.at(wc)();
         auto word = wordlists.at(wc)[idx];
         auto modifiers = GetWordModifiers(
             generator,
