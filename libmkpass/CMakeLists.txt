@@ -6,6 +6,7 @@ set(SOURCES
   hkdf_argon2.cpp
   db.cpp
   character_classes.cpp
+  passphrase_patterns.cpp
   wordlists/eff_large_words.cpp
   wordlists/wordnet_nouns.cpp
   wordlists/wordnet_verbs.cpp
