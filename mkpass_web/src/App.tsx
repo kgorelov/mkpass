@@ -224,22 +224,12 @@ function App() {
     if (wasmModule) {
       if (newAlgo === wasmModule.Algorithm.Passphrase_Diceware_EFF_Large.value) {
         setPasswordLength(3);
-        setCharClassesState({
-          ...charClassesState,
-          digits: false,
-          symbols: false
-        });
         setAllowSubstitutions(false);
         setSeparator('');
         setCapitalizeWords(true);
       } else if (newAlgo === wasmModule.Algorithm.Passphrase_Wordnet_Pattern.value) {
         setPattern(''); // Random
         setPasswordLength(3);
-        setCharClassesState({
-          ...charClassesState,
-          digits: false,
-          symbols: false
-        });
         setAllowSubstitutions(false);
         setSeparator('');
         setCapitalizeWords(true);
@@ -509,6 +499,30 @@ function App() {
                 <option value="/">Slash (/)</option>
               </select>
               <div className="checkbox-grid">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={charClassesState.digits}
+                    onChange={(e) => {
+                        const val = e.target.checked;
+                        setCharClassesState({ ...charClassesState, digits: val });
+                        if (!val && !charClassesState.symbols) setAllowSubstitutions(false);
+                    }}
+                  />
+                  Digits
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={charClassesState.symbols}
+                    onChange={(e) => {
+                        const val = e.target.checked;
+                        setCharClassesState({ ...charClassesState, symbols: val });
+                        if (!val && !charClassesState.digits) setAllowSubstitutions(false);
+                    }}
+                  />
+                  Symbols
+                </label>
                 <label>
                   <input
                     type="checkbox"
