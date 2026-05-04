@@ -8,6 +8,7 @@
 #include "db.h"
 #include "character_classes.h"
 #include "qrcodegen.hpp"
+#include "passphrase_patterns.h"
 
 // Helper to convert jstring to std::string
 std::string jstringToString(JNIEnv* env, jstring jstr) {
@@ -197,4 +198,19 @@ Java_app_mkpass_MainActivity_generatePasswordNative(JNIEnv *env, jobject /* this
 
     std::string result = MkPass(ctx);
     return stringToJstring(env, result);
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_app_mkpass_MainActivity_getMaxPassphrasePatternLengthNative(JNIEnv *env, jobject /* this */) {
+    return GetMaxPassphrasePatternLength();
+}
+
+extern "C" JNIEXPORT jobjectArray JNICALL
+Java_app_mkpass_MainActivity_getPassphrasePatternsNative(JNIEnv *env, jobject /* this */, jint length) {
+    PatternsList patterns = GetPassphrasePatterns(length);
+    jobjectArray result = env->NewObjectArray(patterns.size(), env->FindClass("java/lang/String"), nullptr);
+    for (size_t i = 0; i < patterns.size(); ++i) {
+        env->SetObjectArrayElement(result, i, stringToJstring(env, mkpass::PatternToString(patterns[i])));
+    }
+    return result;
 }
