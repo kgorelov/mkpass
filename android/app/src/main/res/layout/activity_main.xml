@@ -107,10 +107,11 @@
                     android:text="Symbols" />
 
                 <CheckBox
-                    android:id="@+id/customCheckBox"
+                    android:id="@+id/capitalizeWordsCheckBox"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Custom" />
+                    android:text="Capitalize Words"
+                    android:visibility="gone" />
 
                 <CheckBox
                     android:id="@+id/allowSubstitutionsCheckBox"
@@ -120,11 +121,10 @@
                     android:visibility="gone" />
 
                 <CheckBox
-                    android:id="@+id/capitalizeWordsCheckBox"
+                    android:id="@+id/customCheckBox"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Capitalize Words"
-                    android:visibility="gone" />
+                    android:text="Custom" />
                 </GridLayout>
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/customCharsLayout"
