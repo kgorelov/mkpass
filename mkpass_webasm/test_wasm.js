@@ -26,25 +26,21 @@ async function runTests() {
         assert(module.CharacterClass.LOWERCASE.value === 0, "LOWERCASE enum value should be 0");
         assert(module.CharacterClass.UPPERCASE.value === 1, "UPPERCASE enum value should be 1");
 
-        // Test 2.1: PassphraseSeparator Enum
-        assert(module.PassphraseSeparator.CamelCase.value === 1, "CamelCase enum value should be 1");
-        assert(module.PassphraseSeparator.KebabCase.value === 2, "KebabCase enum value should be 2");
-
         // Test 3: Basic Password Generation (Argon2)
         const charClasses = new module.VectorCharacterClass();
         charClasses.push_back(module.CharacterClass.LOWERCASE);
         charClasses.push_back(module.CharacterClass.UPPERCASE);
         charClasses.push_back(module.CharacterClass.DIGITS);
 
-        const password = module.MkPass("master", "service", charClasses, module.Algorithm.Argon2.value, 16, "", module.PassphraseSeparator.KebabCase.value);
+        const password = module.MkPass("master", "service", charClasses, module.Algorithm.Argon2.value, 16, "", "", false, "", false);
         assert(typeof password === 'string' && password.length === 16, "Password generation should return 16-char string");
 
         // Test 3.1: Passphrase Generation (Diceware)
-        const passphrase = module.MkPass("master", "service", charClasses, module.Algorithm.Passphrase_Diceware_EFF_Large.value, 6, "", module.PassphraseSeparator.KebabCase.value);
+        const passphrase = module.MkPass("master", "service", charClasses, module.Algorithm.Passphrase_Diceware_EFF_Large.value, 6, "", "-", true, "", false);
         assert(typeof passphrase === 'string' && passphrase.length > 0, "Passphrase generation should return non-empty string");
 
         // Ensure it's deterministic
-        const passwordAgain = module.MkPass("master", "service", charClasses, module.Algorithm.Argon2.value, 16, "", module.PassphraseSeparator.KebabCase.value);
+        const passwordAgain = module.MkPass("master", "service", charClasses, module.Algorithm.Argon2.value, 16, "", "", false, "", false);
         assert(password === passwordAgain, "Password generation should be deterministic");
 
         charClasses.delete();
