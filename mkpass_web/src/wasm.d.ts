@@ -34,6 +34,10 @@ export interface MkPassModule {
         size(): number;
         get(index: number): boolean;
     };
+    VectorString: {
+        size(): number;
+        get(index: number): string;
+    };
     MkPass(
         password: string,
         service: string,
@@ -47,6 +51,8 @@ export interface MkPassModule {
         allow_substitutions: boolean
     ): string;
     GenerateQrCode(text: string): QrCodeData;
+    GetMaxPassphrasePatternLength(): number;
+    GetPassphrasePatterns(length: number): any;
     getExceptionMessage(ptr: number): string;
 }
 

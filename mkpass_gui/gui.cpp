@@ -6,6 +6,8 @@
 #include "platform_utils.h"
 #include "password_dialog.h"
 #include "progress_dialog.h"
+#include "passphrase_patterns.h"
+#include "word_classes.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -141,12 +143,6 @@ void MainWindow::setupUI() {
     formLayout->addRow(separatorWidget);
 
     patternComboBox = new QComboBox;
-    patternComboBox->addItem("2 words (Adj, Noun)", "an");
-    patternComboBox->addItem("3 words (Adj, Noun, Verb)", "anv");
-    patternComboBox->addItem("4 words (Adj, Noun, Adv, Verb)", "anrv");
-    patternComboBox->addItem("5 words (Adj, Noun, Adv, Verb, Noun)", "anrvn");
-    patternComboBox->addItem("6 words (Adj, Noun, Adv, Verb, Adj, Noun)", "anrvnan");
-    patternComboBox->setCurrentIndex(1); // Default to 3 words
     patternWidget = new QWidget;
     QHBoxLayout *patternLayout = new QHBoxLayout(patternWidget);
     patternLayout->setContentsMargins(0, 0, 0, 0);
@@ -177,8 +173,34 @@ void MainWindow::setupUI() {
     connect(customCheckBox, &QCheckBox::toggled, this, &MainWindow::updateCustomCharsState);
     connect(digitsCheckBox, &QCheckBox::toggled, this, &MainWindow::updateSubstitutionsState);
     connect(symbolsCheckBox, &QCheckBox::toggled, this, &MainWindow::updateSubstitutionsState);
+    connect(lengthSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, &MainWindow::updatePatternsList);
 
     updateAlgorithmSpecificUI();
+}
+
+void MainWindow::updatePatternsList() {
+    Algorithm algorithm = static_cast<Algorithm>(algorithmComboBox->currentData().toInt());
+    if (algorithm != Algorithm::Passphrase_Wordnet_Pattern) {
+        return;
+    }
+
+    QString currentPattern = patternComboBox->currentData().toString();
+    patternComboBox->clear();
+    patternComboBox->addItem("Random", "");
+
+    int length = lengthSpinBox->value();
+    PatternsList patterns = GetPassphrasePatterns(length);
+    for (const auto& p : patterns) {
+        std::string pStr = mkpass::PatternToString(p);
+        patternComboBox->addItem(QString::fromStdString(pStr), QString::fromStdString(pStr));
+    }
+
+    int index = patternComboBox->findData(currentPattern);
+    if (index != -1) {
+        patternComboBox->setCurrentIndex(index);
+    } else {
+        patternComboBox->setCurrentIndex(0); // Default to Random
+    }
 }
 
 void MainWindow::generatePassword() {
@@ -251,9 +273,6 @@ void MainWindow::generationFinished() {
     } else if (algorithm == Algorithm::Passphrase_Wordnet_Pattern || algorithm == Algorithm::Passphrase_Diceware_EFF_Large) {
         if (digitsCheckBox->isChecked()) char_classes.push_back(CharacterClass::DIGITS);
         if (symbolsCheckBox->isChecked()) char_classes.push_back(CharacterClass::SYMBOLS);
-        if (algorithm == Algorithm::Passphrase_Wordnet_Pattern) {
-            length = 0;
-        }
     }
 
     std::vector<WordClasses> pattern;
@@ -314,12 +333,15 @@ void MainWindow::serviceChanged(const QString &service) {
         capitalizeCheckBox->setChecked(entry->capitalize_words);
 
         if (!entry->passphrase_pattern.empty()) {
+            // updatePatternsList will be called in updateAlgorithmSpecificUI,
+            // but we need the patterns to be there so findData works.
+            updatePatternsList();
             int pIndex = patternComboBox->findData(QString::fromStdString(mkpass::PatternToString(entry->passphrase_pattern)));
             if (pIndex != -1) {
                 patternComboBox->setCurrentIndex(pIndex);
             }
         } else {
-            patternComboBox->setCurrentIndex(1); // Default to 3 words
+            patternComboBox->setCurrentIndex(0); // Default to Random
         }
 
         allowSubstitutionsCheckBox->setChecked(entry->allow_substitutions);
@@ -338,9 +360,7 @@ void MainWindow::serviceChanged(const QString &service) {
         } else if (newAlgo == Algorithm::Passphrase_Diceware_EFF_Large || newAlgo == Algorithm::Passphrase_Wordnet_Pattern) {
             digitsCheckBox->setChecked(false);
             symbolsCheckBox->setChecked(false);
-            if (newAlgo == Algorithm::Passphrase_Diceware_EFF_Large) {
-                lengthSpinBox->setValue(3);
-            }
+            lengthSpinBox->setValue(3);
         } else if (newAlgo == Algorithm::Old) {
             lengthSpinBox->setValue(8);
         }
@@ -396,7 +416,7 @@ void MainWindow::updateAlgorithmSpecificUI() {
             lengthSpinBox->setValue(3);
         }
         separatorComboBox->setCurrentIndex(0);
-        patternComboBox->setCurrentIndex(1); // Default to 3 words
+        patternComboBox->setCurrentIndex(0); // Default to Random
     } else if (isPassword && !(lastAlgo == Algorithm::Argon2 || lastAlgo == Algorithm::SlowSha512)) {
         digitsCheckBox->setChecked(true);
         symbolsCheckBox->setChecked(true);
@@ -415,7 +435,7 @@ void MainWindow::updateAlgorithmSpecificUI() {
     allowSubstitutionsCheckBox->setVisible(isPassphrase);
     capitalizeCheckBox->setVisible(isPassphrase);
 
-    bool showLength = (algorithm != Algorithm::Passphrase_Wordnet_Pattern);
+    bool showLength = true;
 
     bool showSeparator = isPassphrase;
     bool showPattern = (algorithm == Algorithm::Passphrase_Wordnet_Pattern);
@@ -428,6 +448,10 @@ void MainWindow::updateAlgorithmSpecificUI() {
         if (algorithm == Algorithm::Passphrase_Diceware_EFF_Large) {
             lengthLabel->setText("Passphrase words count:");
             lengthSpinBox->setRange(1, 20);
+        } else if (algorithm == Algorithm::Passphrase_Wordnet_Pattern) {
+            lengthLabel->setText("Passphrase words count:");
+            lengthSpinBox->setRange(1, GetMaxPassphrasePatternLength());
+            updatePatternsList();
         } else {
             lengthLabel->setText("Password length:");
             lengthSpinBox->setRange(1, 128);

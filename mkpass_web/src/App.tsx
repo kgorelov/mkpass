@@ -93,7 +93,8 @@ function App() {
   const [algorithm, setAlgorithm] = useState<number>(1);
   const [separator, setSeparator] = useState<string>('');
   const [capitalizeWords, setCapitalizeWords] = useState(true);
-  const [pattern, setPattern] = useState<string>('anv');
+  const [pattern, setPattern] = useState<string>('');
+  const [availablePatterns, setAvailablePatterns] = useState<string[]>([]);
   const [allowSubstitutions, setAllowSubstitutions] = useState(false);
   const [charClassesState, setCharClassesState] = useState({
     lowercase: true,
@@ -119,6 +120,18 @@ function App() {
     className: '',
     statusClassName: ''
   });
+
+  useEffect(() => {
+    if (wasmModule && algorithm === wasmModule.Algorithm.Passphrase_Wordnet_Pattern.value) {
+      const patterns = wasmModule.GetPassphrasePatterns(passwordLength);
+      const list = [];
+      for (let i = 0; i < patterns.size(); i++) {
+        list.push(patterns.get(i));
+      }
+      setAvailablePatterns(list);
+      patterns.delete();
+    }
+  }, [wasmModule, algorithm, passwordLength]);
 
   // Load saved services on mount
   useEffect(() => {
@@ -220,7 +233,8 @@ function App() {
         setSeparator('');
         setCapitalizeWords(true);
       } else if (newAlgo === wasmModule.Algorithm.Passphrase_Wordnet_Pattern.value) {
-        setPattern('anv');
+        setPattern(''); // Random
+        setPasswordLength(3);
         setCharClassesState({
           ...charClassesState,
           digits: false,
@@ -476,11 +490,10 @@ function App() {
                     onChange={(e) => setPattern(e.target.value)}
                     className="select-algorithm"
                   >
-                    <option value="an">2 words (Adj, Noun)</option>
-                    <option value="anv">3 words (Adj, Noun, Verb)</option>
-                    <option value="anrv">4 words (Adj, Noun, Adv, Verb)</option>
-                    <option value="anrvn">5 words (Adj, Noun, Adv, Verb, Noun)</option>
-                    <option value="anrvnan">6 words (Adj, Noun, Adv, Verb, Adj, Noun)</option>
+                    <option value="">Random</option>
+                    {availablePatterns.map(p => (
+                        <option key={p} value={p}>{p}</option>
+                    ))}
                   </select>
                 </>
               )}
@@ -517,18 +530,18 @@ function App() {
             </div>
           )}
 
-          {algorithm !== (wasmModule?.Algorithm.Passphrase_Wordnet_Pattern.value || -1) && (
-            <div className="input-group">
-              <label>{isPassphraseAlgo() ? 'Number of words' : 'Password Length'}: {passwordLength}</label>
-              <input
-                type="range"
-                min={isPassphraseAlgo() ? "3" : "8"}
-                max={isPassphraseAlgo() ? "12" : "64"}
-                value={passwordLength}
-                onChange={(e) => setPasswordLength(parseInt(e.target.value, 10))}
-              />
-            </div>
-          )}
+          <div className="input-group">
+            <label>{isPassphraseAlgo() ? 'Number of words' : 'Password Length'}: {passwordLength}</label>
+            <input
+              type="range"
+              min={isPassphraseAlgo() ? "1" : "8"}
+              max={algorithm === (wasmModule?.Algorithm.Passphrase_Wordnet_Pattern.value || -1)
+                   ? (wasmModule?.GetMaxPassphrasePatternLength() || 6)
+                   : (isPassphraseAlgo() ? "20" : "64")}
+              value={passwordLength}
+              onChange={(e) => setPasswordLength(parseInt(e.target.value, 10))}
+            />
+          </div>
           <button
             onClick={handleGenerate}
             disabled={!wasmModule || !passwordMatchStatus.isValid || !masterPassword || !service || isGenerating}

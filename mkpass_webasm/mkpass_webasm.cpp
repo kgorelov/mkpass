@@ -7,11 +7,13 @@
 #include "algorithms.h"
 #include "character_classes.h"
 #include "qrcode/qrcodegen.hpp"
+#include "passphrase_patterns.h"
+#include "db.h"
 
 using namespace emscripten;
 using qrcodegen::QrCode;
 
-//std::string MkPassWasm(std::string password, std::string service, std::vector<CharacterClass> char_classes, Algorithm algorithm, unsigned length, std::string custom_chars) {
+// ... MkPassWasm ...
 std::string MkPassWasm(std::string password, std::string service, std::vector<CharacterClass> char_classes, int algorithm, unsigned length, std::string custom_chars, std::string separator, bool capitalize_words, std::string pattern, bool allow_substitutions) {
     Context ctx;
     ctx.password = password;
@@ -31,6 +33,16 @@ std::string MkPassWasm(std::string password, std::string service, std::vector<Ch
     return MkPass(ctx);
 }
 
+std::vector<std::string> GetPassphrasePatternsWasm(int length) {
+    PatternsList patterns = GetPassphrasePatterns(length);
+    std::vector<std::string> result;
+    for (const auto& p : patterns) {
+        result.push_back(mkpass::PatternToString(p));
+    }
+    return result;
+}
+
+// ... QrCodeData ...
 struct QrCodeData {
     int size;
     std::vector<bool> data;
@@ -65,6 +77,7 @@ EMSCRIPTEN_BINDINGS(mkpass_module) {
 
     register_vector<CharacterClass>("VectorCharacterClass");
     register_vector<bool>("VectorBool");
+    register_vector<std::string>("VectorString");
 
     value_object<QrCodeData>("QrCodeData")
         .field("size", &QrCodeData::size)
@@ -72,4 +85,6 @@ EMSCRIPTEN_BINDINGS(mkpass_module) {
 
     function("MkPass", &MkPassWasm);
     function("GenerateQrCode", &GenerateQrCode);
+    function("GetMaxPassphrasePatternLength", &GetMaxPassphrasePatternLength);
+    function("GetPassphrasePatterns", &GetPassphrasePatternsWasm);
 }

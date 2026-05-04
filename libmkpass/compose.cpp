@@ -17,6 +17,7 @@
 #include "uniform.h"
 #include "sha1.hpp"
 #include "base64.hpp"
+#include "passphrase_patterns.h"
 
 template <typename Container>
 int total_length(const Container& strings) {
@@ -314,13 +315,23 @@ std::string ComposePassPhrase(
 
 std::string ComposePassPhrase(
     GeneratorInterface& generator,
-    std::map<WordClasses, Wordlist> &&wordlists,
-    std::vector<WordClasses> &&pattern,
+    std::map<WordClasses, Wordlist> wordlists,
+    std::vector<WordClasses> pattern,
+    size_t length,
     const std::string& separator_str,
     const std::vector<CharacterClass>& char_classes,
     bool allow_substitutions,
     bool capitalize_words)
 {
+    if (pattern.empty()) {
+        PatternsList patterns = GetPassphrasePatterns(length);
+        if (patterns.empty()) {
+            throw std::runtime_error("No patterns for length " + std::to_string(length));
+        }
+        UniformDistribution<int> d(0, patterns.size() - 1);
+        pattern = patterns[d(generator)];
+    }
+
     std::string result;
     std::map<WordClasses, UniformDistribution<int>> distributions;
     std::map<WordClasses, std::set<int>> used_idxs;

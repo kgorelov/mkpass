@@ -97,6 +97,7 @@ if(NOT EMSCRIPTEN)
     generator_ut.cpp
     uniform_ut.cpp
     compose_ut.cpp
+    pattern_compose_ut.cpp
     hkdf_argon2_ut.cpp
   )
   if (NOT MSVC)

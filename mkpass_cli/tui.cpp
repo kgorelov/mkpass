@@ -22,6 +22,7 @@
 #include "db.h"
 #include "platform_utils.h"
 #include "linenoise.h"
+#include "passphrase_patterns.h"
 
 namespace {
 
@@ -214,63 +215,31 @@ std::string AskForSeparator(const std::string& default_separator) {
     return "-";
 }
 
-std::vector<WordClasses> AskForPassphrasePattern(const std::vector<WordClasses>& default_pattern) {
-    std::map<char, std::vector<WordClasses>> predefined_patterns = {
-        {'2', {WordClasses::Adj, WordClasses::Noun}},
-        {'3', {WordClasses::Adj, WordClasses::Noun, WordClasses::Verb}},
-        {'4', {WordClasses::Adj, WordClasses::Noun, WordClasses::Adv, WordClasses::Verb}},
-        {'5', {WordClasses::Adj, WordClasses::Noun, WordClasses::Adv, WordClasses::Verb, WordClasses::Noun}},
-        {'6', {WordClasses::Adj, WordClasses::Noun, WordClasses::Adv, WordClasses::Verb, WordClasses::Adj, WordClasses::Noun}}
-    };
-
-    auto pattern_to_string = [](const std::vector<WordClasses>& p) {
-        std::string s;
-        for (auto wc : p) {
-            switch (wc) {
-            case WordClasses::Noun: s += 'n'; break;
-            case WordClasses::Verb: s += 'v'; break;
-            case WordClasses::Adj:  s += 'a'; break;
-            case WordClasses::Adv:  s += 'r'; break;
-            }
-        }
-        return s;
-    };
-
-    auto string_to_pattern = [](const std::string& s) {
-        std::vector<WordClasses> p;
-        for (char c : s) {
-            switch (c) {
-            case 'n': p.push_back(WordClasses::Noun); break;
-            case 'v': p.push_back(WordClasses::Verb); break;
-            case 'a': p.push_back(WordClasses::Adj);  break;
-            case 'r': p.push_back(WordClasses::Adv);  break;
-            }
-        }
-        return p;
-    };
+std::vector<WordClasses> AskForPassphrasePattern(int length, const std::vector<WordClasses>& default_pattern) {
+    PatternsList patterns = GetPassphrasePatterns(length);
 
     std::cerr << "Choose pattern:\n";
-    std::cerr << "2. 2 words (Adj, Noun)\n";
-    std::cerr << "3. 3 words (Adj, Noun, Verb)\n";
-    std::cerr << "4. 4 words (Adj, Noun, Adv, Verb)\n";
-    std::cerr << "5. 5 words (Adj, Noun, Adv, Verb, Noun)\n";
-    std::cerr << "6. 6 words (Adj, Noun, Adv, Verb, Adj, Noun)\n";
+    std::cerr << "1. Random\n";
+
+    for (size_t i = 0; i < patterns.size(); ++i) {
+        std::cerr << (i + 2) << ". " << mkpass::PatternToString(patterns[i]) << "\n";
+    }
     std::cerr << "c. Custom pattern (e.g. 'navrn')\n";
 
-    std::string default_choice_str = "3";
-    std::string current_pattern_str = mkpass::PatternToString(default_pattern);
-    for (auto const& [key, val] : predefined_patterns) {
-        if (val == default_pattern) {
-            default_choice_str = key;
-            break;
+    std::string default_choice_str = "1";
+    if (!default_pattern.empty()) {
+        for (size_t i = 0; i < patterns.size(); ++i) {
+            if (patterns[i] == default_pattern) {
+                default_choice_str = std::to_string(i + 2);
+                break;
+            }
+        }
+        if (default_choice_str == "1") {
+            default_choice_str = "c (" + mkpass::PatternToString(default_pattern) + ")";
         }
     }
-    if (default_choice_str == "3" && current_pattern_str != "anv") {
-         // It might be custom if it doesn't match predefined
-         default_choice_str = "c (" + current_pattern_str + ")";
-    }
 
-    std::cerr << "Your choice (2-6 or c) [" << default_choice_str << "]: ";
+    std::cerr << "Your choice (1-" << (patterns.size() + 1) << " or c) [" << default_choice_str << "]: ";
     std::string choice;
     std::getline(std::cin, choice);
 
@@ -278,8 +247,16 @@ std::vector<WordClasses> AskForPassphrasePattern(const std::vector<WordClasses>&
         return default_pattern;
     }
 
-    if (predefined_patterns.count(choice[0])) {
-        return predefined_patterns[choice[0]];
+    if (choice == "1") {
+        return {};
+    }
+
+    try {
+        size_t idx = std::stoul(choice);
+        if (idx >= 2 && idx <= patterns.size() + 1) {
+            return patterns[idx - 2];
+        }
+    } catch (...) {
     }
 
     if (choice[0] == 'c') {
@@ -391,28 +368,42 @@ void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::Serv
     }
 
     if (has_digits_or_symbols) {
-        ctx.allow_substitutions = AskYesNoQuestion("Allow character substitutions (e.g. a -> 4, s -> $)?", same_algo ? db_entry->allow_substitutions : false);
+        ctx.allow_substitutions = AskYesNoQuestion(
+            "Allow character substitutions (e.g. a -> 4, s -> $)?",
+            same_algo ? db_entry->allow_substitutions : false);
     } else {
         ctx.allow_substitutions = false;
     }
 
-    ctx.capitalize_words = AskYesNoQuestion("Capitalize words?", same_algo ? db_entry->capitalize_words : true);
+    ctx.capitalize_words = AskYesNoQuestion(
+        "Capitalize words?",
+        same_algo ? db_entry->capitalize_words : true);
 
     ctx.separator = AskForSeparator(same_algo ? db_entry->separator : "");
 }
 
-void HandlePassphraseWordnetPatternAlgo(Context& ctx, const std::optional<mkpass::ServiceEntry>& db_entry) {
+void HandlePassphraseWordnetPatternAlgo(
+    Context& ctx,
+    const std::optional<mkpass::ServiceEntry>& db_entry)
+{
     bool same_algo = db_entry && db_entry->algorithm == ctx.algorithm;
 
-    // Wordnet Pattern currently doesn't use configurable length
-    ctx.length = 0;
+    unsigned default_length = same_algo && db_entry->length > 0 ? db_entry->length : 3;
+    ctx.length = AskForLength(default_length);
 
-    std::vector<WordClasses> default_pattern = {
-        WordClasses::Adj,
-        WordClasses::Noun,
-        WordClasses::Verb};
+    if (ctx.length > GetMaxPassphrasePatternLength()) {
+        ctx.length = GetMaxPassphrasePatternLength();
+        std::cerr << "Length capped to " << ctx.length << "\n";
+    }
 
-    ctx.passphrase_pattern = AskForPassphrasePattern(same_algo ? db_entry->passphrase_pattern : default_pattern);
+    if (ctx.length < 1) {
+        ctx.length = 1;
+        std::cerr << "Length set to 1\n";
+    }
+
+    std::vector<WordClasses> default_pattern = same_algo ? db_entry->passphrase_pattern : std::vector<WordClasses>{};
+
+    ctx.passphrase_pattern = AskForPassphrasePattern(ctx.length, default_pattern);
 
     auto ask_and_add = [&](const std::string& question, CharacterClass cls) {
         bool dflt = same_algo ? std::ranges::count(db_entry->char_classes, cls) > 0 : false;
@@ -433,17 +424,24 @@ void HandlePassphraseWordnetPatternAlgo(Context& ctx, const std::optional<mkpass
     }
 
     if (has_digits_or_symbols) {
-        ctx.allow_substitutions = AskYesNoQuestion("Allow character substitutions (e.g. a -> 4, s -> $)?", same_algo ? db_entry->allow_substitutions : false);
+        ctx.allow_substitutions = AskYesNoQuestion(
+            "Allow character substitutions (e.g. a -> 4, s -> $)?",
+            same_algo ? db_entry->allow_substitutions : false);
     } else {
         ctx.allow_substitutions = false;
     }
 
-    ctx.capitalize_words = AskYesNoQuestion("Capitalize words?", same_algo ? db_entry->capitalize_words : true);
+    ctx.capitalize_words = AskYesNoQuestion(
+        "Capitalize words?",
+        same_algo ? db_entry->capitalize_words : true);
 
     ctx.separator = AskForSeparator(same_algo ? db_entry->separator : "");
 }
 
-void HandleOldAlgo(Context& ctx, const std::optional<mkpass::ServiceEntry>& db_entry) {
+void HandleOldAlgo(
+    Context& ctx,
+    const std::optional<mkpass::ServiceEntry>& db_entry)
+{
     unsigned default_length = 8;
     if (db_entry && db_entry->algorithm == Algorithm::Old && db_entry->length > 0) {
         default_length = db_entry->length;

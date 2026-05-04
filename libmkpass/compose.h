@@ -30,8 +30,9 @@ std::string ComposePassPhrase(
 
 std::string ComposePassPhrase(
     GeneratorInterface& generator,
-    std::map<WordClasses, Wordlist> &&wordlists,
-    std::vector<WordClasses> &&pattern,
+    std::map<WordClasses, Wordlist> wordlists,
+    std::vector<WordClasses> pattern,
+    size_t length,
     const std::string& separator_str,
     const std::vector<CharacterClass>& char_classes,
     bool allow_substitutions,

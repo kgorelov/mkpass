@@ -31,6 +31,7 @@ private slots:
     void updateAlgorithmSpecificUI();
     void updateCustomCharsState();
     void updateSubstitutionsState();
+    void updatePatternsList();
 
 private:
     void setupUI();
