@@ -45,18 +45,108 @@ struct CliOptions {
 
 CliOptions global_options;
 
-std::optional<std::string> GetEnv(const std::string& name) {
-    const char* val = std::getenv(name.c_str());
-    if (val && *val) {
-        return std::string(val);
+template<typename T>
+struct Choice {
+    char key;
+    std::string description;
+    T value;
+};
+
+template<typename T>
+T AskOneChoice(const std::string& title,
+               const std::vector<Choice<T>>& choices,
+               T default_value,
+               const std::optional<std::string>& opt_val,
+               bool known)
+{
+    std::map<char, T> key_to_val;
+    std::map<T, char> val_to_key;
+    for (const auto& c : choices) {
+        key_to_val[c.key] = c.value;
+        val_to_key[c.value] = c.key;
     }
-    return std::nullopt;
+
+    if (opt_val) {
+        std::string val = *opt_val;
+        if (!val.empty() && key_to_val.count(val[0])) {
+            return key_to_val[val[0]];
+        }
+        // If it's a literal value (for separator mostly)
+        if constexpr (std::is_same_v<T, std::string>) {
+            return val;
+        }
+    }
+
+    if (global_options.defaults_level >= 2 || (global_options.defaults_level >= 1 && known)) {
+        return default_value;
+    }
+
+    std::cerr << title << ":\n";
+    for (const auto& c : choices) {
+        std::cerr << c.key << ". " << c.description << "\n";
+    }
+
+    char dflt_key = val_to_key.count(default_value) ? val_to_key[default_value] : choices[0].key;
+    std::cerr << "Your choice [" << dflt_key << "]: ";
+
+    std::string choice;
+    std::getline(std::cin, choice);
+
+    if (choice.empty()) {
+        return default_value;
+    }
+
+    if (key_to_val.count(choice[0])) {
+        return key_to_val[choice[0]];
+    }
+
+    return default_value;
 }
 
-bool ParseBoolEnv(const std::string& val) {
-    std::string s = val;
-    std::transform(s.begin(), s.end(), s.begin(), ::tolower);
-    return s == "y" || s == "yes" || s == "1" || s == "true" || s == "on";
+template<typename T>
+std::vector<T> AskMultipleChoices(const std::string& title,
+                                  const std::vector<Choice<T>>& choices,
+                                  const std::vector<T>& default_values,
+                                  const std::optional<std::string>& opt_val,
+                                  bool known)
+{
+    std::map<char, T> key_to_val;
+    std::map<T, char> val_to_key;
+    for (const auto& c : choices) {
+        key_to_val[c.key] = c.value;
+        val_to_key[c.value] = c.key;
+    }
+
+    std::string choice_str;
+    if (opt_val) {
+        choice_str = *opt_val;
+    } else if (global_options.defaults_level >= 2 || (global_options.defaults_level >= 1 && known)) {
+        return default_values;
+    } else {
+        std::string dflt_str;
+        for (const auto& v : default_values) {
+            if (val_to_key.count(v)) dflt_str += val_to_key[v];
+        }
+
+        std::cerr << title << ":\n";
+        for (const auto& c : choices) {
+            std::cerr << c.key << ". " << c.description << "\n";
+        }
+        std::cerr << "Your choice (e.g. 123) [" << dflt_str << "]: ";
+        std::getline(std::cin, choice_str);
+    }
+
+    if (choice_str.empty()) {
+        return default_values;
+    }
+
+    std::vector<T> result;
+    for (char c : choice_str) {
+        if (key_to_val.count(c)) {
+            result.push_back(key_to_val[c]);
+        }
+    }
+    return result;
 }
 
 std::set<std::string> service_names;
@@ -111,114 +201,25 @@ std::string AskForService() {
 }
 
 Algorithm AskForAlgorithm(Algorithm default_algorithm, bool known) {
-    std::map<char, Algorithm> choices = {
-        {'1', Algorithm::Argon2},
-        {'2', Algorithm::SlowSha512},
-        {'3', Algorithm::Old},
-        {'4', Algorithm::Passphrase_Diceware_EFF_Large},
-        {'5', Algorithm::Passphrase_Wordnet_Pattern}
+    std::vector<Choice<Algorithm>> choices = {
+        {'1', "Password (Argon2)", Algorithm::Argon2},
+        {'2', "Password (SHA512 HMAC)", Algorithm::SlowSha512},
+        {'3', "OldPassword", Algorithm::Old},
+        {'4', "Passphrase Diceware EFF Large (Argon2)", Algorithm::Passphrase_Diceware_EFF_Large},
+        {'5', "Passphrase Wordnet Pattern (Argon2)", Algorithm::Passphrase_Wordnet_Pattern}
     };
-
-    if (global_options.algorithm) {
-        if (choices.count((*global_options.algorithm)[0])) {
-            return choices[(*global_options.algorithm)[0]];
-        }
-    }
-
-    if (global_options.defaults_level >= 2 || (global_options.defaults_level >= 1 && known)) {
-        return default_algorithm;
-    }
-
-    std::map<Algorithm, char> algo_to_char = {
-        {Algorithm::Argon2, '1'},
-        {Algorithm::SlowSha512, '2'},
-        {Algorithm::Old, '3'},
-        {Algorithm::Passphrase_Diceware_EFF_Large, '4'},
-        {Algorithm::Passphrase_Wordnet_Pattern, '5'}
-    };
-
-    std::cerr << "Choose algorithm:\n";
-    std::cerr << "1. Password (Argon2)\n";
-    std::cerr << "2. Password (SHA512 HMAC)\n";
-    std::cerr << "3. OldPassword\n";
-    std::cerr << "4. Passphrase Diceware EFF Large (Argon2)\n";
-    std::cerr << "5. Passphrase Wordnet Pattern (Argon2)\n";
-    std::cerr << "Your choice (e.g. 1) [" << algo_to_char[default_algorithm] << "]: ";
-    std::string choice;
-    std::getline(std::cin, choice);
-
-    if (choice.empty()) {
-        return default_algorithm;
-    }
-
-    if (choices.count(choice[0])) {
-        return choices[choice[0]];
-    }
-
-    return Algorithm::Argon2;
+    return AskOneChoice("Choose algorithm", choices, default_algorithm, global_options.algorithm, known);
 }
 
 std::vector<CharacterClass> AskForCharClasses(const std::vector<CharacterClass>& default_char_classes, bool known) {
-    struct Choice {
-        std::string name;
-        CharacterClass value;
+    std::vector<Choice<CharacterClass>> choices = {
+        {'1', "Lowercase Letters", CharacterClass::LOWERCASE},
+        {'2', "Uppercase Letters", CharacterClass::UPPERCASE},
+        {'3', "Digits", CharacterClass::DIGITS},
+        {'4', "Symbols", CharacterClass::SYMBOLS},
+        {'5', "Custom", CharacterClass::CUSTOM}
     };
-    std::map<char, Choice> choices = {
-        {'1', {"Lowercase Letters", CharacterClass::LOWERCASE}},
-        {'2', {"Uppercase Letters", CharacterClass::UPPERCASE}},
-        {'3', {"Digits", CharacterClass::DIGITS}},
-        {'4', {"Symbols", CharacterClass::SYMBOLS}},
-        {'5', {"Custom", CharacterClass::CUSTOM}}
-    };
-    std::map<CharacterClass, char> cc_to_char = {
-        {CharacterClass::LOWERCASE, '1'},
-        {CharacterClass::UPPERCASE, '2'},
-        {CharacterClass::DIGITS, '3'},
-        {CharacterClass::SYMBOLS, '4'},
-        {CharacterClass::CUSTOM, '5'}
-    };
-
-    if (global_options.char_classes) {
-        std::string choice = *global_options.char_classes;
-        std::vector<CharacterClass> result;
-        for (char c : choice) {
-            if (choices.count(c)) {
-                result.push_back(choices[c].value);
-            }
-        }
-        return result;
-    }
-
-    if (global_options.defaults_level >= 2 || (global_options.defaults_level >= 1 && known)) {
-        return default_char_classes;
-    }
-
-    std::string default_choice_str;
-    for (const auto& cc : default_char_classes) {
-        if (cc_to_char.count(cc)) {
-            default_choice_str += cc_to_char[cc];
-        }
-    }
-
-    std::cerr << "Choose character classes:\n";
-    for (auto const& [key, val] : choices) {
-        std::cerr << key << ". " << val.name << "\n";
-    }
-    std::cerr << "Your choice (e.g. 123) [" << default_choice_str << "]: ";
-    std::string choice;
-    std::getline(std::cin, choice);
-
-    if (choice.empty()) {
-        return default_char_classes;
-    }
-
-    std::vector<CharacterClass> result;
-    for (char c : choice) {
-        if (choices.count(c)) {
-            result.push_back(choices[c].value);
-        }
-    }
-    return result;
+    return AskMultipleChoices("Choose character classes", choices, default_char_classes, global_options.char_classes, known);
 }
 
 std::optional<std::string> AskForCustomChars(const std::optional<std::string>& default_custom_chars, bool known) {
@@ -250,55 +251,13 @@ std::optional<std::string> AskForCustomChars(const std::optional<std::string>& d
 }
 
 std::string AskForSeparator(const std::string& default_separator, bool known) {
-    std::map<char, std::string> choices = {
-        {'1', ""},
-        {'2', "-"},
-        {'3', " "},
-        {'4', "/"}
+    std::vector<Choice<std::string>> choices = {
+        {'1', "None", ""},
+        {'2', "Hyphen (-)", "-"},
+        {'3', "Space ( )", " "},
+        {'4', "Slash (/)", "/"}
     };
-    std::map<std::string, char> sep_to_char = {
-        {"", '1'},
-        {"-", '2'},
-        {" ", '3'},
-        {"/", '4'}
-    };
-
-    if (global_options.separator) {
-        std::string choice = *global_options.separator;
-        if (choices.count(choice[0])) {
-            return choices[choice[0]];
-        }
-        return choice;
-    }
-
-    if (global_options.defaults_level >= 2 || (global_options.defaults_level >= 1 && known)) {
-        return default_separator;
-    }
-
-    std::cerr << "Choose separator:\n";
-    std::cerr << "1. None\n";
-    std::cerr << "2. Hyphen (-)\n";
-    std::cerr << "3. Space ( )\n";
-    std::cerr << "4. Slash (/)\n";
-
-    char dflt_char = '1'; // Default to None
-    if (sep_to_char.count(default_separator)) {
-        dflt_char = sep_to_char[default_separator];
-    }
-
-    std::cerr << "Your choice (1-4) [" << dflt_char << "]: ";
-    std::string choice;
-    std::getline(std::cin, choice);
-
-    if (choice.empty()) {
-        return default_separator;
-    }
-
-    if (choices.count(choice[0])) {
-        return choices[choice[0]];
-    }
-
-    return "-";
+    return AskOneChoice("Choose separator", choices, default_separator, global_options.separator, known);
 }
 
 std::vector<WordClasses> AskForPassphrasePattern(int length, const std::vector<WordClasses>& default_pattern, bool known) {
