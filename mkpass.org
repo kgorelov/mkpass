@@ -63,7 +63,7 @@ If the master password is found, all passwords derived from that master password
   - [X] Add symbols and numbers to the base (legth) based algorithm
   - [X] Implement random words transformations: letters -> symbols substitutions
   - [X] Rebase and support passphrases in the web version
-  - [ ] Let user chose length, have several patterns for each length
+  - [X] Let user chose length, have several patterns for each length
     Let the user chose the pattern for the length: random, pattern1, pattern2...
     Patterns must not be hardcoded in UIs, we need to have a function in libmkpass GetPassprasePatterns(int length)
   - [ ] Cover passphrases algorithms with tests
