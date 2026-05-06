@@ -15,7 +15,7 @@
 #endif
 
 #include "mkpass.h"
-#include "tui.h"
+#include "cli.h"
 #include "compose_password.h"
 #include "context.h"
 #include "character_classes.h"
@@ -62,7 +62,7 @@ std::string AskForService() {
     linenoiseSetCompletionCallback(completion);
     char *service_c_str = linenoise("Service name: ");
     if (service_c_str == nullptr) {
-        throw std::exception(); // Will be caught in run_tui_safe and return 130
+        throw std::exception(); // Will be caught in run_cli_safe and return 130
     }
     std::string service(service_c_str);
     free(service_c_str);
@@ -450,9 +450,9 @@ void HandleOldAlgo(
 }
 } // namespace
 
-int run_tui_safe() {
+int run_cli_safe() {
     try {
-        return run_tui();
+        return run_cli();
     } catch (const std::runtime_error &e) {
         std::cerr << "ERROR! " << e.what() << std::endl;
         return 1;
@@ -462,7 +462,7 @@ int run_tui_safe() {
     }
 }
 
-int run_tui() {
+int run_cli() {
     mkpass::ConfigDB db(GetConfigDBPath());
     service_names = db.get_all_service_names();
 

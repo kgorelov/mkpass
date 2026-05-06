@@ -2,7 +2,7 @@
 add_library(linenoise STATIC linenoise-ng/linenoise.cpp linenoise-ng/ConvertUTF.cpp linenoise-ng/wcwidth.cpp)
 target_include_directories(linenoise PUBLIC linenoise-ng)
 
-add_executable(mkpass main.cpp tui.cpp)
+add_executable(mkpass main.cpp cli.cpp)
 if (MSVC)
     target_compile_options(mkpass PRIVATE /std:c++20)
 else()
