@@ -1,4 +1,6 @@
 #include <iostream>
+#include <sstream>
+#include <set>
 
 #include "compose_passphrase.h"
 #include "generator.h"
@@ -6,10 +8,14 @@
 #include "hkdf_argon2.h"
 #include "character_classes.h"
 #include "wordlists/eff_large_words.h"
+#include "wordlists/wordnet_nouns.h"
+#include "wordlists/wordnet_verbs.h"
+#include "wordlists/wordnet_adjs.h"
+#include "wordlists/wordnet_advs.h"
 #include <gtest/gtest.h>
 
 
-TEST(ComposeTest, TestPassphraseKebabCase) {
+TEST(ComposePassphraseTest, TestPassphraseKebabCase) {
     Generator<HKDF_Argon2> g("password", "service");
     Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
     std::vector<CharacterClass> char_classes;
@@ -30,7 +36,7 @@ TEST(ComposeTest, TestPassphraseKebabCase) {
     }
 }
 
-TEST(ComposeTest, TestPassphraseCamelCase) {
+TEST(ComposePassphraseTest, TestPassphraseCamelCase) {
     Generator<HKDF_Argon2> g("password", "service");
     Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
     std::vector<CharacterClass> char_classes;
@@ -41,7 +47,6 @@ TEST(ComposeTest, TestPassphraseCamelCase) {
         EXPECT_NE(c, '-');
     }
     // Each word should start with uppercase
-    // This is a bit hard to test without knowing the words, but we can check if there are any uppercase letters
     int uppers = 0;
     for (char c : p) {
         if (isupper(c)) {
@@ -51,14 +56,10 @@ TEST(ComposeTest, TestPassphraseCamelCase) {
     EXPECT_EQ(uppers, 3);
 }
 
-TEST(ComposeTest, TestPassphraseSubstitutionsDigits) {
+TEST(ComposePassphraseTest, TestPassphraseSubstitutionsDigits) {
     Generator<HKDF_Argon2> g("password", "service");
     Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
     std::vector<CharacterClass> char_classes = {CharacterClass::DIGITS};
-    // We want to check if any of the substituted characters appear in the output
-    // letters_to_digits contains '4' for 'a', '3' for 'e', etc.
-    // By allowing substitutions, we expect to see digits instead of some letters OR appended.
-    // To be sure, we can run it multiple times or check if the result contains digits.
     bool found_digit = false;
     for (int i = 0; i < 10; ++i) {
         auto p = ComposePassPhrase(g, wordlist, 3, "-", char_classes, true, false);
@@ -73,12 +74,11 @@ TEST(ComposeTest, TestPassphraseSubstitutionsDigits) {
     EXPECT_TRUE(found_digit);
 }
 
-TEST(ComposeTest, TestPassphraseSubstitutionsSymbols) {
+TEST(ComposePassphraseTest, TestPassphraseSubstitutionsSymbols) {
     Generator<HKDF_Argon2> g("password", "service");
     Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
     std::vector<CharacterClass> char_classes = {CharacterClass::SYMBOLS};
     bool found_symbol = false;
-    std::string symbols = "!@#$%^&*()-_=+[]{}|;:,.<>?/"; // more than we have but safe
     for (int i = 0; i < 10; ++i) {
         auto p = ComposePassPhrase(g, wordlist, 3, "-", char_classes, true, false);
         for (char c : p) {
@@ -92,24 +92,133 @@ TEST(ComposeTest, TestPassphraseSubstitutionsSymbols) {
     EXPECT_TRUE(found_symbol);
 }
 
-TEST(ComposeTest, TestPassphraseNoSubstitutions) {
+TEST(ComposePassphraseTest, TestPassphraseNoSubstitutions) {
     Generator<HKDF_Argon2> g("password", "service");
     Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
     std::vector<CharacterClass> char_classes = {CharacterClass::DIGITS};
-    // When allow_substitutions is false, digits should ONLY be appended at the end of some word.
-    // They should not replace any letter.
     auto p = ComposePassPhrase(g, wordlist, 3, "-", char_classes, false, false);
 
-    // In KebabCase, it's easy: words are separated by '-'.
-    // If a digit is present, it must be either before a '-' or at the end of the string.
     bool found_digit = false;
     for (size_t i = 0; i < p.length(); ++i) {
         if (isdigit(p[i])) {
             found_digit = true;
-            // Check if it's at the end of a word
             bool at_end_of_word = (i + 1 == p.length()) || (p[i+1] == '-');
             EXPECT_TRUE(at_end_of_word) << "Digit " << p[i] << " found at index " << i << " in " << p << " is not at the end of a word";
         }
     }
     EXPECT_TRUE(found_digit);
+}
+
+TEST(ComposePassphraseTest, TestPassphrasePattern) {
+    Generator<HKDF_Argon2> g("password", "service");
+    std::map<WordClasses, Wordlist> wordlists = {
+        {WordClasses::Noun, Wordlist(wordnet_nouns_get_word, wordnet_nouns_get_word_count)},
+        {WordClasses::Verb, Wordlist(wordnet_verbs_get_word, wordnet_verbs_get_word_count)},
+        {WordClasses::Adj, Wordlist(wordnet_adjs_get_word, wordnet_adjs_get_word_count)},
+        {WordClasses::Adv, Wordlist(wordnet_advs_get_word, wordnet_advs_get_word_count)}
+    };
+    std::vector<WordClasses> pattern = {WordClasses::Adj, WordClasses::Noun};
+    std::vector<CharacterClass> char_classes;
+    auto p = ComposePassPhrase(g, wordlists, pattern, 0, "-", char_classes, false, false);
+    int hyphens = 0;
+    for (char c : p) {
+        if (c == '-') hyphens++;
+    }
+    EXPECT_EQ(hyphens, 1);
+}
+
+TEST(ComposePassphraseTest, TestPassphraseAutoPattern) {
+    Generator<HKDF_Argon2> g("password", "service");
+    std::map<WordClasses, Wordlist> wordlists = {
+        {WordClasses::Noun, Wordlist(wordnet_nouns_get_word, wordnet_nouns_get_word_count)},
+        {WordClasses::Verb, Wordlist(wordnet_verbs_get_word, wordnet_verbs_get_word_count)},
+        {WordClasses::Adj, Wordlist(wordnet_adjs_get_word, wordnet_adjs_get_word_count)},
+        {WordClasses::Adv, Wordlist(wordnet_advs_get_word, wordnet_advs_get_word_count)}
+    };
+    std::vector<WordClasses> pattern; // Empty pattern
+    std::vector<CharacterClass> char_classes;
+    // Patterns for length 3 exist in passphrase_patterns.cpp
+    auto p = ComposePassPhrase(g, wordlists, pattern, 3, "-", char_classes, false, false);
+    int hyphens = 0;
+    for (char c : p) {
+        if (c == '-') hyphens++;
+    }
+    EXPECT_EQ(hyphens, 2);
+}
+
+TEST(ComposePassphraseTest, TestPassphraseUniqueWords) {
+    Generator<HKDF_Argon2> g("password", "service");
+    Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
+    std::vector<CharacterClass> char_classes;
+    int num_words = 10;
+    auto p = ComposePassPhrase(g, wordlist, num_words, " ", char_classes, false, false);
+
+    std::stringstream ss(p);
+    std::string word;
+    std::set<std::string> words;
+    while (ss >> word) {
+        words.insert(word);
+    }
+    EXPECT_EQ(words.size(), num_words);
+}
+
+TEST(ComposePassphraseTest, TestPassphraseLongSeparator) {
+    Generator<HKDF_Argon2> g("password", "service");
+    Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
+    std::vector<CharacterClass> char_classes;
+    auto p = ComposePassPhrase(g, wordlist, 3, "###", char_classes, false, false);
+    EXPECT_TRUE(p.find("###") != std::string::npos);
+    size_t count = 0;
+    size_t pos = p.find("###");
+    while (pos != std::string::npos) {
+        count++;
+        pos = p.find("###", pos + 3);
+    }
+    EXPECT_EQ(count, 2);
+}
+
+TEST(ComposePassphraseTest, TestPassphraseEmptyCharClasses) {
+    Generator<HKDF_Argon2> g("password", "service");
+    Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
+    std::vector<CharacterClass> char_classes;
+    auto p = ComposePassPhrase(g, wordlist, 3, "-", char_classes, false, false);
+    // Result should only contain letters and hyphens (assuming eff_large words are letters only)
+    for (char c : p) {
+        if (c != '-') {
+            EXPECT_TRUE(isalpha(c));
+        }
+    }
+}
+
+TEST(ComposePassphraseTest, TestPassphraseCapitalizeAndSubstitute) {
+    Generator<HKDF_Argon2> g("password", "service");
+    Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
+    // CharacterClass::DIGITS usually includes substitutions like 'a' -> '4', 'e' -> '3', etc.
+    std::vector<CharacterClass> char_classes = {CharacterClass::DIGITS};
+
+    bool found_upper = false;
+    bool found_digit = false;
+
+    for (int i = 0; i < 20; ++i) {
+        auto p = ComposePassPhrase(g, wordlist, 3, "-", char_classes, true, true);
+        for (char c : p) {
+            if (isupper(c)) found_upper = true;
+            if (isdigit(c)) found_digit = true;
+        }
+        if (found_upper && found_digit) break;
+    }
+
+    EXPECT_TRUE(found_upper);
+    EXPECT_TRUE(found_digit);
+}
+
+TEST(ComposePassphraseTest, TestPassphraseNoPatternException) {
+    Generator<HKDF_Argon2> g("password", "service");
+    std::map<WordClasses, Wordlist> wordlists;
+    std::vector<WordClasses> pattern;
+    std::vector<CharacterClass> char_classes;
+    // Length 10 has no patterns defined
+    EXPECT_THROW(
+        ComposePassPhrase(g, wordlists, pattern, 10, "-", char_classes, false, false),
+        std::runtime_error);
 }
