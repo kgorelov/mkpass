@@ -26,6 +26,20 @@
 
 namespace {
 
+std::optional<std::string> GetEnv(const std::string& name) {
+    const char* val = std::getenv(name.c_str());
+    if (val && *val) {
+        return std::string(val);
+    }
+    return std::nullopt;
+}
+
+bool ParseBoolEnv(const std::string& val) {
+    std::string s = val;
+    std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+    return s == "y" || s == "yes" || s == "1" || s == "true" || s == "on";
+}
+
 std::set<std::string> service_names;
 
 void completion(const char *buf, linenoiseCompletions *lc) {
@@ -37,6 +51,11 @@ void completion(const char *buf, linenoiseCompletions *lc) {
 }
 
 std::string AskForMasterPassword() {
+    auto env_pwd = GetEnv("MKPASS_PASSWORD");
+    if (env_pwd) {
+        return *env_pwd;
+    }
+
     std::cerr << "Enter Master Password: ";
     std::string pwd = InputPassword();
     std::cerr << "\n";
@@ -59,6 +78,11 @@ std::string AskForMasterPassword() {
 }
 
 std::string AskForService() {
+    auto env_service = GetEnv("MKPASS_SERVICE");
+    if (env_service) {
+        return *env_service;
+    }
+
     linenoiseSetCompletionCallback(completion);
     char *service_c_str = linenoise("Service name: ");
     if (service_c_str == nullptr) {
@@ -77,6 +101,14 @@ Algorithm AskForAlgorithm(Algorithm default_algorithm) {
         {'4', Algorithm::Passphrase_Diceware_EFF_Large},
         {'5', Algorithm::Passphrase_Wordnet_Pattern}
     };
+
+    auto env_algo = GetEnv("MKPASS_ALGORITHM");
+    if (env_algo) {
+        if (choices.count((*env_algo)[0])) {
+            return choices[(*env_algo)[0]];
+        }
+    }
+
     std::map<Algorithm, char> algo_to_char = {
         {Algorithm::Argon2, '1'},
         {Algorithm::SlowSha512, '2'},
@@ -126,20 +158,25 @@ std::vector<CharacterClass> AskForCharClasses(const std::vector<CharacterClass>&
         {CharacterClass::CUSTOM, '5'}
     };
 
-    std::string default_choice_str;
-    for (const auto& cc : default_char_classes) {
-        if (cc_to_char.count(cc)) {
-            default_choice_str += cc_to_char[cc];
-        }
-    }
-
-    std::cerr << "Choose character classes:\n";
-    for (auto const& [key, val] : choices) {
-        std::cerr << key << ". " << val.name << "\n";
-    }
-    std::cerr << "Your choice (e.g. 123) [" << default_choice_str << "]: ";
+    auto env_cc = GetEnv("MKPASS_CHAR_CLASSES");
     std::string choice;
-    std::getline(std::cin, choice);
+    if (env_cc) {
+        choice = *env_cc;
+    } else {
+        std::string default_choice_str;
+        for (const auto& cc : default_char_classes) {
+            if (cc_to_char.count(cc)) {
+                default_choice_str += cc_to_char[cc];
+            }
+        }
+
+        std::cerr << "Choose character classes:\n";
+        for (auto const& [key, val] : choices) {
+            std::cerr << key << ". " << val.name << "\n";
+        }
+        std::cerr << "Your choice (e.g. 123) [" << default_choice_str << "]: ";
+        std::getline(std::cin, choice);
+    }
 
     if (choice.empty()) {
         return default_char_classes;
@@ -155,6 +192,11 @@ std::vector<CharacterClass> AskForCharClasses(const std::vector<CharacterClass>&
 }
 
 std::optional<std::string> AskForCustomChars(const std::optional<std::string>& default_custom_chars) {
+    auto env_custom = GetEnv("MKPASS_CUSTOM_CHARS");
+    if (env_custom) {
+        return env_custom;
+    }
+
     std::string prompt = "Custom characters";
     if (default_custom_chars) {
         prompt += " [" + *default_custom_chars + "]";
@@ -188,28 +230,38 @@ std::string AskForSeparator(const std::string& default_separator) {
         {"/", '4'}
     };
 
-    std::cerr << "Choose separator:\n";
-    std::cerr << "1. None\n";
-    std::cerr << "2. Hyphen (-)\n";
-    std::cerr << "3. Space ( )\n";
-    std::cerr << "4. Slash (/)\n";
+    auto env_sep = GetEnv("MKPASS_SEPARATOR");
+    std::string choice;
+    if (env_sep) {
+        choice = *env_sep;
+    } else {
+        std::cerr << "Choose separator:\n";
+        std::cerr << "1. None\n";
+        std::cerr << "2. Hyphen (-)\n";
+        std::cerr << "3. Space ( )\n";
+        std::cerr << "4. Slash (/)\n";
 
-    char dflt_char = '1'; // Default to None
-    if (sep_to_char.count(default_separator)) {
-        dflt_char = sep_to_char[default_separator];
+        char dflt_char = '1'; // Default to None
+        if (sep_to_char.count(default_separator)) {
+            dflt_char = sep_to_char[default_separator];
+        }
+
+        std::cerr << "Your choice (1-4) [" << dflt_char << "]: ";
+        std::getline(std::cin, choice);
     }
 
-    std::cerr << "Your choice (1-4) [" << dflt_char << "]: ";
-    std::string choice;
-    std::getline(std::cin, choice);
-
     if (choice.empty()) {
-        if (default_separator.empty() && dflt_char == '1') return "";
+        if (default_separator.empty() && (!env_sep || (env_sep && (*env_sep).empty()))) return "";
         return default_separator.empty() ? "" : default_separator;
     }
 
     if (choices.count(choice[0])) {
         return choices[choice[0]];
+    }
+
+    // Support literal separators from ENV
+    if (env_sep) {
+        return *env_sep;
     }
 
     return "-";
@@ -218,30 +270,35 @@ std::string AskForSeparator(const std::string& default_separator) {
 std::vector<WordClasses> AskForPassphrasePattern(int length, const std::vector<WordClasses>& default_pattern) {
     PatternsList patterns = GetPassphrasePatterns(length);
 
-    std::cerr << "Choose pattern:\n";
-    std::cerr << "1. Random\n";
+    auto env_pattern = GetEnv("MKPASS_PASSPHRASE_PATTERN");
+    std::string choice;
+    if (env_pattern) {
+        choice = *env_pattern;
+    } else {
+        std::cerr << "Choose pattern:\n";
+        std::cerr << "1. Random\n";
 
-    for (size_t i = 0; i < patterns.size(); ++i) {
-        std::cerr << (i + 2) << ". " << mkpass::PatternToString(patterns[i]) << "\n";
-    }
-    std::cerr << "c. Custom pattern (e.g. 'navrn')\n";
-
-    std::string default_choice_str = "1";
-    if (!default_pattern.empty()) {
         for (size_t i = 0; i < patterns.size(); ++i) {
-            if (patterns[i] == default_pattern) {
-                default_choice_str = std::to_string(i + 2);
-                break;
+            std::cerr << (i + 2) << ". " << mkpass::PatternToString(patterns[i]) << "\n";
+        }
+        std::cerr << "c. Custom pattern (e.g. 'navrn')\n";
+
+        std::string default_choice_str = "1";
+        if (!default_pattern.empty()) {
+            for (size_t i = 0; i < patterns.size(); ++i) {
+                if (patterns[i] == default_pattern) {
+                    default_choice_str = std::to_string(i + 2);
+                    break;
+                }
+            }
+            if (default_choice_str == "1") {
+                default_choice_str = "c (" + mkpass::PatternToString(default_pattern) + ")";
             }
         }
-        if (default_choice_str == "1") {
-            default_choice_str = "c (" + mkpass::PatternToString(default_pattern) + ")";
-        }
-    }
 
-    std::cerr << "Your choice (1-" << (patterns.size() + 1) << " or c) [" << default_choice_str << "]: ";
-    std::string choice;
-    std::getline(std::cin, choice);
+        std::cerr << "Your choice (1-" << (patterns.size() + 1) << " or c) [" << default_choice_str << "]: ";
+        std::getline(std::cin, choice);
+    }
 
     if (choice.empty()) {
         return default_pattern;
@@ -260,31 +317,47 @@ std::vector<WordClasses> AskForPassphrasePattern(int length, const std::vector<W
     }
 
     if (choice[0] == 'c') {
-        std::cerr << "Enter custom pattern (n:noun, v:verb, a:adj, r:adv): ";
         std::string custom_pattern;
-        std::getline(std::cin, custom_pattern);
+        if (env_pattern && choice.length() > 1) {
+            custom_pattern = choice.substr(1);
+        } else {
+            std::cerr << "Enter custom pattern (n:noun, v:verb, a:adj, r:adv): ";
+            std::getline(std::cin, custom_pattern);
+        }
+
         if (custom_pattern.empty()) {
             return default_pattern;
         }
         return mkpass::StringToPattern(custom_pattern);
     }
 
+    // If it doesn't match a choice number, try parsing it as a pattern directly
+    if (env_pattern) {
+        return mkpass::StringToPattern(*env_pattern);
+    }
+
     return default_pattern;
 }
 
 unsigned AskForLength(unsigned default_length) {
-    std::string prompt = "Length";
-    if (default_length > 0) {
-        prompt += " [" + std::to_string(default_length) + "]";
-    }
-    prompt += ": ";
+    auto env_length = GetEnv("MKPASS_LENGTH");
+    std::string length_str;
+    if (env_length) {
+        length_str = *env_length;
+    } else {
+        std::string prompt = "Length";
+        if (default_length > 0) {
+            prompt += " [" + std::to_string(default_length) + "]";
+        }
+        prompt += ": ";
 
-    char *length_c_str = linenoise(prompt.c_str());
-    if (length_c_str == nullptr) {
-        throw std::exception();
+        char *length_c_str = linenoise(prompt.c_str());
+        if (length_c_str == nullptr) {
+            throw std::exception();
+        }
+        length_str = std::string(length_c_str);
+        free(length_c_str);
     }
-    std::string length_str(length_c_str);
-    free(length_c_str);
 
     if (length_str.empty()) {
         if (default_length == 0) {
@@ -299,7 +372,14 @@ unsigned AskForLength(unsigned default_length) {
     }
 }
 
-bool AskYesNoQuestion(const std::string& question, bool dflt) {
+bool AskYesNoQuestion(const std::string& question, bool dflt, const std::string& env_name = "") {
+    if (!env_name.empty()) {
+        auto env_val = GetEnv(env_name);
+        if (env_val) {
+            return ParseBoolEnv(*env_val);
+        }
+    }
+
     std::cerr << question
               << " (y/n) [" << (dflt ? "y" : "n") << "]: ";
     std::string choice;
@@ -349,15 +429,15 @@ void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::Serv
 
     ctx.length = AskForLength(same_algo && db_entry->length > 0 ? db_entry->length : 3);
 
-    auto ask_and_add = [&](const std::string& question, CharacterClass cls) {
+    auto ask_and_add = [&](const std::string& question, CharacterClass cls, const std::string& env_name) {
         bool dflt = same_algo ? std::ranges::count(db_entry->char_classes, cls) > 0 : false;
-        if (AskYesNoQuestion(question, dflt)) {
+        if (AskYesNoQuestion(question, dflt, env_name)) {
             ctx.char_classes.push_back(cls);
         }
     };
 
-    ask_and_add("Include digits?", CharacterClass::DIGITS);
-    ask_and_add("Include symbols?", CharacterClass::SYMBOLS);
+    ask_and_add("Include digits?", CharacterClass::DIGITS, "MKPASS_DIGITS");
+    ask_and_add("Include symbols?", CharacterClass::SYMBOLS, "MKPASS_SYMBOLS");
 
     bool has_digits_or_symbols = false;
     for (auto cc : ctx.char_classes) {
@@ -370,14 +450,16 @@ void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::Serv
     if (has_digits_or_symbols) {
         ctx.allow_substitutions = AskYesNoQuestion(
             "Allow character substitutions (e.g. a -> 4, s -> $)?",
-            same_algo ? db_entry->allow_substitutions : false);
+            same_algo ? db_entry->allow_substitutions : false,
+            "MKPASS_SUBSTITUTIONS");
     } else {
         ctx.allow_substitutions = false;
     }
 
     ctx.capitalize_words = AskYesNoQuestion(
         "Capitalize words?",
-        same_algo ? db_entry->capitalize_words : true);
+        same_algo ? db_entry->capitalize_words : true,
+        "MKPASS_CAPITALIZE");
 
     ctx.separator = AskForSeparator(same_algo ? db_entry->separator : "");
 }
@@ -405,15 +487,15 @@ void HandlePassphraseWordnetPatternAlgo(
 
     ctx.passphrase_pattern = AskForPassphrasePattern(ctx.length, default_pattern);
 
-    auto ask_and_add = [&](const std::string& question, CharacterClass cls) {
+    auto ask_and_add = [&](const std::string& question, CharacterClass cls, const std::string& env_name) {
         bool dflt = same_algo ? std::ranges::count(db_entry->char_classes, cls) > 0 : false;
-        if (AskYesNoQuestion(question, dflt)) {
+        if (AskYesNoQuestion(question, dflt, env_name)) {
             ctx.char_classes.push_back(cls);
         }
     };
 
-    ask_and_add("Include digits?", CharacterClass::DIGITS);
-    ask_and_add("Include symbols?", CharacterClass::SYMBOLS);
+    ask_and_add("Include digits?", CharacterClass::DIGITS, "MKPASS_DIGITS");
+    ask_and_add("Include symbols?", CharacterClass::SYMBOLS, "MKPASS_SYMBOLS");
 
     bool has_digits_or_symbols = false;
     for (auto cc : ctx.char_classes) {
@@ -426,14 +508,16 @@ void HandlePassphraseWordnetPatternAlgo(
     if (has_digits_or_symbols) {
         ctx.allow_substitutions = AskYesNoQuestion(
             "Allow character substitutions (e.g. a -> 4, s -> $)?",
-            same_algo ? db_entry->allow_substitutions : false);
+            same_algo ? db_entry->allow_substitutions : false,
+            "MKPASS_SUBSTITUTIONS");
     } else {
         ctx.allow_substitutions = false;
     }
 
     ctx.capitalize_words = AskYesNoQuestion(
         "Capitalize words?",
-        same_algo ? db_entry->capitalize_words : true);
+        same_algo ? db_entry->capitalize_words : true,
+        "MKPASS_CAPITALIZE");
 
     ctx.separator = AskForSeparator(same_algo ? db_entry->separator : "");
 }

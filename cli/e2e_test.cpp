@@ -226,10 +226,105 @@ TEST(E2EServiceEntriesTest, DatabaseUpdate) {
     EXPECT_EQ(sqlite3_column_int(stmt, 2), expected_char_classes);
 
     sqlite3_finalize(stmt);
-    sqlite3_close(db);
-
     unsetenv("MKPASS_DB_PATH");
     remove(db_path.c_str());
+}
+
+TEST(E2EEnvVarsTest, AllEnvVarsSet) {
+    setenv("MKPASS_PASSWORD", "test_master", 1);
+    setenv("MKPASS_SERVICE", "test_service", 1);
+    setenv("MKPASS_ALGORITHM", "1", 1);
+    setenv("MKPASS_CHAR_CLASSES", "123", 1);
+    setenv("MKPASS_LENGTH", "20", 1);
+
+    ProcessOutput output = exec_with_input(MKPASS_EXECUTABLE_PATH, "");
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_EQ(output.std_out.length(), 20);
+
+    unsetenv("MKPASS_PASSWORD");
+    unsetenv("MKPASS_SERVICE");
+    unsetenv("MKPASS_ALGORITHM");
+    unsetenv("MKPASS_CHAR_CLASSES");
+    unsetenv("MKPASS_LENGTH");
+}
+
+TEST(E2EEnvVarsTest, PassphraseDiceware) {
+    setenv("MKPASS_PASSWORD", "test_master", 1);
+    setenv("MKPASS_SERVICE", "test_service_diceware", 1);
+    setenv("MKPASS_ALGORITHM", "4", 1);
+    setenv("MKPASS_LENGTH", "4", 1);
+    setenv("MKPASS_DIGITS", "y", 1);
+    setenv("MKPASS_SYMBOLS", "n", 1);
+    setenv("MKPASS_SUBSTITUTIONS", "y", 1);
+    setenv("MKPASS_CAPITALIZE", "n", 1);
+    setenv("MKPASS_SEPARATOR", "2", 1); // Hyphen
+
+    ProcessOutput output = exec_with_input(MKPASS_EXECUTABLE_PATH, "");
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_FALSE(output.std_out.empty());
+
+    unsetenv("MKPASS_PASSWORD");
+    unsetenv("MKPASS_SERVICE");
+    unsetenv("MKPASS_ALGORITHM");
+    unsetenv("MKPASS_LENGTH");
+    unsetenv("MKPASS_DIGITS");
+    unsetenv("MKPASS_SYMBOLS");
+    unsetenv("MKPASS_SUBSTITUTIONS");
+    unsetenv("MKPASS_CAPITALIZE");
+    unsetenv("MKPASS_SEPARATOR");
+}
+
+TEST(E2EEnvVarsTest, CustomChars) {
+    setenv("MKPASS_PASSWORD", "test_master", 1);
+    setenv("MKPASS_SERVICE", "test_service_custom", 1);
+    setenv("MKPASS_ALGORITHM", "1", 1);
+    setenv("MKPASS_CHAR_CLASSES", "5", 1);
+    setenv("MKPASS_CUSTOM_CHARS", "ABC", 1);
+    setenv("MKPASS_LENGTH", "10", 1);
+
+    ProcessOutput output = exec_with_input(MKPASS_EXECUTABLE_PATH, "");
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_EQ(output.std_out.length(), 10);
+    for (char c : output.std_out) {
+        EXPECT_TRUE(c == 'A' || c == 'B' || c == 'C');
+    }
+
+    unsetenv("MKPASS_PASSWORD");
+    unsetenv("MKPASS_SERVICE");
+    unsetenv("MKPASS_ALGORITHM");
+    unsetenv("MKPASS_CHAR_CLASSES");
+    unsetenv("MKPASS_CUSTOM_CHARS");
+    unsetenv("MKPASS_LENGTH");
+}
+
+TEST(E2EEnvVarsTest, PassphraseWordnetPattern) {
+    setenv("MKPASS_PASSWORD", "test_master", 1);
+    setenv("MKPASS_SERVICE", "test_service_wordnet", 1);
+    setenv("MKPASS_ALGORITHM", "5", 1);
+    setenv("MKPASS_LENGTH", "3", 1);
+    setenv("MKPASS_PASSPHRASE_PATTERN", "nav", 1);
+    setenv("MKPASS_DIGITS", "n", 1);
+    setenv("MKPASS_SYMBOLS", "n", 1);
+    setenv("MKPASS_CAPITALIZE", "y", 1);
+    setenv("MKPASS_SEPARATOR", "3", 1); // Space
+
+    ProcessOutput output = exec_with_input(MKPASS_EXECUTABLE_PATH, "");
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_FALSE(output.std_out.empty());
+
+    unsetenv("MKPASS_PASSWORD");
+    unsetenv("MKPASS_SERVICE");
+    unsetenv("MKPASS_ALGORITHM");
+    unsetenv("MKPASS_LENGTH");
+    unsetenv("MKPASS_PASSPHRASE_PATTERN");
+    unsetenv("MKPASS_DIGITS");
+    unsetenv("MKPASS_SYMBOLS");
+    unsetenv("MKPASS_CAPITALIZE");
+    unsetenv("MKPASS_SEPARATOR");
 }
 
 TEST(E2EServiceEntriesTest, AutocompleteNewServiceEntries) {
