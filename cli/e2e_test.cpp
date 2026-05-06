@@ -350,6 +350,60 @@ TEST(E2ECommandLineOptionsTest, MixedEnvAndCmd) {
     unsetenv("MKPASS_PASSWORD");
 }
 
+TEST(E2EDefaultsTest, KnownServiceWithD) {
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-defaults.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
+    remove(db_path.c_str());
+
+    // 1. Create entry
+    std::string input1 = "master\nmaster\nservice1\n1\n123\n10\n";
+    exec_with_input(MKPASS_EXECUTABLE_PATH, input1);
+
+    // 2. Run with -d, should only ask for password and service (if not provided)
+    // We provide password and service via CMD to see if it finishes without input
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p master -s service1 -d";
+    ProcessOutput output = exec_with_input(cmd, "");
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_EQ(output.std_out.length(), 10);
+
+    unsetenv("MKPASS_DB_PATH");
+    remove(db_path.c_str());
+}
+
+TEST(E2EDefaultsTest, NewServiceWithDShouldAsk) {
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-defaults-new.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
+    remove(db_path.c_str());
+
+    // Run with -d for a NEW service. It should still ask for parameters.
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p master -s new_service -d";
+    // We provide input for Algorithm(1), CharClasses(1234), Length(15)
+    std::string input = "1\n1234\n15\n";
+    ProcessOutput output = exec_with_input(cmd, input);
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_EQ(output.std_out.length(), 15);
+
+    unsetenv("MKPASS_DB_PATH");
+    remove(db_path.c_str());
+}
+
+TEST(E2EDefaultsTest, NewServiceWithBigD) {
+    // Run with -D for a NEW service. It should NOT ask for parameters, using program defaults.
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p master -s new_service -D";
+    ProcessOutput output = exec_with_input(cmd, "");
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_EQ(output.std_out.length(), 16); // Default length for Argon2 is 16
+
+    // Verify it used Argon2 (default)
+    // We can't easily verify the algorithm from output, but length 16 is a good hint.
+}
+
 TEST(E2EServiceEntriesTest, AutocompleteNewServiceEntries) {
     std::string db_path = GetTmpDir() + "/mkpass-e2e2-autocomplete.db";
     setenv("MKPASS_DB_PATH", db_path.c_str(), 1);

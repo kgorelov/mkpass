@@ -40,6 +40,7 @@ struct CliOptions {
     std::optional<bool> symbols;
     std::optional<bool> substitutions;
     std::optional<bool> capitalize;
+    int defaults_level = 0;
 };
 
 CliOptions global_options;
@@ -109,7 +110,7 @@ std::string AskForService() {
     return service;
 }
 
-Algorithm AskForAlgorithm(Algorithm default_algorithm) {
+Algorithm AskForAlgorithm(Algorithm default_algorithm, bool known) {
     std::map<char, Algorithm> choices = {
         {'1', Algorithm::Argon2},
         {'2', Algorithm::SlowSha512},
@@ -122,6 +123,10 @@ Algorithm AskForAlgorithm(Algorithm default_algorithm) {
         if (choices.count((*global_options.algorithm)[0])) {
             return choices[(*global_options.algorithm)[0]];
         }
+    }
+
+    if (global_options.defaults_level >= 2 || (global_options.defaults_level >= 1 && known)) {
+        return default_algorithm;
     }
 
     std::map<Algorithm, char> algo_to_char = {
@@ -153,7 +158,7 @@ Algorithm AskForAlgorithm(Algorithm default_algorithm) {
     return Algorithm::Argon2;
 }
 
-std::vector<CharacterClass> AskForCharClasses(const std::vector<CharacterClass>& default_char_classes) {
+std::vector<CharacterClass> AskForCharClasses(const std::vector<CharacterClass>& default_char_classes, bool known) {
     struct Choice {
         std::string name;
         CharacterClass value;
@@ -173,24 +178,35 @@ std::vector<CharacterClass> AskForCharClasses(const std::vector<CharacterClass>&
         {CharacterClass::CUSTOM, '5'}
     };
 
-    std::string choice;
     if (global_options.char_classes) {
-        choice = *global_options.char_classes;
-    } else {
-        std::string default_choice_str;
-        for (const auto& cc : default_char_classes) {
-            if (cc_to_char.count(cc)) {
-                default_choice_str += cc_to_char[cc];
+        std::string choice = *global_options.char_classes;
+        std::vector<CharacterClass> result;
+        for (char c : choice) {
+            if (choices.count(c)) {
+                result.push_back(choices[c].value);
             }
         }
-
-        std::cerr << "Choose character classes:\n";
-        for (auto const& [key, val] : choices) {
-            std::cerr << key << ". " << val.name << "\n";
-        }
-        std::cerr << "Your choice (e.g. 123) [" << default_choice_str << "]: ";
-        std::getline(std::cin, choice);
+        return result;
     }
+
+    if (global_options.defaults_level >= 2 || (global_options.defaults_level >= 1 && known)) {
+        return default_char_classes;
+    }
+
+    std::string default_choice_str;
+    for (const auto& cc : default_char_classes) {
+        if (cc_to_char.count(cc)) {
+            default_choice_str += cc_to_char[cc];
+        }
+    }
+
+    std::cerr << "Choose character classes:\n";
+    for (auto const& [key, val] : choices) {
+        std::cerr << key << ". " << val.name << "\n";
+    }
+    std::cerr << "Your choice (e.g. 123) [" << default_choice_str << "]: ";
+    std::string choice;
+    std::getline(std::cin, choice);
 
     if (choice.empty()) {
         return default_char_classes;
@@ -205,9 +221,13 @@ std::vector<CharacterClass> AskForCharClasses(const std::vector<CharacterClass>&
     return result;
 }
 
-std::optional<std::string> AskForCustomChars(const std::optional<std::string>& default_custom_chars) {
+std::optional<std::string> AskForCustomChars(const std::optional<std::string>& default_custom_chars, bool known) {
     if (global_options.custom_chars) {
         return global_options.custom_chars;
+    }
+
+    if (global_options.defaults_level >= 2 || (global_options.defaults_level >= 1 && known)) {
+        return default_custom_chars;
     }
 
     std::string prompt = "Custom characters";
@@ -229,7 +249,7 @@ std::optional<std::string> AskForCustomChars(const std::optional<std::string>& d
     return custom_chars_str;
 }
 
-std::string AskForSeparator(const std::string& default_separator) {
+std::string AskForSeparator(const std::string& default_separator, bool known) {
     std::map<char, std::string> choices = {
         {'1', ""},
         {'2', "-"},
@@ -243,72 +263,90 @@ std::string AskForSeparator(const std::string& default_separator) {
         {"/", '4'}
     };
 
-    std::string choice;
     if (global_options.separator) {
-        choice = *global_options.separator;
-    } else {
-        std::cerr << "Choose separator:\n";
-        std::cerr << "1. None\n";
-        std::cerr << "2. Hyphen (-)\n";
-        std::cerr << "3. Space ( )\n";
-        std::cerr << "4. Slash (/)\n";
-
-        char dflt_char = '1'; // Default to None
-        if (sep_to_char.count(default_separator)) {
-            dflt_char = sep_to_char[default_separator];
+        std::string choice = *global_options.separator;
+        if (choices.count(choice[0])) {
+            return choices[choice[0]];
         }
-
-        std::cerr << "Your choice (1-4) [" << dflt_char << "]: ";
-        std::getline(std::cin, choice);
+        return choice;
     }
 
+    if (global_options.defaults_level >= 2 || (global_options.defaults_level >= 1 && known)) {
+        return default_separator;
+    }
+
+    std::cerr << "Choose separator:\n";
+    std::cerr << "1. None\n";
+    std::cerr << "2. Hyphen (-)\n";
+    std::cerr << "3. Space ( )\n";
+    std::cerr << "4. Slash (/)\n";
+
+    char dflt_char = '1'; // Default to None
+    if (sep_to_char.count(default_separator)) {
+        dflt_char = sep_to_char[default_separator];
+    }
+
+    std::cerr << "Your choice (1-4) [" << dflt_char << "]: ";
+    std::string choice;
+    std::getline(std::cin, choice);
+
     if (choice.empty()) {
-        if (default_separator.empty() && (!global_options.separator || (global_options.separator && (*global_options.separator).empty()))) return "";
-        return default_separator.empty() ? "" : default_separator;
+        return default_separator;
     }
 
     if (choices.count(choice[0])) {
         return choices[choice[0]];
     }
 
-    if (global_options.separator) {
-        return *global_options.separator;
-    }
-
     return "-";
 }
 
-std::vector<WordClasses> AskForPassphrasePattern(int length, const std::vector<WordClasses>& default_pattern) {
+std::vector<WordClasses> AskForPassphrasePattern(int length, const std::vector<WordClasses>& default_pattern, bool known) {
     PatternsList patterns = GetPassphrasePatterns(length);
 
-    std::string choice;
     if (global_options.passphrase_pattern) {
-        choice = *global_options.passphrase_pattern;
-    } else {
-        std::cerr << "Choose pattern:\n";
-        std::cerr << "1. Random\n";
-
-        for (size_t i = 0; i < patterns.size(); ++i) {
-            std::cerr << (i + 2) << ". " << mkpass::PatternToString(patterns[i]) << "\n";
-        }
-        std::cerr << "c. Custom pattern (e.g. 'navrn')\n";
-
-        std::string default_choice_str = "1";
-        if (!default_pattern.empty()) {
-            for (size_t i = 0; i < patterns.size(); ++i) {
-                if (patterns[i] == default_pattern) {
-                    default_choice_str = std::to_string(i + 2);
-                    break;
-                }
+        std::string choice = *global_options.passphrase_pattern;
+        if (choice == "1") return {};
+        try {
+            size_t idx = std::stoul(choice);
+            if (idx >= 2 && idx <= patterns.size() + 1) {
+                return patterns[idx - 2];
             }
-            if (default_choice_str == "1") {
-                default_choice_str = "c (" + mkpass::PatternToString(default_pattern) + ")";
-            }
+        } catch (...) {}
+        if (choice[0] == 'c') {
+            return mkpass::StringToPattern(choice.substr(1));
         }
-
-        std::cerr << "Your choice (1-" << (patterns.size() + 1) << " or c) [" << default_choice_str << "]: ";
-        std::getline(std::cin, choice);
+        return mkpass::StringToPattern(choice);
     }
+
+    if (global_options.defaults_level >= 2 || (global_options.defaults_level >= 1 && known)) {
+        return default_pattern;
+    }
+
+    std::cerr << "Choose pattern:\n";
+    std::cerr << "1. Random\n";
+
+    for (size_t i = 0; i < patterns.size(); ++i) {
+        std::cerr << (i + 2) << ". " << mkpass::PatternToString(patterns[i]) << "\n";
+    }
+    std::cerr << "c. Custom pattern (e.g. 'navrn')\n";
+
+    std::string default_choice_str = "1";
+    if (!default_pattern.empty()) {
+        for (size_t i = 0; i < patterns.size(); ++i) {
+            if (patterns[i] == default_pattern) {
+                default_choice_str = std::to_string(i + 2);
+                break;
+            }
+        }
+        if (default_choice_str == "1") {
+            default_choice_str = "c (" + mkpass::PatternToString(default_pattern) + ")";
+        }
+    }
+
+    std::cerr << "Your choice (1-" << (patterns.size() + 1) << " or c) [" << default_choice_str << "]: ";
+    std::string choice;
+    std::getline(std::cin, choice);
 
     if (choice.empty()) {
         return default_pattern;
@@ -327,45 +365,39 @@ std::vector<WordClasses> AskForPassphrasePattern(int length, const std::vector<W
     }
 
     if (choice[0] == 'c') {
+        std::cerr << "Enter custom pattern (n:noun, v:verb, a:adj, r:adv): ";
         std::string custom_pattern;
-        if (global_options.passphrase_pattern && choice.length() > 1) {
-            custom_pattern = choice.substr(1);
-        } else {
-            std::cerr << "Enter custom pattern (n:noun, v:verb, a:adj, r:adv): ";
-            std::getline(std::cin, custom_pattern);
-        }
-
+        std::getline(std::cin, custom_pattern);
         if (custom_pattern.empty()) {
             return default_pattern;
         }
         return mkpass::StringToPattern(custom_pattern);
     }
 
-    if (global_options.passphrase_pattern) {
-        return mkpass::StringToPattern(*global_options.passphrase_pattern);
-    }
-
     return default_pattern;
 }
 
-unsigned AskForLength(unsigned default_length) {
-    std::string length_str;
+unsigned AskForLength(unsigned default_length, bool known) {
     if (global_options.length) {
         return *global_options.length;
-    } else {
-        std::string prompt = "Length";
-        if (default_length > 0) {
-            prompt += " [" + std::to_string(default_length) + "]";
-        }
-        prompt += ": ";
-
-        char *length_c_str = linenoise(prompt.c_str());
-        if (length_c_str == nullptr) {
-            throw std::exception();
-        }
-        length_str = std::string(length_c_str);
-        free(length_c_str);
     }
+
+    if (global_options.defaults_level >= 2 || (global_options.defaults_level >= 1 && known)) {
+        return default_length;
+    }
+
+    std::string prompt = "Length";
+    if (default_length > 0) {
+        prompt += " [" + std::to_string(default_length) + "]";
+    }
+    prompt += ": ";
+
+    char *length_c_str = linenoise(prompt.c_str());
+    if (length_c_str == nullptr) {
+        throw std::exception();
+    }
+    std::string length_str(length_c_str);
+    free(length_c_str);
 
     if (length_str.empty()) {
         if (default_length == 0) {
@@ -380,9 +412,13 @@ unsigned AskForLength(unsigned default_length) {
     }
 }
 
-bool AskYesNoQuestion(const std::string& question, bool dflt, const std::optional<bool>& opt) {
+bool AskYesNoQuestion(const std::string& question, bool dflt, const std::optional<bool>& opt, bool known) {
     if (opt) {
         return *opt;
+    }
+
+    if (global_options.defaults_level >= 2 || (global_options.defaults_level >= 1 && known)) {
+        return dflt;
     }
 
     std::cerr << question
@@ -403,40 +439,42 @@ bool IsPasswordAlgo(Algorithm a) {
 }
 
 void HandlePasswordAlgo(Context& ctx, const std::optional<mkpass::ServiceEntry>& db_entry) {
+    bool known = db_entry && IsPasswordAlgo(db_entry->algorithm);
+
     std::vector<CharacterClass> default_char_classes = {
         CharacterClass::LOWERCASE,
         CharacterClass::UPPERCASE,
         CharacterClass::DIGITS,
         CharacterClass::SYMBOLS
     };
-    if (db_entry && IsPasswordAlgo(db_entry->algorithm) && !db_entry->char_classes.empty()) {
+    if (known && !db_entry->char_classes.empty()) {
         default_char_classes = db_entry->char_classes;
     }
-    ctx.char_classes = AskForCharClasses(default_char_classes);
+    ctx.char_classes = AskForCharClasses(default_char_classes, known);
 
     if (std::find(ctx.char_classes.begin(), ctx.char_classes.end(), CharacterClass::CUSTOM) != ctx.char_classes.end()) {
         std::optional<std::string> default_custom_chars;
-        if (db_entry && IsPasswordAlgo(db_entry->algorithm)) {
+        if (known) {
             default_custom_chars = db_entry->custom_chars;
         }
-        ctx.custom_chars = AskForCustomChars(default_custom_chars);
+        ctx.custom_chars = AskForCustomChars(default_custom_chars, known);
     }
 
     unsigned default_length = 16;
-    if (db_entry && IsPasswordAlgo(db_entry->algorithm) && db_entry->length > 0) {
+    if (known && db_entry->length > 0) {
         default_length = db_entry->length;
     }
-    ctx.length = AskForLength(default_length);
+    ctx.length = AskForLength(default_length, known);
 }
 
 void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::ServiceEntry>& db_entry) {
     bool same_algo = db_entry && db_entry->algorithm == ctx.algorithm;
 
-    ctx.length = AskForLength(same_algo && db_entry->length > 0 ? db_entry->length : 3);
+    ctx.length = AskForLength(same_algo && db_entry->length > 0 ? db_entry->length : 3, same_algo);
 
     auto ask_and_add = [&](const std::string& question, CharacterClass cls, const std::optional<bool>& opt) {
         bool dflt = same_algo ? std::ranges::count(db_entry->char_classes, cls) > 0 : false;
-        if (AskYesNoQuestion(question, dflt, opt)) {
+        if (AskYesNoQuestion(question, dflt, opt, same_algo)) {
             ctx.char_classes.push_back(cls);
         }
     };
@@ -456,7 +494,8 @@ void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::Serv
         ctx.allow_substitutions = AskYesNoQuestion(
             "Allow character substitutions (e.g. a -> 4, s -> $)?",
             same_algo ? db_entry->allow_substitutions : false,
-            global_options.substitutions);
+            global_options.substitutions,
+            same_algo);
     } else {
         ctx.allow_substitutions = false;
     }
@@ -464,9 +503,10 @@ void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::Serv
     ctx.capitalize_words = AskYesNoQuestion(
         "Capitalize words?",
         same_algo ? db_entry->capitalize_words : true,
-        global_options.capitalize);
+        global_options.capitalize,
+        same_algo);
 
-    ctx.separator = AskForSeparator(same_algo ? db_entry->separator : "");
+    ctx.separator = AskForSeparator(same_algo ? db_entry->separator : "", same_algo);
 }
 
 void HandlePassphraseWordnetPatternAlgo(
@@ -476,7 +516,7 @@ void HandlePassphraseWordnetPatternAlgo(
     bool same_algo = db_entry && db_entry->algorithm == ctx.algorithm;
 
     unsigned default_length = same_algo && db_entry->length > 0 ? db_entry->length : 3;
-    ctx.length = AskForLength(default_length);
+    ctx.length = AskForLength(default_length, same_algo);
 
     if (ctx.length > GetMaxPassphrasePatternLength()) {
         ctx.length = GetMaxPassphrasePatternLength();
@@ -490,11 +530,11 @@ void HandlePassphraseWordnetPatternAlgo(
 
     std::vector<WordClasses> default_pattern = same_algo ? db_entry->passphrase_pattern : std::vector<WordClasses>{};
 
-    ctx.passphrase_pattern = AskForPassphrasePattern(ctx.length, default_pattern);
+    ctx.passphrase_pattern = AskForPassphrasePattern(ctx.length, default_pattern, same_algo);
 
     auto ask_and_add = [&](const std::string& question, CharacterClass cls, const std::optional<bool>& opt) {
         bool dflt = same_algo ? std::ranges::count(db_entry->char_classes, cls) > 0 : false;
-        if (AskYesNoQuestion(question, dflt, opt)) {
+        if (AskYesNoQuestion(question, dflt, opt, same_algo)) {
             ctx.char_classes.push_back(cls);
         }
     };
@@ -514,7 +554,8 @@ void HandlePassphraseWordnetPatternAlgo(
         ctx.allow_substitutions = AskYesNoQuestion(
             "Allow character substitutions (e.g. a -> 4, s -> $)?",
             same_algo ? db_entry->allow_substitutions : false,
-            global_options.substitutions);
+            global_options.substitutions,
+            same_algo);
     } else {
         ctx.allow_substitutions = false;
     }
@@ -522,20 +563,22 @@ void HandlePassphraseWordnetPatternAlgo(
     ctx.capitalize_words = AskYesNoQuestion(
         "Capitalize words?",
         same_algo ? db_entry->capitalize_words : true,
-        global_options.capitalize);
+        global_options.capitalize,
+        same_algo);
 
-    ctx.separator = AskForSeparator(same_algo ? db_entry->separator : "");
+    ctx.separator = AskForSeparator(same_algo ? db_entry->separator : "", same_algo);
 }
 
 void HandleOldAlgo(
     Context& ctx,
     const std::optional<mkpass::ServiceEntry>& db_entry)
 {
+    bool same_algo = db_entry && db_entry->algorithm == Algorithm::Old;
     unsigned default_length = 8;
-    if (db_entry && db_entry->algorithm == Algorithm::Old && db_entry->length > 0) {
+    if (same_algo && db_entry->length > 0) {
         default_length = db_entry->length;
     }
-    ctx.length = AskForLength(default_length);
+    ctx.length = AskForLength(default_length, same_algo);
 }
 } // namespace
 
@@ -566,6 +609,8 @@ int run_cli(int argc, char *argv[]) {
     app.add_option("--symbols", global_options.symbols, "Include symbols in passphrase (y/n)")->envname("MKPASS_SYMBOLS");
     app.add_option("--substitutions", global_options.substitutions, "Allow character substitutions (y/n)")->envname("MKPASS_SUBSTITUTIONS");
     app.add_option("--capitalize", global_options.capitalize, "Capitalize words (y/n)")->envname("MKPASS_CAPITALIZE");
+    app.add_flag("-d,--defaults", global_options.defaults_level, "Auto-accept defaults from DB (repeat -dd for all defaults)");
+    app.add_flag("-D", [](std::int64_t) { global_options.defaults_level = 2; }, "Auto-accept all defaults");
 
     try {
         app.parse(argc, argv);
@@ -580,9 +625,10 @@ int run_cli(int argc, char *argv[]) {
     std::string service = AskForService();
 
     auto db_entry = db.get_service_entry(service);
+    bool known = db_entry.has_value();
 
-    Algorithm default_algorithm = db_entry ? db_entry->algorithm : Algorithm::Argon2;
-    Algorithm algorithm = AskForAlgorithm(default_algorithm);
+    Algorithm default_algorithm = known ? db_entry->algorithm : Algorithm::Argon2;
+    Algorithm algorithm = AskForAlgorithm(default_algorithm, known);
 
     Context ctx = {
         .password = pwd,
