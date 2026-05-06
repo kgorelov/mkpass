@@ -7,7 +7,8 @@ set(PROJECT_ROOT ${CMAKE_SOURCE_DIR}/../../../../../)
 # C++ part library
 set(CPP_SOURCES
   ${PROJECT_ROOT}/libmkpass/digest.cpp
-  ${PROJECT_ROOT}/libmkpass/compose.cpp
+  ${PROJECT_ROOT}/libmkpass/compose_password.cpp
+  ${PROJECT_ROOT}/libmkpass/compose_passphrase.cpp
   ${PROJECT_ROOT}/libmkpass/mkpass.cpp
   ${PROJECT_ROOT}/libmkpass/hkdf_argon2.cpp
   ${PROJECT_ROOT}/libmkpass/db.cpp

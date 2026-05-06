@@ -16,7 +16,7 @@
 
 #include "mkpass.h"
 #include "tui.h"
-#include "compose.h"
+#include "compose_password.h"
 #include "context.h"
 #include "character_classes.h"
 #include "db.h"

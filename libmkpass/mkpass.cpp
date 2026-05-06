@@ -1,5 +1,6 @@
 #include "mkpass.h"
-#include "compose.h"
+#include "compose_password.h"
+#include "compose_passphrase.h"
 #include "generator.h"
 #include "hkdf_hmac.h"
 #include "hkdf_argon2.h"

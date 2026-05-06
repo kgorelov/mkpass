@@ -1,7 +1,8 @@
 # C++ part library, used both in the main executable and tests
 set(SOURCES
   digest.cpp
-  compose.cpp
+  compose_password.cpp
+  compose_passphrase.cpp
   mkpass.cpp
   hkdf_argon2.cpp
   db.cpp
@@ -96,7 +97,8 @@ if(NOT EMSCRIPTEN)
     digest_ut.cpp
     generator_ut.cpp
     uniform_ut.cpp
-    compose_ut.cpp
+    compose_password_ut.cpp
+    compose_passphrase_ut.cpp
     pattern_compose_ut.cpp
     hkdf_argon2_ut.cpp
   )
