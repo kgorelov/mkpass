@@ -7,7 +7,7 @@ option(WITH_WEBASSEMBLY "Build with WebAssembly" OFF)
 enable_testing()
 
 add_subdirectory(libmkpass)
-add_subdirectory(mkpass_cli)
+add_subdirectory(cli)
 if(WITH_GUI)
     add_subdirectory(mkpass_gui)
 endif()
