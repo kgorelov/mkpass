@@ -23,8 +23,26 @@
 #include "platform_utils.h"
 #include "linenoise.h"
 #include "passphrase_patterns.h"
+#include "CLI11.hpp"
 
 namespace {
+
+struct CliOptions {
+    std::optional<std::string> password;
+    std::optional<std::string> service;
+    std::optional<std::string> algorithm;
+    std::optional<std::string> char_classes;
+    std::optional<std::string> custom_chars;
+    std::optional<unsigned int> length;
+    std::optional<std::string> separator;
+    std::optional<std::string> passphrase_pattern;
+    std::optional<bool> digits;
+    std::optional<bool> symbols;
+    std::optional<bool> substitutions;
+    std::optional<bool> capitalize;
+};
+
+CliOptions global_options;
 
 std::optional<std::string> GetEnv(const std::string& name) {
     const char* val = std::getenv(name.c_str());
@@ -51,9 +69,8 @@ void completion(const char *buf, linenoiseCompletions *lc) {
 }
 
 std::string AskForMasterPassword() {
-    auto env_pwd = GetEnv("MKPASS_PASSWORD");
-    if (env_pwd) {
-        return *env_pwd;
+    if (global_options.password) {
+        return *global_options.password;
     }
 
     std::cerr << "Enter Master Password: ";
@@ -78,9 +95,8 @@ std::string AskForMasterPassword() {
 }
 
 std::string AskForService() {
-    auto env_service = GetEnv("MKPASS_SERVICE");
-    if (env_service) {
-        return *env_service;
+    if (global_options.service) {
+        return *global_options.service;
     }
 
     linenoiseSetCompletionCallback(completion);
@@ -102,10 +118,9 @@ Algorithm AskForAlgorithm(Algorithm default_algorithm) {
         {'5', Algorithm::Passphrase_Wordnet_Pattern}
     };
 
-    auto env_algo = GetEnv("MKPASS_ALGORITHM");
-    if (env_algo) {
-        if (choices.count((*env_algo)[0])) {
-            return choices[(*env_algo)[0]];
+    if (global_options.algorithm) {
+        if (choices.count((*global_options.algorithm)[0])) {
+            return choices[(*global_options.algorithm)[0]];
         }
     }
 
@@ -158,10 +173,9 @@ std::vector<CharacterClass> AskForCharClasses(const std::vector<CharacterClass>&
         {CharacterClass::CUSTOM, '5'}
     };
 
-    auto env_cc = GetEnv("MKPASS_CHAR_CLASSES");
     std::string choice;
-    if (env_cc) {
-        choice = *env_cc;
+    if (global_options.char_classes) {
+        choice = *global_options.char_classes;
     } else {
         std::string default_choice_str;
         for (const auto& cc : default_char_classes) {
@@ -192,9 +206,8 @@ std::vector<CharacterClass> AskForCharClasses(const std::vector<CharacterClass>&
 }
 
 std::optional<std::string> AskForCustomChars(const std::optional<std::string>& default_custom_chars) {
-    auto env_custom = GetEnv("MKPASS_CUSTOM_CHARS");
-    if (env_custom) {
-        return env_custom;
+    if (global_options.custom_chars) {
+        return global_options.custom_chars;
     }
 
     std::string prompt = "Custom characters";
@@ -230,10 +243,9 @@ std::string AskForSeparator(const std::string& default_separator) {
         {"/", '4'}
     };
 
-    auto env_sep = GetEnv("MKPASS_SEPARATOR");
     std::string choice;
-    if (env_sep) {
-        choice = *env_sep;
+    if (global_options.separator) {
+        choice = *global_options.separator;
     } else {
         std::cerr << "Choose separator:\n";
         std::cerr << "1. None\n";
@@ -251,7 +263,7 @@ std::string AskForSeparator(const std::string& default_separator) {
     }
 
     if (choice.empty()) {
-        if (default_separator.empty() && (!env_sep || (env_sep && (*env_sep).empty()))) return "";
+        if (default_separator.empty() && (!global_options.separator || (global_options.separator && (*global_options.separator).empty()))) return "";
         return default_separator.empty() ? "" : default_separator;
     }
 
@@ -259,9 +271,8 @@ std::string AskForSeparator(const std::string& default_separator) {
         return choices[choice[0]];
     }
 
-    // Support literal separators from ENV
-    if (env_sep) {
-        return *env_sep;
+    if (global_options.separator) {
+        return *global_options.separator;
     }
 
     return "-";
@@ -270,10 +281,9 @@ std::string AskForSeparator(const std::string& default_separator) {
 std::vector<WordClasses> AskForPassphrasePattern(int length, const std::vector<WordClasses>& default_pattern) {
     PatternsList patterns = GetPassphrasePatterns(length);
 
-    auto env_pattern = GetEnv("MKPASS_PASSPHRASE_PATTERN");
     std::string choice;
-    if (env_pattern) {
-        choice = *env_pattern;
+    if (global_options.passphrase_pattern) {
+        choice = *global_options.passphrase_pattern;
     } else {
         std::cerr << "Choose pattern:\n";
         std::cerr << "1. Random\n";
@@ -318,7 +328,7 @@ std::vector<WordClasses> AskForPassphrasePattern(int length, const std::vector<W
 
     if (choice[0] == 'c') {
         std::string custom_pattern;
-        if (env_pattern && choice.length() > 1) {
+        if (global_options.passphrase_pattern && choice.length() > 1) {
             custom_pattern = choice.substr(1);
         } else {
             std::cerr << "Enter custom pattern (n:noun, v:verb, a:adj, r:adv): ";
@@ -331,19 +341,17 @@ std::vector<WordClasses> AskForPassphrasePattern(int length, const std::vector<W
         return mkpass::StringToPattern(custom_pattern);
     }
 
-    // If it doesn't match a choice number, try parsing it as a pattern directly
-    if (env_pattern) {
-        return mkpass::StringToPattern(*env_pattern);
+    if (global_options.passphrase_pattern) {
+        return mkpass::StringToPattern(*global_options.passphrase_pattern);
     }
 
     return default_pattern;
 }
 
 unsigned AskForLength(unsigned default_length) {
-    auto env_length = GetEnv("MKPASS_LENGTH");
     std::string length_str;
-    if (env_length) {
-        length_str = *env_length;
+    if (global_options.length) {
+        return *global_options.length;
     } else {
         std::string prompt = "Length";
         if (default_length > 0) {
@@ -372,12 +380,9 @@ unsigned AskForLength(unsigned default_length) {
     }
 }
 
-bool AskYesNoQuestion(const std::string& question, bool dflt, const std::string& env_name = "") {
-    if (!env_name.empty()) {
-        auto env_val = GetEnv(env_name);
-        if (env_val) {
-            return ParseBoolEnv(*env_val);
-        }
+bool AskYesNoQuestion(const std::string& question, bool dflt, const std::optional<bool>& opt) {
+    if (opt) {
+        return *opt;
     }
 
     std::cerr << question
@@ -429,15 +434,15 @@ void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::Serv
 
     ctx.length = AskForLength(same_algo && db_entry->length > 0 ? db_entry->length : 3);
 
-    auto ask_and_add = [&](const std::string& question, CharacterClass cls, const std::string& env_name) {
+    auto ask_and_add = [&](const std::string& question, CharacterClass cls, const std::optional<bool>& opt) {
         bool dflt = same_algo ? std::ranges::count(db_entry->char_classes, cls) > 0 : false;
-        if (AskYesNoQuestion(question, dflt, env_name)) {
+        if (AskYesNoQuestion(question, dflt, opt)) {
             ctx.char_classes.push_back(cls);
         }
     };
 
-    ask_and_add("Include digits?", CharacterClass::DIGITS, "MKPASS_DIGITS");
-    ask_and_add("Include symbols?", CharacterClass::SYMBOLS, "MKPASS_SYMBOLS");
+    ask_and_add("Include digits?", CharacterClass::DIGITS, global_options.digits);
+    ask_and_add("Include symbols?", CharacterClass::SYMBOLS, global_options.symbols);
 
     bool has_digits_or_symbols = false;
     for (auto cc : ctx.char_classes) {
@@ -451,7 +456,7 @@ void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::Serv
         ctx.allow_substitutions = AskYesNoQuestion(
             "Allow character substitutions (e.g. a -> 4, s -> $)?",
             same_algo ? db_entry->allow_substitutions : false,
-            "MKPASS_SUBSTITUTIONS");
+            global_options.substitutions);
     } else {
         ctx.allow_substitutions = false;
     }
@@ -459,7 +464,7 @@ void HandlePassphraseDicewareAlgo(Context& ctx, const std::optional<mkpass::Serv
     ctx.capitalize_words = AskYesNoQuestion(
         "Capitalize words?",
         same_algo ? db_entry->capitalize_words : true,
-        "MKPASS_CAPITALIZE");
+        global_options.capitalize);
 
     ctx.separator = AskForSeparator(same_algo ? db_entry->separator : "");
 }
@@ -487,15 +492,15 @@ void HandlePassphraseWordnetPatternAlgo(
 
     ctx.passphrase_pattern = AskForPassphrasePattern(ctx.length, default_pattern);
 
-    auto ask_and_add = [&](const std::string& question, CharacterClass cls, const std::string& env_name) {
+    auto ask_and_add = [&](const std::string& question, CharacterClass cls, const std::optional<bool>& opt) {
         bool dflt = same_algo ? std::ranges::count(db_entry->char_classes, cls) > 0 : false;
-        if (AskYesNoQuestion(question, dflt, env_name)) {
+        if (AskYesNoQuestion(question, dflt, opt)) {
             ctx.char_classes.push_back(cls);
         }
     };
 
-    ask_and_add("Include digits?", CharacterClass::DIGITS, "MKPASS_DIGITS");
-    ask_and_add("Include symbols?", CharacterClass::SYMBOLS, "MKPASS_SYMBOLS");
+    ask_and_add("Include digits?", CharacterClass::DIGITS, global_options.digits);
+    ask_and_add("Include symbols?", CharacterClass::SYMBOLS, global_options.symbols);
 
     bool has_digits_or_symbols = false;
     for (auto cc : ctx.char_classes) {
@@ -509,7 +514,7 @@ void HandlePassphraseWordnetPatternAlgo(
         ctx.allow_substitutions = AskYesNoQuestion(
             "Allow character substitutions (e.g. a -> 4, s -> $)?",
             same_algo ? db_entry->allow_substitutions : false,
-            "MKPASS_SUBSTITUTIONS");
+            global_options.substitutions);
     } else {
         ctx.allow_substitutions = false;
     }
@@ -517,7 +522,7 @@ void HandlePassphraseWordnetPatternAlgo(
     ctx.capitalize_words = AskYesNoQuestion(
         "Capitalize words?",
         same_algo ? db_entry->capitalize_words : true,
-        "MKPASS_CAPITALIZE");
+        global_options.capitalize);
 
     ctx.separator = AskForSeparator(same_algo ? db_entry->separator : "");
 }
@@ -534,9 +539,9 @@ void HandleOldAlgo(
 }
 } // namespace
 
-int run_cli_safe() {
+int run_cli_safe(int argc, char *argv[]) {
     try {
-        return run_cli();
+        return run_cli(argc, argv);
     } catch (const std::runtime_error &e) {
         std::cerr << "ERROR! " << e.what() << std::endl;
         return 1;
@@ -546,7 +551,28 @@ int run_cli_safe() {
     }
 }
 
-int run_cli() {
+int run_cli(int argc, char *argv[]) {
+    CLI::App app{"mkpass - Command-line password generator"};
+
+    app.add_option("-p,--password", global_options.password, "Master password")->envname("MKPASS_PASSWORD");
+    app.add_option("-s,--service", global_options.service, "Service name")->envname("MKPASS_SERVICE");
+    app.add_option("-a,--algorithm", global_options.algorithm, "Algorithm (1-5)")->envname("MKPASS_ALGORITHM");
+    app.add_option("-c,--char-classes", global_options.char_classes, "Character classes (e.g. 12345)")->envname("MKPASS_CHAR_CLASSES");
+    app.add_option("--custom-chars", global_options.custom_chars, "Custom characters")->envname("MKPASS_CUSTOM_CHARS");
+    app.add_option("-l,--length", global_options.length, "Password length")->envname("MKPASS_LENGTH");
+    app.add_option("--separator", global_options.separator, "Separator for passphrases")->envname("MKPASS_SEPARATOR");
+    app.add_option("--pattern", global_options.passphrase_pattern, "Passphrase pattern")->envname("MKPASS_PASSPHRASE_PATTERN");
+    app.add_option("--digits", global_options.digits, "Include digits in passphrase (y/n)")->envname("MKPASS_DIGITS");
+    app.add_option("--symbols", global_options.symbols, "Include symbols in passphrase (y/n)")->envname("MKPASS_SYMBOLS");
+    app.add_option("--substitutions", global_options.substitutions, "Allow character substitutions (y/n)")->envname("MKPASS_SUBSTITUTIONS");
+    app.add_option("--capitalize", global_options.capitalize, "Capitalize words (y/n)")->envname("MKPASS_CAPITALIZE");
+
+    try {
+        app.parse(argc, argv);
+    } catch (const CLI::ParseError &e) {
+        return app.exit(e);
+    }
+
     mkpass::ConfigDB db(GetConfigDBPath());
     service_names = db.get_all_service_names();
 

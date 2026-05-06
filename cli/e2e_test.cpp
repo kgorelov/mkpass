@@ -327,6 +327,29 @@ TEST(E2EEnvVarsTest, PassphraseWordnetPattern) {
     unsetenv("MKPASS_SEPARATOR");
 }
 
+TEST(E2ECommandLineOptionsTest, AllOptionsSet) {
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p test_master -s test_service_cmd -a 1 -c 123 -l 25";
+
+    ProcessOutput output = exec_with_input(cmd, "");
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_EQ(output.std_out.length(), 25);
+}
+
+TEST(E2ECommandLineOptionsTest, MixedEnvAndCmd) {
+    setenv("MKPASS_PASSWORD", "test_master", 1);
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -s test_service_mixed -a 1 -c 123 -l 15";
+
+    ProcessOutput output = exec_with_input(cmd, "");
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_EQ(output.std_out.length(), 15);
+
+    unsetenv("MKPASS_PASSWORD");
+}
+
 TEST(E2EServiceEntriesTest, AutocompleteNewServiceEntries) {
     std::string db_path = GetTmpDir() + "/mkpass-e2e2-autocomplete.db";
     setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
