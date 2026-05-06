@@ -1,12 +1,13 @@
 #pragma once
+#include <string>
 
-// constexpr?
 const std::string LowercaseLetters = "abcdefghijklmnopqrstuvwxyz";
 const std::string UppercaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const std::string Digits = "0123456789";
 const std::string Symbols = "!@#$%^&*()-_=+[]{};:,.<>?/";
 
 #include <string>
+#include <map>
 
 enum class CharacterClass {
     LOWERCASE = 0,
@@ -16,4 +17,8 @@ enum class CharacterClass {
     CUSTOM = 4
 };
 
-// TODO: define an enum here
+std::string GetCharClassString(CharacterClass cls);
+
+using CharMap = std::map<char, char>;
+
+CharMap GetCharClassSubstitutions(CharacterClass cls);

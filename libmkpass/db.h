@@ -7,6 +7,7 @@
 
 #include "algorithms.h"
 #include "character_classes.h"
+#include "word_classes.h"
 
 struct sqlite3;
 
@@ -19,6 +20,10 @@ struct ServiceEntry {
     unsigned length;
     std::vector<CharacterClass> char_classes;
     std::optional<std::string> custom_chars;
+    std::string separator;
+    std::vector<WordClasses> passphrase_pattern;
+    bool allow_substitutions;
+    bool capitalize_words;
 };
 
 
@@ -40,5 +45,8 @@ private:
     void create_tables();
     sqlite3 *db;
 };
+
+std::string PatternToString(const std::vector<WordClasses>& pattern);
+std::vector<WordClasses> StringToPattern(const std::string& s);
 
 } // namespace mkpass

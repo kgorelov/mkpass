@@ -1,9 +1,13 @@
 #pragma once
+
 #include <string>
 #include <vector>
 #include "character_classes.h"
+#include "generator.h"
+
 
 class GeneratorInterface;
+
 
 std::string ComposePassword(
     GeneratorInterface& generator,

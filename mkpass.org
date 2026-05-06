@@ -29,8 +29,44 @@ If the master password is found, all passwords derived from that master password
   - [X] Initial Windows support
   - [ ] make the e2e test work on Windows
   - [ ] make the db_ut test work on Windows
+** Termux version
+  - [X] linking against wordexp
+  - [ ] termux package
 ** TODO Documentation
 ** TODO Passphrase composer
+*** Simple passphrase algorithm
+  - [X] Diceware EFF large wordlist
+  - [X] Simple passphare algoritm implementation
+  - [X] Make params depend on algorithm entirely
+  - [X] Tools: txt to C-code
+  - [X] Fix tests: TestLE, E2E
+  - [ ] Testcases
+  - [X] Support in TUI
+  - [X] Support in GUI/QT
+  - [X] Support in Android
+  - [X] Support in Web
+  - [X] Simple passphare algoritm implementation
+  - [X] Tools: txt to C-code
+  - [ ] cleanup database code
+*** Lexic formulas passphrase algorithm
+  - [X] WordNet sanitized wordlists: nouns, verbs, adjectives, adverbs
+  - [X] Tools: wordnet manipulation tools
+  - [X] Passphrase algoritm implementation
+  - [X] WordNet sanitized wordlists: nouns, verbs, adjectives, adverbs
+  - [X] Tools: wordnet manipulation tools
+  - [X] Inial passphrase algoritm implementation
+  - [X] Initial support for passphrases in GUI
+  - [X] Initial support for passphrases for Android
+  - [X] Add separator selection
+  - [X] Add pattern selection
+  - [X] Add symbols and numbers to patterns based algorithm
+  - [X] Add symbols and numbers to the base (legth) based algorithm
+  - [X] Implement random words transformations: letters -> symbols substitutions
+  - [X] Rebase and support passphrases in the web version
+  - [X] Let user chose length, have several patterns for each length
+    Let the user chose the pattern for the length: random, pattern1, pattern2...
+    Patterns must not be hardcoded in UIs, we need to have a function in libmkpass GetPassprasePatterns(int length)
+  - [ ] Cover passphrases algorithms with tests
 ** TODO Web version (WebAssembly)
   - [X] Essential functions
   - [X] Results dialog

@@ -9,15 +9,16 @@
 
 #include "platform_utils.h"
 
+
 class ConfigDBTest : public ::testing::Test {
 protected:
     std::string db_path;
 
     void SetUp() override {
-        char tmpl[] = "/tmp/mkpass-test-XXXXXX";
-        int fd = mkstemp(tmpl);
+        std::string tmpl = GetTmpDir() + "/mkpass-test-XXXXXX";
+        int fd = mkstemp((char*)tmpl.c_str());
         if (fd != -1) {
-            db_path = tmpl;
+	    db_path = tmpl;
             close(fd);
         }
 
@@ -112,6 +113,70 @@ TEST_F(ConfigDBTest, CustomChars) {
     EXPECT_FALSE(rec_no_custom->custom_chars.has_value());
 }
 
+TEST_F(ConfigDBTest, Separator) {
+    mkpass::ConfigDB db(db_path);
+
+    // 1. Test with empty separator and capitalize_words
+    mkpass::ServiceEntry entry;
+    entry.service_name = "camel.com";
+    entry.algorithm = Algorithm::Passphrase_Diceware_EFF_Large;
+    entry.length = 6;
+    entry.char_classes = {};
+    entry.separator = "";
+    entry.capitalize_words = true;
+
+    db.save_service_entry(entry);
+
+    auto rec = db.get_service_entry("camel.com");
+    ASSERT_TRUE(rec.has_value());
+    EXPECT_EQ(rec->separator, "");
+    EXPECT_TRUE(rec->capitalize_words);
+
+    // 2. Test with KebabCase (-)
+    entry.service_name = "kebab.com";
+    entry.separator = "-";
+    entry.capitalize_words = false;
+    db.save_service_entry(entry);
+
+    auto rec2 = db.get_service_entry("kebab.com");
+    ASSERT_TRUE(rec2.has_value());
+    EXPECT_EQ(rec2->separator, "-");
+    EXPECT_FALSE(rec2->capitalize_words);
+
+    // 3. Test default (existing record without separator column should default to empty/false if no mapping found)
+    auto rec_old = db.get_service_entry("user@github.com");
+    ASSERT_TRUE(rec_old.has_value());
+}
+
+TEST_F(ConfigDBTest, AllowSubstitutions) {
+    mkpass::ConfigDB db(db_path);
+
+    // 1. Test with allow_substitutions = true
+    mkpass::ServiceEntry entry;
+    entry.service_name = "subst.com";
+    entry.algorithm = Algorithm::Passphrase_Diceware_EFF_Large;
+    entry.length = 6;
+    entry.char_classes = {};
+    entry.separator = "";
+    entry.capitalize_words = true;
+    entry.allow_substitutions = true;
+
+    db.save_service_entry(entry);
+
+    auto rec = db.get_service_entry("subst.com");
+    ASSERT_TRUE(rec.has_value());
+    EXPECT_TRUE(rec->allow_substitutions);
+
+    // 2. Test with allow_substitutions = false
+    entry.service_name = "nosubst.com";
+    entry.allow_substitutions = false;
+    db.save_service_entry(entry);
+
+    auto rec2 = db.get_service_entry("nosubst.com");
+    ASSERT_TRUE(rec2.has_value());
+    EXPECT_FALSE(rec2->allow_substitutions);
+}
+
 TEST(ConfigDB, NonExistentDB) {
     mkpass::ConfigDB db("non-existent-db.db");
     auto names = db.get_all_service_names();
@@ -119,16 +184,16 @@ TEST(ConfigDB, NonExistentDB) {
 }
 
 TEST(ConfigDB, EnvVariable) {
-    const char* db_path = "/tmp/mkpass-test-env.db";
-    setenv("MKPASS_DB_PATH", db_path, 1);
+    std::string db_path = GetTmpDir() + "/mkpass-test-env.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
 
     mkpass::ConfigDB db(GetConfigDBPath());
     auto snames = db.get_all_service_names();
     ASSERT_TRUE(snames.empty());
 
     // Check that the database file was created
-    ASSERT_EQ(access(db_path, F_OK), 0);
+    ASSERT_EQ(access(db_path.c_str(), F_OK), 0);
 
     unsetenv("MKPASS_DB_PATH");
-    remove(db_path);
+    remove(db_path.c_str());
 }

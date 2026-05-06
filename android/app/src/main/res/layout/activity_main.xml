@@ -87,83 +87,151 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Character Classes"
-            android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
-
-        <GridLayout
+        <LinearLayout
+            android:id="@+id/characterClassesLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:columnCount="2"
-            android:rowCount="3">
+            android:orientation="vertical">
 
-            <CheckBox
-                android:id="@+id/lowerCaseCheckBox"
+            <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Lowercase" />
+                android:layout_marginTop="16dp"
+                android:text="Character Classes"
+                android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
 
-            <CheckBox
-                android:id="@+id/upperCaseCheckBox"
-                android:layout_width="wrap_content"
+            <GridLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Uppercase" />
+                android:columnCount="2"
+                android:rowCount="4">
 
-            <CheckBox
-                android:id="@+id/digitsCheckBox"
-                android:layout_width="wrap_content"
+                <CheckBox
+                    android:id="@+id/lowerCaseCheckBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Lowercase" />
+
+                <CheckBox
+                    android:id="@+id/upperCaseCheckBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Uppercase" />
+
+                <CheckBox
+                    android:id="@+id/digitsCheckBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Digits" />
+
+                <CheckBox
+                    android:id="@+id/symbolsCheckBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Symbols" />
+
+                <CheckBox
+                    android:id="@+id/capitalizeWordsCheckBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Capitalize Words"
+                    android:visibility="gone" />
+
+                <CheckBox
+                    android:id="@+id/allowSubstitutionsCheckBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Allow Substitutions"
+                    android:visibility="gone" />
+
+                <CheckBox
+                    android:id="@+id/customCheckBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Custom" />
+                </GridLayout>
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/customCharsLayout"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Digits" />
+                android:hint="Custom Characters"
+                android:visibility="gone">
 
-            <CheckBox
-                android:id="@+id/symbolsCheckBox"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Symbols" />
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/customChars"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
 
-            <CheckBox
-                android:id="@+id/customCheckBox"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Custom" />
-        </GridLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/customCharsLayout"
+        <LinearLayout
+            android:id="@+id/separatorContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Custom Characters"
+            android:orientation="vertical"
             android:visibility="gone">
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/customChars"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Word Separator"
+                android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
+
+            <Spinner
+                android:id="@+id/separatorSpinner"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
-        </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Password Length"
-            android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
-
-        <SeekBar
-            android:id="@+id/lengthSeekBar"
+        <LinearLayout
+            android:id="@+id/passphrasePatternContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:max="64"
-            android:min="1" />
+            android:orientation="vertical"
+            android:visibility="gone">
 
-        <TextView
-            android:id="@+id/lengthValue"
-            android:layout_width="wrap_content"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Passphrase Pattern"
+                android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
+
+            <Spinner
+                android:id="@+id/patternSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/lengthContainer"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:text="16" />
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/lengthTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Password Length"
+                android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
+
+            <SeekBar
+                android:id="@+id/lengthSeekBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="64"
+                android:min="1" />
+
+            <TextView
+                android:id="@+id/lengthValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="16" />
+        </LinearLayout>
 
         <Button
             android:id="@+id/generateButton"

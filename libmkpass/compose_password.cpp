@@ -4,17 +4,13 @@
 #include <iostream>
 #include <set>
 
-#include <stdexcept>
-#include <numeric>
-#include <algorithm>
-#include <iostream>
-#include <set>
+#include <cctype>
 
-#include "compose.h"
-#include "generator.h"
+#include "compose_password.h"
 #include "uniform.h"
 #include "sha1.hpp"
 #include "base64.hpp"
+
 
 template <typename Container>
 int total_length(const Container& strings) {
@@ -25,7 +21,7 @@ int total_length(const Container& strings) {
         [](int sum, const std::string& s) {
             return sum + s.size();
         }
-    );
+        );
 }
 
 
@@ -99,6 +95,7 @@ std::string ComposePassword(
 
     return result;
 }
+
 
 std::string ComposeOldMkpass1Password(
     const std::string& master_password,

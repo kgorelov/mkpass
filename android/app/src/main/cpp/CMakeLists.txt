@@ -7,10 +7,18 @@ set(PROJECT_ROOT ${CMAKE_SOURCE_DIR}/../../../../../)
 # C++ part library
 set(CPP_SOURCES
   ${PROJECT_ROOT}/libmkpass/digest.cpp
-  ${PROJECT_ROOT}/libmkpass/compose.cpp
+  ${PROJECT_ROOT}/libmkpass/compose_password.cpp
+  ${PROJECT_ROOT}/libmkpass/compose_passphrase.cpp
   ${PROJECT_ROOT}/libmkpass/mkpass.cpp
   ${PROJECT_ROOT}/libmkpass/hkdf_argon2.cpp
   ${PROJECT_ROOT}/libmkpass/db.cpp
+  ${PROJECT_ROOT}/libmkpass/character_classes.cpp
+  ${PROJECT_ROOT}/libmkpass/passphrase_patterns.cpp
+  ${PROJECT_ROOT}/libmkpass/wordlists/eff_large_words.cpp
+  ${PROJECT_ROOT}/libmkpass/wordlists/wordnet_nouns.cpp
+  ${PROJECT_ROOT}/libmkpass/wordlists/wordnet_verbs.cpp
+  ${PROJECT_ROOT}/libmkpass/wordlists/wordnet_adjs.cpp
+  ${PROJECT_ROOT}/libmkpass/wordlists/wordnet_advs.cpp
 )
 add_library(cpp_part STATIC ${CPP_SOURCES})
 target_include_directories(cpp_part PUBLIC ${PROJECT_ROOT}/libmkpass)

@@ -20,6 +20,7 @@ async function runTests() {
         // Test 1: Algorithm Enum
         assert(module.Algorithm.Argon2.value === 1, "Argon2 enum value should be 1");
         assert(module.Algorithm.SlowSha512.value === 2, "SlowSha512 enum value should be 2");
+        assert(module.Algorithm.Passphrase_Diceware_EFF_Large.value === 4, "Passphrase_Diceware_EFF_Large enum value should be 4");
 
         // Test 2: CharacterClass Enum
         assert(module.CharacterClass.LOWERCASE.value === 0, "LOWERCASE enum value should be 0");
@@ -31,11 +32,15 @@ async function runTests() {
         charClasses.push_back(module.CharacterClass.UPPERCASE);
         charClasses.push_back(module.CharacterClass.DIGITS);
 
-        const password = module.MkPass("master", "service", charClasses, module.Algorithm.Argon2.value, 16, "");
+        const password = module.MkPass("master", "service", charClasses, module.Algorithm.Argon2.value, 16, "", "", false, "", false);
         assert(typeof password === 'string' && password.length === 16, "Password generation should return 16-char string");
 
+        // Test 3.1: Passphrase Generation (Diceware)
+        const passphrase = module.MkPass("master", "service", charClasses, module.Algorithm.Passphrase_Diceware_EFF_Large.value, 6, "", "-", true, "", false);
+        assert(typeof passphrase === 'string' && passphrase.length > 0, "Passphrase generation should return non-empty string");
+
         // Ensure it's deterministic
-        const passwordAgain = module.MkPass("master", "service", charClasses, module.Algorithm.Argon2.value, 16, "");
+        const passwordAgain = module.MkPass("master", "service", charClasses, module.Algorithm.Argon2.value, 16, "", "", false, "", false);
         assert(password === passwordAgain, "Password generation should be deterministic");
 
         charClasses.delete();

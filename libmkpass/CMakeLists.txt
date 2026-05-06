@@ -1,10 +1,18 @@
 # C++ part library, used both in the main executable and tests
 set(SOURCES
   digest.cpp
-  compose.cpp
+  compose_password.cpp
+  compose_passphrase.cpp
   mkpass.cpp
   hkdf_argon2.cpp
   db.cpp
+  character_classes.cpp
+  passphrase_patterns.cpp
+  wordlists/eff_large_words.cpp
+  wordlists/wordnet_nouns.cpp
+  wordlists/wordnet_verbs.cpp
+  wordlists/wordnet_adjs.cpp
+  wordlists/wordnet_advs.cpp
   )
 add_library(libmkpass STATIC ${SOURCES})
 target_include_directories(libmkpass PUBLIC .)
@@ -37,6 +45,16 @@ set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")  # Only static
 add_library(sqlite3 STATIC sqlite3/sqlite3.c)
 target_include_directories(sqlite3 PUBLIC sqlite3)
 target_link_libraries(libmkpass PRIVATE sqlite3)
+
+# Linking against wordexp in termux android env
+if(ANDROID AND EXISTS "/data/data/com.termux")
+    set(IS_TERMUX TRUE)
+endif()
+
+if(IS_TERMUX)
+    target_link_libraries(libmkpass
+        PRIVATE /data/data/com.termux/files/usr/lib/libandroid-wordexp.a)
+endif()
 
 
 # A pure C SHA512 implementation library
@@ -79,7 +97,9 @@ if(NOT EMSCRIPTEN)
     digest_ut.cpp
     generator_ut.cpp
     uniform_ut.cpp
-    compose_ut.cpp
+    compose_password_ut.cpp
+    compose_passphrase_ut.cpp
+    pattern_compose_ut.cpp
     hkdf_argon2_ut.cpp
   )
   if (NOT MSVC)

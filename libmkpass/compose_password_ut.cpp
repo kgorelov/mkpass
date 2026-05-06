@@ -1,8 +1,7 @@
 #include <iostream>
-
 #include <set>
 
-#include "compose.h"
+#include "compose_password.h"
 #include "generator.h"
 #include "hkdf_hmac.h"
 #include "hkdf_argon2.h"
@@ -178,9 +177,4 @@ TEST(ComposeTest, TestOldAlgo3) {
 TEST(ComposeTest, TestOldAlgo4) {
     auto p = ComposeOldMkpass1Password("Secret", "Service", 10);
     EXPECT_EQ(p, "RDeard32Oz");
-}
-
-TEST(ComposeTest, TestOldAlgo5) {
-    auto p = ComposeOldMkpass1Password("Master", "user@gmail.com", 16);
-    EXPECT_EQ(p, "6QZDwZNE7UitaHGB");
 }

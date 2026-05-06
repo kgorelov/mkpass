@@ -78,6 +78,10 @@ interface SavedService {
     custom: boolean;
   };
   customChars: string;
+  separator: string;
+  capitalizeWords: boolean;
+  pattern: string;
+  allowSubstitutions: boolean;
 }
 
 function App() {
@@ -87,6 +91,11 @@ function App() {
   const [password, setPassword] = useState('');
   const [passwordLength, setPasswordLength] = useState(16);
   const [algorithm, setAlgorithm] = useState<number>(1);
+  const [separator, setSeparator] = useState<string>('');
+  const [capitalizeWords, setCapitalizeWords] = useState(true);
+  const [pattern, setPattern] = useState<string>('');
+  const [availablePatterns, setAvailablePatterns] = useState<string[]>([]);
+  const [allowSubstitutions, setAllowSubstitutions] = useState(false);
   const [charClassesState, setCharClassesState] = useState({
     lowercase: true,
     uppercase: true,
@@ -111,6 +120,18 @@ function App() {
     className: '',
     statusClassName: ''
   });
+
+  useEffect(() => {
+    if (wasmModule && algorithm === wasmModule.Algorithm.Passphrase_Wordnet_Pattern.value) {
+      const patterns = wasmModule.GetPassphrasePatterns(passwordLength);
+      const list = [];
+      for (let i = 0; i < patterns.size(); i++) {
+        list.push(patterns.get(i));
+      }
+      setAvailablePatterns(list);
+      patterns.delete();
+    }
+  }, [wasmModule, algorithm, passwordLength]);
 
   // Load saved services on mount
   useEffect(() => {
@@ -164,6 +185,8 @@ function App() {
           console.log("WASM Module Loaded.");
           setWasmModule(module);
           setAlgorithm(module.Algorithm.Argon2.value);
+          setSeparator('');
+          setCapitalizeWords(true);
         });
       }
     };
@@ -181,7 +204,52 @@ function App() {
       setPasswordLength(s.length);
       setCharClassesState(s.charClasses);
       setCustomChars(s.customChars);
+      if (s.separator !== undefined) {
+        setSeparator(s.separator);
+      }
+      if (s.capitalizeWords !== undefined) {
+        setCapitalizeWords(s.capitalizeWords);
+      }
+      if (s.pattern !== undefined) {
+        setPattern(s.pattern);
+      }
+      if (s.allowSubstitutions !== undefined) {
+        setAllowSubstitutions(s.allowSubstitutions);
+      }
     }
+  };
+
+  const handleAlgorithmChange = (newAlgo: number) => {
+    setAlgorithm(newAlgo);
+    if (wasmModule) {
+      if (newAlgo === wasmModule.Algorithm.Passphrase_Diceware_EFF_Large.value) {
+        setPasswordLength(3);
+        setAllowSubstitutions(false);
+        setSeparator('');
+        setCapitalizeWords(true);
+      } else if (newAlgo === wasmModule.Algorithm.Passphrase_Wordnet_Pattern.value) {
+        setPattern(''); // Random
+        setPasswordLength(3);
+        setAllowSubstitutions(false);
+        setSeparator('');
+        setCapitalizeWords(true);
+      } else if (newAlgo === wasmModule.Algorithm.Old.value) {
+        setPasswordLength(8);
+      } else if (newAlgo === wasmModule.Algorithm.Argon2.value || newAlgo === wasmModule.Algorithm.SlowSha512.value) {
+        setPasswordLength(16);
+      }
+    }
+  };
+
+  const isPassphraseAlgo = () => {
+    if (!wasmModule) return false;
+    return algorithm === wasmModule.Algorithm.Passphrase_Diceware_EFF_Large.value ||
+           algorithm === wasmModule.Algorithm.Passphrase_Wordnet_Pattern.value;
+  };
+
+  const isOldAlgo = () => {
+    if (!wasmModule) return false;
+    return algorithm === wasmModule.Algorithm.Old.value;
   };
 
   const handleGenerate = () => {
@@ -201,7 +269,11 @@ function App() {
           algorithm,
           length: passwordLength,
           charClasses: charClassesState,
-          customChars
+          customChars,
+          separator,
+          capitalizeWords,
+          pattern,
+          allowSubstitutions
         }
       };
       setSavedServices(newSaved);
@@ -210,14 +282,19 @@ function App() {
 
     setTimeout(() => {
       const charClasses = new wasmModule.VectorCharacterClass();
-      if (charClassesState.lowercase) charClasses.push_back(wasmModule.CharacterClass.LOWERCASE);
-      if (charClassesState.uppercase) charClasses.push_back(wasmModule.CharacterClass.UPPERCASE);
-      if (charClassesState.digits) charClasses.push_back(wasmModule.CharacterClass.DIGITS);
-      if (charClassesState.symbols) charClasses.push_back(wasmModule.CharacterClass.SYMBOLS);
-      if (charClassesState.custom) charClasses.push_back(wasmModule.CharacterClass.CUSTOM);
+      if (!isPassphraseAlgo() && !isOldAlgo()) {
+        if (charClassesState.lowercase) charClasses.push_back(wasmModule.CharacterClass.LOWERCASE);
+        if (charClassesState.uppercase) charClasses.push_back(wasmModule.CharacterClass.UPPERCASE);
+        if (charClassesState.digits) charClasses.push_back(wasmModule.CharacterClass.DIGITS);
+        if (charClassesState.symbols) charClasses.push_back(wasmModule.CharacterClass.SYMBOLS);
+        if (charClassesState.custom) charClasses.push_back(wasmModule.CharacterClass.CUSTOM);
+      } else if (isPassphraseAlgo()) {
+        if (charClassesState.digits) charClasses.push_back(wasmModule.CharacterClass.DIGITS);
+        if (charClassesState.symbols) charClasses.push_back(wasmModule.CharacterClass.SYMBOLS);
+      }
 
       try {
-        const result = wasmModule.MkPass(masterPassword, service, charClasses, algorithm, passwordLength, customChars);
+        const result = wasmModule.MkPass(masterPassword, service, charClasses, algorithm, passwordLength, customChars, separator, capitalizeWords, pattern, allowSubstitutions);
         setPassword(result);
         setIsModalOpen(true);
         setIsPasswordVisible(false);
@@ -310,15 +387,17 @@ function App() {
             <label>Algorithm:</label>
             <select
               value={algorithm}
-              onChange={(e) => setAlgorithm(Number(e.target.value))}
+              onChange={(e) => handleAlgorithmChange(Number(e.target.value))}
               className="select-algorithm"
               disabled={!wasmModule}
             >
               {wasmModule ? (
                 <>
-                  <option value={wasmModule.Algorithm.Argon2.value}>Argon2</option>
-                  <option value={wasmModule.Algorithm.SlowSha512.value}>SlowSha512</option>
-                  <option value={wasmModule.Algorithm.Old.value}>Old</option>
+                  <option value={wasmModule.Algorithm.Argon2.value}>Password (Argon2)</option>
+                  <option value={wasmModule.Algorithm.SlowSha512.value}>Password (SHA512 HMAC)</option>
+                  <option value={wasmModule.Algorithm.Old.value}>OldPassword</option>
+                  <option value={wasmModule.Algorithm.Passphrase_Diceware_EFF_Large.value}>Passphrase Diceware EFF Large (Argon2)</option>
+                  <option value={wasmModule.Algorithm.Passphrase_Wordnet_Pattern.value}>Passphrase Wordnet Pattern (Argon2)</option>
                 </>
               ) : (
                 <option value={1}>Loading algorithms...</option>
@@ -326,72 +405,153 @@ function App() {
             </select>
           </div>
 
-          <div className="character-classes">
-            <label>Character Classes:</label>
-            <div className="checkbox-grid">
-              <label>
+          {!isPassphraseAlgo() && !isOldAlgo() && (
+            <div className="character-classes">
+              <label>Character Classes:</label>
+              <div className="checkbox-grid">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={charClassesState.lowercase}
+                    onChange={(e) => setCharClassesState({ ...charClassesState, lowercase: e.target.checked })}
+                  />
+                  Lower-case
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={charClassesState.uppercase}
+                    onChange={(e) => setCharClassesState({ ...charClassesState, uppercase: e.target.checked })}
+                  />
+                  Upper-case
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={charClassesState.digits}
+                    onChange={(e) => {
+                        const val = e.target.checked;
+                        setCharClassesState({ ...charClassesState, digits: val });
+                        if (!val && !charClassesState.symbols) setAllowSubstitutions(false);
+                    }}
+                  />
+                  Digits
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={charClassesState.symbols}
+                    onChange={(e) => {
+                        const val = e.target.checked;
+                        setCharClassesState({ ...charClassesState, symbols: val });
+                        if (!val && !charClassesState.digits) setAllowSubstitutions(false);
+                    }}
+                  />
+                  Symbols
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={charClassesState.custom}
+                    onChange={(e) => setCharClassesState({ ...charClassesState, custom: e.target.checked })}
+                  />
+                  Custom
+                </label>
+              </div>
+              {charClassesState.custom && (
                 <input
-                  type="checkbox"
-                  checked={charClassesState.lowercase}
-                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old.value : false}
-                  onChange={(e) => setCharClassesState({ ...charClassesState, lowercase: e.target.checked })}
+                  type="text"
+                  placeholder="Custom characters"
+                  value={customChars}
+                  onChange={(e) => setCustomChars(e.target.value)}
+                  className="custom-chars-input"
                 />
-                Lower-case
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={charClassesState.uppercase}
-                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old.value : false}
-                  onChange={(e) => setCharClassesState({ ...charClassesState, uppercase: e.target.checked })}
-                />
-                Upper-case
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={charClassesState.digits}
-                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old.value : false}
-                  onChange={(e) => setCharClassesState({ ...charClassesState, digits: e.target.checked })}
-                />
-                Digits
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={charClassesState.symbols}
-                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old.value : false}
-                  onChange={(e) => setCharClassesState({ ...charClassesState, symbols: e.target.checked })}
-                />
-                Symbols
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={charClassesState.custom}
-                  disabled={wasmModule ? algorithm === wasmModule.Algorithm.Old.value : false}
-                  onChange={(e) => setCharClassesState({ ...charClassesState, custom: e.target.checked })}
-                />
-                Custom
-              </label>
+              )}
             </div>
-            {charClassesState.custom && (wasmModule ? algorithm !== wasmModule.Algorithm.Old.value : true) && (
-              <input
-                type="text"
-                placeholder="Custom characters"
-                value={customChars}
-                onChange={(e) => setCustomChars(e.target.value)}
-                className="custom-chars-input"
-              />
-            )}
-          </div>
+          )}
+
+          {isPassphraseAlgo() && wasmModule && (
+            <div className="input-group">
+              {algorithm === wasmModule.Algorithm.Passphrase_Wordnet_Pattern.value && (
+                <>
+                  <label>Pattern:</label>
+                  <select
+                    value={pattern}
+                    onChange={(e) => setPattern(e.target.value)}
+                    className="select-algorithm"
+                  >
+                    <option value="">Random</option>
+                    {availablePatterns.map(p => (
+                        <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                </>
+              )}
+              <label>Separator:</label>
+              <select
+                value={separator}
+                onChange={(e) => setSeparator(e.target.value)}
+                className="select-algorithm"
+              >
+                <option value="">None</option>
+                <option value="-">Hyphen (-)</option>
+                <option value=" ">Space ( )</option>
+                <option value="/">Slash (/)</option>
+              </select>
+              <div className="checkbox-grid">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={charClassesState.digits}
+                    onChange={(e) => {
+                        const val = e.target.checked;
+                        setCharClassesState({ ...charClassesState, digits: val });
+                        if (!val && !charClassesState.symbols) setAllowSubstitutions(false);
+                    }}
+                  />
+                  Digits
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={charClassesState.symbols}
+                    onChange={(e) => {
+                        const val = e.target.checked;
+                        setCharClassesState({ ...charClassesState, symbols: val });
+                        if (!val && !charClassesState.digits) setAllowSubstitutions(false);
+                    }}
+                  />
+                  Symbols
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={capitalizeWords}
+                    onChange={(e) => setCapitalizeWords(e.target.checked)}
+                  />
+                  Capitalize words
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={allowSubstitutions}
+                    disabled={!charClassesState.digits && !charClassesState.symbols}
+                    onChange={(e) => setAllowSubstitutions(e.target.checked)}
+                  />
+                  Allow substitutions
+                </label>
+              </div>
+            </div>
+          )}
 
           <div className="input-group">
-            <label>Password Length: {passwordLength}</label>
+            <label>{isPassphraseAlgo() ? 'Number of words' : 'Password Length'}: {passwordLength}</label>
             <input
               type="range"
-              min="8"
-              max="64"
+              min={isPassphraseAlgo() ? "1" : "8"}
+              max={algorithm === (wasmModule?.Algorithm.Passphrase_Wordnet_Pattern.value || -1)
+                   ? (wasmModule?.GetMaxPassphrasePatternLength() || 6)
+                   : (isPassphraseAlgo() ? "20" : "64")}
               value={passwordLength}
               onChange={(e) => setPasswordLength(parseInt(e.target.value, 10))}
             />
