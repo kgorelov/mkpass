@@ -16,6 +16,7 @@ target_link_libraries(mkpass PRIVATE
   sha512
   argon2
   linenoise
+  qrcodegen
 )
 
 if (NOT MSVC)
@@ -25,6 +26,7 @@ if (NOT MSVC)
   target_include_directories(e2e_tests PRIVATE ../libmkpass)
   target_link_libraries(e2e_tests PRIVATE
     libmkpass
+    qrcodegen
     GTest::GTest
     GTest::Main
   )

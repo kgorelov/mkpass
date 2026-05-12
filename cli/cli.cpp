@@ -24,6 +24,7 @@
 #include "linenoise.h"
 #include "passphrase_patterns.h"
 #include "CLI11.hpp"
+#include "qrcode/qrcodegen.hpp"
 
 namespace {
 
@@ -40,6 +41,7 @@ struct CliOptions {
     std::optional<bool> symbols;
     std::optional<bool> substitutions;
     std::optional<bool> capitalize;
+    bool qr_code = false;
     int defaults_level = 0;
 };
 
@@ -553,6 +555,24 @@ int run_cli_safe(int argc, char *argv[]) {
     }
 }
 
+void PrintQrCode(const std::string& text) {
+    using namespace qrcodegen;
+    QrCode qr = QrCode::encodeText(text.c_str(), QrCode::Ecc::MEDIUM);
+    int size = qr.getSize();
+    int border = 2;
+    for (int y = -border; y < size + border; y += 2) {
+        for (int x = -border; x < size + border; x++) {
+            bool top = qr.getModule(x, y);
+            bool bottom = qr.getModule(x, y + 1);
+            if (top && bottom) std::cout << "\u2588";      // Full block
+            else if (top && !bottom) std::cout << "\u2580"; // Upper half block
+            else if (!top && bottom) std::cout << "\u2584"; // Lower half block
+            else std::cout << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
 int run_cli(int argc, char *argv[]) {
     CLI::App app{"mkpass - Command-line password generator"};
 
@@ -568,6 +588,7 @@ int run_cli(int argc, char *argv[]) {
     app.add_option("--symbols", global_options.symbols, "Include symbols in passphrase (y/n)")->envname("MKPASS_SYMBOLS");
     app.add_option("--substitutions", global_options.substitutions, "Allow character substitutions (y/n)")->envname("MKPASS_SUBSTITUTIONS");
     app.add_option("--capitalize", global_options.capitalize, "Capitalize words (y/n)")->envname("MKPASS_CAPITALIZE");
+    app.add_flag("-q,--qr-code", global_options.qr_code, "Show QR code instead of text");
     app.add_flag("-d,--defaults", global_options.defaults_level, "Auto-accept defaults from DB (repeat -dd for all defaults)");
     app.add_flag("-D", [](std::int64_t) { global_options.defaults_level = 2; }, "Auto-accept all defaults");
 
@@ -611,7 +632,12 @@ int run_cli(int argc, char *argv[]) {
             break;
     }
 
-    std::cout << MkPass(ctx) << std::endl;
+    std::string password = MkPass(ctx);
+    if (global_options.qr_code) {
+        PrintQrCode(password);
+    } else {
+        std::cout << password << std::endl;
+    }
 
     db.save_service_entry({service, ctx.algorithm, ctx.length, ctx.char_classes, ctx.custom_chars, ctx.separator, ctx.passphrase_pattern, ctx.allow_substitutions, ctx.capitalize_words});
 

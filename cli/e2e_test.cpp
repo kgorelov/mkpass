@@ -337,6 +337,21 @@ TEST(E2ECommandLineOptionsTest, AllOptionsSet) {
     EXPECT_EQ(output.std_out.length(), 25);
 }
 
+TEST(E2ECommandLineOptionsTest, QrCodeOption) {
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p test_master -s test_service_cmd -a 1 -c 123 -l 25 -q";
+
+    ProcessOutput output = exec_with_input(cmd, "");
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    // QR code should be much longer than 25 characters
+    EXPECT_GT(output.std_out.length(), 100);
+    // Should contain some block characters
+    EXPECT_TRUE(output.std_out.find("\u2588") != std::string::npos ||
+                output.std_out.find("\u2580") != std::string::npos ||
+                output.std_out.find("\u2584") != std::string::npos);
+}
+
 TEST(E2ECommandLineOptionsTest, MixedEnvAndCmd) {
     setenv("MKPASS_PASSWORD", "test_master", 1);
     std::string cmd = MKPASS_EXECUTABLE_PATH;
