@@ -42,6 +42,7 @@ struct CliOptions {
     std::optional<bool> substitutions;
     std::optional<bool> capitalize;
     bool qr_code = false;
+    bool infinite = false;
     int defaults_level = 0;
 };
 
@@ -161,16 +162,26 @@ void completion(const char *buf, linenoiseCompletions *lc) {
     }
 }
 
-std::string AskForMasterPassword() {
+std::string AskForMasterPassword(const std::string& default_pwd = "") {
     if (global_options.password) {
         return *global_options.password;
     }
 
-    std::cerr << "Enter Master Password: ";
+    if (default_pwd.empty()) {
+        std::cerr << "Enter Master Password: ";
+    } else {
+        std::string masked(default_pwd.length(), '*');
+        std::cerr << "Enter Master Password [" << masked << "]: ";
+    }
+
     std::string pwd = InputPassword();
     std::cerr << "\n";
+
     if (pwd.empty()) {
-        throw std::runtime_error("Master password must not be empty");
+        if (default_pwd.empty()) {
+            throw std::runtime_error("Master password must not be empty");
+        }
+        return default_pwd;
     }
 
     std::cerr << "Repeat Master Password: ";
@@ -187,15 +198,26 @@ std::string AskForMasterPassword() {
     return pwd;
 }
 
-std::string AskForService() {
+std::string AskForService(const std::string& default_service = "") {
     if (global_options.service) {
         return *global_options.service;
     }
 
     linenoiseSetCompletionCallback(completion);
+    if (!default_service.empty()) {
+        linenoisePreloadBuffer(default_service.c_str());
+    }
     char *service_c_str = linenoise("Service name: ");
-    if (service_c_str == nullptr || *service_c_str == 0) {
-        throw std::runtime_error("Service must not be empty");
+    if (service_c_str == nullptr) {
+        throw std::exception(); // Handle Ctrl+C
+    }
+    if (*service_c_str == 0) {
+        if (default_service.empty()) {
+            free(service_c_str);
+            throw std::runtime_error("Service must not be empty");
+        }
+        free(service_c_str);
+        return default_service;
     }
     std::string service(service_c_str);
     free(service_c_str);
@@ -589,6 +611,7 @@ int run_cli(int argc, char *argv[]) {
     app.add_option("--substitutions", global_options.substitutions, "Allow character substitutions (y/n)")->envname("MKPASS_SUBSTITUTIONS");
     app.add_option("--capitalize", global_options.capitalize, "Capitalize words (y/n)")->envname("MKPASS_CAPITALIZE");
     app.add_flag("-q,--qr-code", global_options.qr_code, "Show QR code instead of text");
+    app.add_flag("-i,--infinite", global_options.infinite, "Run in a loop");
     app.add_flag("-d,--defaults", global_options.defaults_level, "Auto-accept defaults from DB (repeat -dd for all defaults)");
     app.add_flag("-D", [](std::int64_t) { global_options.defaults_level = 2; }, "Auto-accept all defaults");
 
@@ -601,45 +624,55 @@ int run_cli(int argc, char *argv[]) {
     mkpass::ConfigDB db(GetConfigDBPath());
     service_names = db.get_all_service_names();
 
-    std::string pwd = AskForMasterPassword();
-    std::string service = AskForService();
+    std::string pwd;
+    std::string service;
 
-    auto db_entry = db.get_service_entry(service);
-    bool known = db_entry.has_value();
+    do {
+        pwd = AskForMasterPassword(pwd);
+        service = AskForService(service);
 
-    Algorithm default_algorithm = known ? db_entry->algorithm : Algorithm::Argon2;
-    Algorithm algorithm = AskForAlgorithm(default_algorithm, known);
+        auto db_entry = db.get_service_entry(service);
+        bool known = db_entry.has_value();
 
-    Context ctx = {
-        .password = pwd,
-        .service = service,
-        .algorithm = algorithm
-    };
+        Algorithm default_algorithm = known ? db_entry->algorithm : Algorithm::Argon2;
+        Algorithm algorithm = AskForAlgorithm(default_algorithm, known);
 
-    switch (algorithm) {
-        case Algorithm::Argon2:
-        case Algorithm::SlowSha512:
-            HandlePasswordAlgo(ctx, db_entry);
-            break;
-        case Algorithm::Old:
-            HandleOldAlgo(ctx, db_entry);
-            break;
-        case Algorithm::Passphrase_Diceware_EFF_Large:
-            HandlePassphraseDicewareAlgo(ctx, db_entry);
-            break;
-        case Algorithm::Passphrase_Wordnet_Pattern:
-            HandlePassphraseWordnetPatternAlgo(ctx, db_entry);
-            break;
-    }
+        Context ctx = {
+            .password = pwd,
+            .service = service,
+            .algorithm = algorithm
+        };
 
-    std::string password = MkPass(ctx);
-    if (global_options.qr_code) {
-        PrintQrCode(password);
-    } else {
-        std::cout << password << std::endl;
-    }
+        switch (algorithm) {
+            case Algorithm::Argon2:
+            case Algorithm::SlowSha512:
+                HandlePasswordAlgo(ctx, db_entry);
+                break;
+            case Algorithm::Old:
+                HandleOldAlgo(ctx, db_entry);
+                break;
+            case Algorithm::Passphrase_Diceware_EFF_Large:
+                HandlePassphraseDicewareAlgo(ctx, db_entry);
+                break;
+            case Algorithm::Passphrase_Wordnet_Pattern:
+                HandlePassphraseWordnetPatternAlgo(ctx, db_entry);
+                break;
+        }
 
-    db.save_service_entry({service, ctx.algorithm, ctx.length, ctx.char_classes, ctx.custom_chars, ctx.separator, ctx.passphrase_pattern, ctx.allow_substitutions, ctx.capitalize_words});
+        std::string password = MkPass(ctx);
+        if (global_options.qr_code) {
+            PrintQrCode(password);
+        } else {
+            std::cout << password << std::endl;
+        }
+
+        db.save_service_entry({service, ctx.algorithm, ctx.length, ctx.char_classes, ctx.custom_chars, ctx.separator, ctx.passphrase_pattern, ctx.allow_substitutions, ctx.capitalize_words});
+        service_names = db.get_all_service_names();
+
+        if (global_options.infinite) {
+            std::cerr << "\n--- Infinite Mode (Ctrl+C to exit) ---\n";
+        }
+    } while (global_options.infinite);
 
     return 0;
 }
