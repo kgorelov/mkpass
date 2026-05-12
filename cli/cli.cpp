@@ -192,8 +192,8 @@ std::string AskForService() {
 
     linenoiseSetCompletionCallback(completion);
     char *service_c_str = linenoise("Service name: ");
-    if (service_c_str == nullptr) {
-        throw std::exception(); // Will be caught in run_cli_safe and return 130
+    if (service_c_str == nullptr || *service_c_str == 0) {
+        throw std::runtime_error("Service must not be empty");
     }
     std::string service(service_c_str);
     free(service_c_str);
