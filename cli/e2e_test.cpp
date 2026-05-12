@@ -196,6 +196,32 @@ TEST(E2ETest, CtrlCAtServiceName) {
     EXPECT_EQ(output.exit_code, 130);
 }
 
+TEST(E2ETest, InfiniteMode) {
+    // 1st iter: p1, p1, s1
+    // 2nd iter: \n (pwd default), \n (service default)
+    // then many \n to answer any possible questions and then EOF
+    std::string input = "p1\np1\ns1\n\n\n\n\n\n\n\n\n\n";
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -i -DD";
+    ProcessOutput output = exec_with_input(cmd, input);
+
+    // We don't check exit_code because it might vary depending on how EOF is handled
+
+    std::vector<std::string> passwords;
+    std::stringstream ss(output.std_out);
+    std::string line;
+    while (std::getline(ss, line)) {
+        trim(line);
+        if (line.length() == 16) { // Argon2 default length
+            passwords.push_back(line);
+        }
+    }
+    EXPECT_GE(passwords.size(), 2);
+    if (passwords.size() >= 2) {
+        EXPECT_EQ(passwords[0], passwords[1]);
+    }
+}
+
 TEST(E2EServiceEntriesTest, DatabaseUpdate) {
     std::string db_path = GetTmpDir() + "/mkpass-e2e-test2-db-update.db";
     setenv("MKPASS_DB_PATH", db_path.c_str(), 1);

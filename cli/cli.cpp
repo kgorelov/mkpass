@@ -93,7 +93,9 @@ T AskOneChoice(const std::string& title,
     std::cerr << "Your choice [" << dflt_key << "]: ";
 
     std::string choice;
-    std::getline(std::cin, choice);
+    if (!std::getline(std::cin, choice) && std::cin.eof()) {
+        throw std::exception();
+    }
 
     if (choice.empty()) {
         return default_value;
@@ -136,7 +138,9 @@ std::vector<T> AskMultipleChoices(const std::string& title,
             std::cerr << c.key << ". " << c.description << "\n";
         }
         std::cerr << "Your choice (e.g. 123) [" << dflt_str << "]: ";
-        std::getline(std::cin, choice_str);
+        if (!std::getline(std::cin, choice_str) && std::cin.eof()) {
+            throw std::exception();
+        }
     }
 
     if (choice_str.empty()) {
@@ -174,8 +178,13 @@ std::string AskForMasterPassword(const std::string& default_pwd = "") {
         std::cerr << "Enter Master Password [" << masked << "]: ";
     }
 
-    std::string pwd = InputPassword();
+    bool was_eof = false;
+    std::string pwd = InputPassword(&was_eof);
     std::cerr << "\n";
+
+    if (was_eof) {
+        throw std::exception(); // Handle EOF
+    }
 
     if (pwd.empty()) {
         if (default_pwd.empty()) {
@@ -185,8 +194,12 @@ std::string AskForMasterPassword(const std::string& default_pwd = "") {
     }
 
     std::cerr << "Repeat Master Password: ";
-    std::string pwd2 = InputPassword();
+    std::string pwd2 = InputPassword(&was_eof);
     std::cerr << "\n";
+
+    if (was_eof) {
+        throw std::exception();
+    }
 
     if (pwd2.empty()) {
         std::cerr << "[NO CHECK]\n";
@@ -204,7 +217,7 @@ std::string AskForService(const std::string& default_service = "") {
     }
 
     linenoiseSetCompletionCallback(completion);
-    if (!default_service.empty()) {
+    if (IsTerminal() && !default_service.empty()) {
         linenoisePreloadBuffer(default_service.c_str());
     }
     char *service_c_str = linenoise("Service name: ");
@@ -329,7 +342,9 @@ std::vector<WordClasses> AskForPassphrasePattern(int length, const std::vector<W
 
     std::cerr << "Your choice (1-" << (patterns.size() + 1) << " or c) [" << default_choice_str << "]: ";
     std::string choice;
-    std::getline(std::cin, choice);
+    if (!std::getline(std::cin, choice) && std::cin.eof()) {
+        throw std::exception();
+    }
 
     if (choice.empty()) {
         return default_pattern;
@@ -350,7 +365,9 @@ std::vector<WordClasses> AskForPassphrasePattern(int length, const std::vector<W
     if (choice[0] == 'c') {
         std::cerr << "Enter custom pattern (n:noun, v:verb, a:adj, r:adv): ";
         std::string custom_pattern;
-        std::getline(std::cin, custom_pattern);
+        if (!std::getline(std::cin, custom_pattern) && std::cin.eof()) {
+            throw std::exception();
+        }
         if (custom_pattern.empty()) {
             return default_pattern;
         }
@@ -407,7 +424,9 @@ bool AskYesNoQuestion(const std::string& question, bool dflt, const std::optiona
     std::cerr << question
               << " (y/n) [" << (dflt ? "y" : "n") << "]: ";
     std::string choice;
-    std::getline(std::cin, choice);
+    if (!std::getline(std::cin, choice) && std::cin.eof()) {
+        throw std::exception();
+    }
     if (choice.empty()) {
         return dflt;
     }
