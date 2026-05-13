@@ -196,6 +196,32 @@ TEST(E2ETest, CtrlCAtServiceName) {
     EXPECT_EQ(output.exit_code, 130);
 }
 
+TEST(E2ETest, InfiniteMode) {
+    // 1st iter: p1, p1, s1
+    // 2nd iter: \n (pwd default), \n (service default)
+    // then many \n to answer any possible questions and then EOF
+    std::string input = "p1\np1\ns1\n\n\n\n\n\n\n\n\n\n";
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -i -DD";
+    ProcessOutput output = exec_with_input(cmd, input);
+
+    // We don't check exit_code because it might vary depending on how EOF is handled
+
+    std::vector<std::string> passwords;
+    std::stringstream ss(output.std_out);
+    std::string line;
+    while (std::getline(ss, line)) {
+        trim(line);
+        if (line.length() == 16) { // Argon2 default length
+            passwords.push_back(line);
+        }
+    }
+    EXPECT_GE(passwords.size(), 2);
+    if (passwords.size() >= 2) {
+        EXPECT_EQ(passwords[0], passwords[1]);
+    }
+}
+
 TEST(E2EServiceEntriesTest, DatabaseUpdate) {
     std::string db_path = GetTmpDir() + "/mkpass-e2e-test2-db-update.db";
     setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
@@ -226,10 +252,197 @@ TEST(E2EServiceEntriesTest, DatabaseUpdate) {
     EXPECT_EQ(sqlite3_column_int(stmt, 2), expected_char_classes);
 
     sqlite3_finalize(stmt);
-    sqlite3_close(db);
+    unsetenv("MKPASS_DB_PATH");
+    remove(db_path.c_str());
+}
+
+TEST(E2EEnvVarsTest, AllEnvVarsSet) {
+    setenv("MKPASS_PASSWORD", "test_master", 1);
+    setenv("MKPASS_SERVICE", "test_service", 1);
+    setenv("MKPASS_ALGORITHM", "1", 1);
+    setenv("MKPASS_CHAR_CLASSES", "123", 1);
+    setenv("MKPASS_LENGTH", "20", 1);
+
+    ProcessOutput output = exec_with_input(MKPASS_EXECUTABLE_PATH, "");
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_EQ(output.std_out.length(), 20);
+
+    unsetenv("MKPASS_PASSWORD");
+    unsetenv("MKPASS_SERVICE");
+    unsetenv("MKPASS_ALGORITHM");
+    unsetenv("MKPASS_CHAR_CLASSES");
+    unsetenv("MKPASS_LENGTH");
+}
+
+TEST(E2EEnvVarsTest, PassphraseDiceware) {
+    setenv("MKPASS_PASSWORD", "test_master", 1);
+    setenv("MKPASS_SERVICE", "test_service_diceware", 1);
+    setenv("MKPASS_ALGORITHM", "4", 1);
+    setenv("MKPASS_LENGTH", "4", 1);
+    setenv("MKPASS_DIGITS", "y", 1);
+    setenv("MKPASS_SYMBOLS", "n", 1);
+    setenv("MKPASS_SUBSTITUTIONS", "y", 1);
+    setenv("MKPASS_CAPITALIZE", "n", 1);
+    setenv("MKPASS_SEPARATOR", "2", 1); // Hyphen
+
+    ProcessOutput output = exec_with_input(MKPASS_EXECUTABLE_PATH, "");
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_FALSE(output.std_out.empty());
+
+    unsetenv("MKPASS_PASSWORD");
+    unsetenv("MKPASS_SERVICE");
+    unsetenv("MKPASS_ALGORITHM");
+    unsetenv("MKPASS_LENGTH");
+    unsetenv("MKPASS_DIGITS");
+    unsetenv("MKPASS_SYMBOLS");
+    unsetenv("MKPASS_SUBSTITUTIONS");
+    unsetenv("MKPASS_CAPITALIZE");
+    unsetenv("MKPASS_SEPARATOR");
+}
+
+TEST(E2EEnvVarsTest, CustomChars) {
+    setenv("MKPASS_PASSWORD", "test_master", 1);
+    setenv("MKPASS_SERVICE", "test_service_custom", 1);
+    setenv("MKPASS_ALGORITHM", "1", 1);
+    setenv("MKPASS_CHAR_CLASSES", "5", 1);
+    setenv("MKPASS_CUSTOM_CHARS", "ABC", 1);
+    setenv("MKPASS_LENGTH", "10", 1);
+
+    ProcessOutput output = exec_with_input(MKPASS_EXECUTABLE_PATH, "");
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_EQ(output.std_out.length(), 10);
+    for (char c : output.std_out) {
+        EXPECT_TRUE(c == 'A' || c == 'B' || c == 'C');
+    }
+
+    unsetenv("MKPASS_PASSWORD");
+    unsetenv("MKPASS_SERVICE");
+    unsetenv("MKPASS_ALGORITHM");
+    unsetenv("MKPASS_CHAR_CLASSES");
+    unsetenv("MKPASS_CUSTOM_CHARS");
+    unsetenv("MKPASS_LENGTH");
+}
+
+TEST(E2EEnvVarsTest, PassphraseWordnetPattern) {
+    setenv("MKPASS_PASSWORD", "test_master", 1);
+    setenv("MKPASS_SERVICE", "test_service_wordnet", 1);
+    setenv("MKPASS_ALGORITHM", "5", 1);
+    setenv("MKPASS_LENGTH", "3", 1);
+    setenv("MKPASS_PASSPHRASE_PATTERN", "nav", 1);
+    setenv("MKPASS_DIGITS", "n", 1);
+    setenv("MKPASS_SYMBOLS", "n", 1);
+    setenv("MKPASS_CAPITALIZE", "y", 1);
+    setenv("MKPASS_SEPARATOR", "3", 1); // Space
+
+    ProcessOutput output = exec_with_input(MKPASS_EXECUTABLE_PATH, "");
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_FALSE(output.std_out.empty());
+
+    unsetenv("MKPASS_PASSWORD");
+    unsetenv("MKPASS_SERVICE");
+    unsetenv("MKPASS_ALGORITHM");
+    unsetenv("MKPASS_LENGTH");
+    unsetenv("MKPASS_PASSPHRASE_PATTERN");
+    unsetenv("MKPASS_DIGITS");
+    unsetenv("MKPASS_SYMBOLS");
+    unsetenv("MKPASS_CAPITALIZE");
+    unsetenv("MKPASS_SEPARATOR");
+}
+
+TEST(E2ECommandLineOptionsTest, AllOptionsSet) {
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p test_master -s test_service_cmd -a 1 -c 123 -l 25";
+
+    ProcessOutput output = exec_with_input(cmd, "");
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_EQ(output.std_out.length(), 25);
+}
+
+TEST(E2ECommandLineOptionsTest, QrCodeOption) {
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p test_master -s test_service_cmd -a 1 -c 123 -l 25 -q";
+
+    ProcessOutput output = exec_with_input(cmd, "");
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    // QR code should be much longer than 25 characters
+    EXPECT_GT(output.std_out.length(), 100);
+    // Should contain some block characters
+    EXPECT_TRUE(output.std_out.find("\u2588") != std::string::npos ||
+                output.std_out.find("\u2580") != std::string::npos ||
+                output.std_out.find("\u2584") != std::string::npos);
+}
+
+TEST(E2ECommandLineOptionsTest, MixedEnvAndCmd) {
+    setenv("MKPASS_PASSWORD", "test_master", 1);
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -s test_service_mixed -a 1 -c 123 -l 15";
+
+    ProcessOutput output = exec_with_input(cmd, "");
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_EQ(output.std_out.length(), 15);
+
+    unsetenv("MKPASS_PASSWORD");
+}
+
+TEST(E2EDefaultsTest, KnownServiceWithD) {
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-defaults.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
+    remove(db_path.c_str());
+
+    // 1. Create entry
+    std::string input1 = "master\nmaster\nservice1\n1\n123\n10\n";
+    exec_with_input(MKPASS_EXECUTABLE_PATH, input1);
+
+    // 2. Run with -d, should only ask for password and service (if not provided)
+    // We provide password and service via CMD to see if it finishes without input
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p master -s service1 -d";
+    ProcessOutput output = exec_with_input(cmd, "");
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_EQ(output.std_out.length(), 10);
 
     unsetenv("MKPASS_DB_PATH");
     remove(db_path.c_str());
+}
+
+TEST(E2EDefaultsTest, NewServiceWithDShouldAsk) {
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-defaults-new.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
+    remove(db_path.c_str());
+
+    // Run with -d for a NEW service. It should still ask for parameters.
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p master -s new_service -d";
+    // We provide input for Algorithm(1), CharClasses(1234), Length(15)
+    std::string input = "1\n1234\n15\n";
+    ProcessOutput output = exec_with_input(cmd, input);
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_EQ(output.std_out.length(), 15);
+
+    unsetenv("MKPASS_DB_PATH");
+    remove(db_path.c_str());
+}
+
+TEST(E2EDefaultsTest, NewServiceWithBigD) {
+    // Run with -D for a NEW service. It should NOT ask for parameters, using program defaults.
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p master -s new_service -D";
+    ProcessOutput output = exec_with_input(cmd, "");
+    trim(output.std_out);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_EQ(output.std_out.length(), 16); // Default length for Argon2 is 16
+
+    // Verify it used Argon2 (default)
+    // We can't easily verify the algorithm from output, but length 16 is a good hint.
 }
 
 TEST(E2EServiceEntriesTest, AutocompleteNewServiceEntries) {

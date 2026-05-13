@@ -3,7 +3,13 @@
 #include <cstdlib>
 #include <wordexp.h>
 
+#include <unistd.h>
+
 namespace {
+
+inline bool IsTerminal() {
+    return isatty(STDIN_FILENO);
+}
 
 std::string GetConfigDBPath() {
     if (const char* db_path_env = std::getenv("MKPASS_DB_PATH")) {

@@ -5,7 +5,13 @@
 #include <shlobj.h>
 #include <KnownFolders.h>
 
+#include <io.h>
+
 namespace {
+
+inline bool IsTerminal() {
+    return _isatty(_fileno(stdin)) != 0;
+}
 
 std::string GetConfigDBPath() {
     if (const char* db_path_env = std::getenv("MKPASS_DB_PATH")) {
