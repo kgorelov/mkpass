@@ -308,6 +308,27 @@ void ConfigDB::save_service_entry(const ServiceEntry& entry) {
     sqlite3_finalize(stmt);
 }
 
+void ConfigDB::delete_service_entry(const std::string& service_name) {
+    if (!db) {
+        return;
+    }
+
+    const char* sql1 = "DELETE FROM service_entries WHERE name = ?";
+    sqlite3_stmt *stmt;
+    if (sqlite3_prepare_v2(db, sql1, -1, &stmt, nullptr) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, service_name.c_str(), -1, SQLITE_STATIC);
+        sqlite3_step(stmt);
+        sqlite3_finalize(stmt);
+    }
+
+    const char* sql2 = "DELETE FROM snames WHERE name = ?";
+    if (sqlite3_prepare_v2(db, sql2, -1, &stmt, nullptr) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, service_name.c_str(), -1, SQLITE_STATIC);
+        sqlite3_step(stmt);
+        sqlite3_finalize(stmt);
+    }
+}
+
 std::set<std::string> ConfigDB::get_all_service_names() {
     std::set<std::string> names = get_service_names("snames");
     names.merge(get_service_names("service_entries"));
