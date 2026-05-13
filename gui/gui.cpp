@@ -167,8 +167,9 @@ void MainWindow::setupUI() {
     connect(closeButton, &QPushButton::clicked, this, &MainWindow::close);
     connect(generateButton, &QPushButton::clicked, this, &MainWindow::generatePassword);
 
-    connect(masterPasswordLineEdit, &QLineEdit::textChanged, this, &MainWindow::checkPasswords);
-    connect(repeatPasswordLineEdit, &QLineEdit::textChanged, this, &MainWindow::checkPasswords);
+    connect(masterPasswordLineEdit, &QLineEdit::textChanged, this, &MainWindow::validateInputs);
+    connect(repeatPasswordLineEdit, &QLineEdit::textChanged, this, &MainWindow::validateInputs);
+    connect(serviceLineEdit, &QLineEdit::textChanged, this, &MainWindow::validateInputs);
     connect(algorithmComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::updateAlgorithmSpecificUI);
     connect(customCheckBox, &QCheckBox::toggled, this, &MainWindow::updateCustomCharsState);
     connect(digitsCheckBox, &QCheckBox::toggled, this, &MainWindow::updateSubstitutionsState);
@@ -176,6 +177,7 @@ void MainWindow::setupUI() {
     connect(lengthSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, &MainWindow::updatePatternsList);
 
     updateAlgorithmSpecificUI();
+    validateInputs();
 }
 
 void MainWindow::updatePatternsList() {
@@ -369,33 +371,50 @@ void MainWindow::serviceChanged(const QString &service) {
     updateAlgorithmSpecificUI();
 }
 
-void MainWindow::checkPasswords() {
+void MainWindow::validateInputs() {
     QString masterPassword = masterPasswordLineEdit->text();
     QString repeatPassword = repeatPasswordLineEdit->text();
+    QString service = serviceLineEdit->text();
 
+    bool passwordsMatch = true;
     if (repeatPassword.isEmpty()) {
         masterPasswordLineEdit->setStyleSheet("");
         repeatPasswordLineEdit->setStyleSheet("");
-        generateButton->setEnabled(true);
-        statusBar()->clearMessage();
-        return;
+    } else {
+        if (masterPassword == repeatPassword) {
+            masterPasswordLineEdit->setStyleSheet("background-color: green");
+            repeatPasswordLineEdit->setStyleSheet("background-color: green");
+        } else if (masterPassword.startsWith(repeatPassword)) {
+            masterPasswordLineEdit->setStyleSheet("");
+            repeatPasswordLineEdit->setStyleSheet("");
+            passwordsMatch = false;
+        } else {
+            masterPasswordLineEdit->setStyleSheet("background-color: red");
+            repeatPasswordLineEdit->setStyleSheet("background-color: red");
+            passwordsMatch = false;
+        }
     }
 
-    if (masterPassword == repeatPassword) {
-        masterPasswordLineEdit->setStyleSheet("background-color: green");
-        repeatPasswordLineEdit->setStyleSheet("background-color: green");
-        generateButton->setEnabled(true);
-        statusBar()->showMessage("OK: Passwords match.");
-    } else if (masterPassword.startsWith(repeatPassword)) {
-        masterPasswordLineEdit->setStyleSheet("");
-        repeatPasswordLineEdit->setStyleSheet("");
+    if (masterPassword.isEmpty()) {
         generateButton->setEnabled(false);
-        statusBar()->showMessage("Warning: passwords don't match");
+        statusBar()->showMessage("Error: Master password must not be empty");
+    } else if (service.isEmpty()) {
+        generateButton->setEnabled(false);
+        statusBar()->showMessage("Error: Service name must not be empty");
+    } else if (!passwordsMatch) {
+        generateButton->setEnabled(false);
+        if (masterPassword.startsWith(repeatPassword)) {
+            statusBar()->showMessage("Warning: passwords don't match");
+        } else {
+            statusBar()->showMessage("Error: passwords don't match");
+        }
     } else {
-        masterPasswordLineEdit->setStyleSheet("background-color: red");
-        repeatPasswordLineEdit->setStyleSheet("background-color: red");
-        generateButton->setEnabled(false);
-        statusBar()->showMessage("Error: passwords don't match");
+        generateButton->setEnabled(true);
+        if (repeatPassword.isEmpty()) {
+            statusBar()->clearMessage();
+        } else {
+            statusBar()->showMessage("OK: Passwords match.");
+        }
     }
 }
 

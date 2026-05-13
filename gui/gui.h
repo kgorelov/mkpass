@@ -27,7 +27,7 @@ private slots:
     void generatePassword();
     void generationFinished();
     void serviceChanged(const QString &service);
-    void checkPasswords();
+    void validateInputs();
     void updateAlgorithmSpecificUI();
     void updateCustomCharsState();
     void updateSubstitutionsState();
