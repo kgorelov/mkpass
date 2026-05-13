@@ -37,13 +37,14 @@ void PasswordDialog::setupUI() {
 
     qrCodeButton = new QPushButton;
     qrCodeButton->setIcon(QIcon::fromTheme("view-grid", QIcon(":/icons/qr.svg"))); // You need to add a qr.svg icon
-    connect(qrCodeButton, &QPushButton::clicked, this, &PasswordDialog::generateQrCode);
+    connect(qrCodeButton, &QPushButton::clicked, this, &PasswordDialog::toggleQrCode);
     passwordLayout->addWidget(qrCodeButton);
 
     mainLayout->addLayout(passwordLayout);
 
     qrCodeLabel = new QLabel;
     qrCodeLabel->setAlignment(Qt::AlignCenter);
+    qrCodeLabel->hide();
     mainLayout->addWidget(qrCodeLabel);
 
     QHBoxLayout *buttonLayout = new QHBoxLayout;
@@ -72,16 +73,24 @@ void PasswordDialog::copyPasswordToClipboard() {
     QApplication::clipboard()->setText(generatedPassword);
 }
 
-void PasswordDialog::generateQrCode() {
-    qrcodegen::QrCode qr = qrcodegen::QrCode::encodeText(generatedPassword.toStdString().c_str(), qrcodegen::QrCode::Ecc::MEDIUM);
+void PasswordDialog::toggleQrCode() {
+    if (qrCodeLabel->isVisible()) {
+        qrCodeLabel->hide();
+    } else {
+        if (!qrCodeLabel->pixmap()) {
+            qrcodegen::QrCode qr = qrcodegen::QrCode::encodeText(generatedPassword.toStdString().c_str(), qrcodegen::QrCode::Ecc::MEDIUM);
 
-    int size = qr.getSize();
-    QImage image(size, size, QImage::Format_Mono);
-    for (int y = 0; y < size; y++) {
-        for (int x = 0; x < size; x++) {
-            image.setPixel(x, y, qr.getModule(x, y) ? 0 : 1);
+            int size = qr.getSize();
+            QImage image(size, size, QImage::Format_Mono);
+            for (int y = 0; y < size; y++) {
+                for (int x = 0; x < size; x++) {
+                    image.setPixel(x, y, qr.getModule(x, y) ? 0 : 1);
+                }
+            }
+
+            qrCodeLabel->setPixmap(QPixmap::fromImage(image.scaled(200, 200, Qt::KeepAspectRatio, Qt::FastTransformation)));
         }
+        qrCodeLabel->show();
     }
-
-    qrCodeLabel->setPixmap(QPixmap::fromImage(image.scaled(200, 200, Qt::KeepAspectRatio, Qt::FastTransformation)));
+    adjustSize();
 }

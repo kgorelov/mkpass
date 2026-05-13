@@ -16,7 +16,7 @@ public:
 private slots:
     void togglePasswordVisibility();
     void copyPasswordToClipboard();
-    void generateQrCode();
+    void toggleQrCode();
 
 private:
     void setupUI();
