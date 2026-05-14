@@ -202,7 +202,7 @@ TEST(E2ETest, InfiniteMode) {
     // then many \n to answer any possible questions and then EOF
     std::string input = "p1\np1\ns1\n\n\n\n\n\n\n\n\n\n";
     std::string cmd = MKPASS_EXECUTABLE_PATH;
-    cmd += " -i -DD";
+    cmd += " -i -dd";
     ProcessOutput output = exec_with_input(cmd, input);
 
     // We don't check exit_code because it might vary depending on how EOF is handled
@@ -433,16 +433,40 @@ TEST(E2EDefaultsTest, NewServiceWithDShouldAsk) {
 }
 
 TEST(E2EDefaultsTest, NewServiceWithBigD) {
-    // Run with -D for a NEW service. It should NOT ask for parameters, using program defaults.
+    // Run with -dd for a NEW service. It should NOT ask for parameters, using program defaults.
     std::string cmd = MKPASS_EXECUTABLE_PATH;
-    cmd += " -p master -s new_service -D";
+    cmd += " -p master -s new_service -dd";
     ProcessOutput output = exec_with_input(cmd, "");
     trim(output.std_out);
     EXPECT_EQ(output.exit_code, 0);
     EXPECT_EQ(output.std_out.length(), 16); // Default length for Argon2 is 16
+}
 
-    // Verify it used Argon2 (default)
-    // We can't easily verify the algorithm from output, but length 16 is a good hint.
+TEST(E2EDeletionTest, SimpleDelete) {
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-delete.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
+    remove(db_path.c_str());
+
+    // 1. Create entry
+    std::string input1 = "master\nmaster\nservice_to_delete\n1\n123\n10\n";
+    exec_with_input(MKPASS_EXECUTABLE_PATH, input1);
+
+    // 2. Delete entry
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -D -s service_to_delete";
+    std::string input2 = "y\n";
+    ProcessOutput output = exec_with_input(cmd, input2);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_TRUE(output.std_err.find("Deleted") != std::string::npos);
+
+    // 3. Verify it's gone - run again without -D, should ask for everything
+    std::string input3 = "master\nmaster\nservice_to_delete\n1\n123\n12\n";
+    ProcessOutput output2 = exec_with_input(MKPASS_EXECUTABLE_PATH, input3);
+    trim(output2.std_out);
+    EXPECT_EQ(output2.std_out.length(), 12);
+
+    unsetenv("MKPASS_DB_PATH");
+    remove(db_path.c_str());
 }
 
 TEST(E2EServiceEntriesTest, AutocompleteNewServiceEntries) {
