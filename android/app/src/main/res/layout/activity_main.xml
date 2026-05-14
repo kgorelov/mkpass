@@ -9,32 +9,21 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:orientation="vertical">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="?attr/colorPrimary"
+            app:titleTextColor="@color/white"
+            app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="16dp">
-
-            <ImageView
-                android:id="@+id/logoImage"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:src="@drawable/logo_mkpass"
-                android:contentDescription="mkpass logo" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/app_name"
-                android:textAppearance="@style/TextAppearance.AppCompat.Large"
-                android:layout_marginStart="16dp"
-                android:textStyle="bold"
-                android:textSize="24sp" />
-        </LinearLayout>
+            android:orientation="vertical"
+            android:padding="16dp">
 
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
@@ -241,5 +230,6 @@
             android:layout_marginTop="16dp"
             android:text="Generate" />
 
+    </LinearLayout>
     </LinearLayout>
 </ScrollView>

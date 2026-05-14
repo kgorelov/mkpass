@@ -167,6 +167,11 @@ Java_app_mkpass_MainActivity_saveServiceEntry(JNIEnv *env, jobject /* this */, j
     });
 }
 
+extern "C" JNIEXPORT void JNICALL
+Java_app_mkpass_MainActivity_deleteServiceEntry(JNIEnv *env, jobject /* this */, jstring serviceName) {
+    db->delete_service_entry(jstringToString(env, serviceName));
+}
+
 extern "C" JNIEXPORT jstring JNICALL
 Java_app_mkpass_MainActivity_generatePasswordNative(JNIEnv *env, jobject /* this */, jstring password, jstring service, jint algorithm, jint length, jintArray charClasses, jstring customChars, jstring separator, jboolean capitalizeWords, jstring pattern, jboolean allowSubstitutions) {
     std::vector<CharacterClass> cc_vec;

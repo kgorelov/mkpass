@@ -7,6 +7,9 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -20,6 +23,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -98,6 +102,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         init(getDatabasePath("mkpass.db").getAbsolutePath());
 
+        androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
 
         masterPassword = findViewById(R.id.masterPassword);
         repeatPassword = findViewById(R.id.repeatPassword);
@@ -205,6 +211,79 @@ public class MainActivity extends AppCompatActivity {
         };
         masterPassword.addTextChangedListener(passwordTextWatcher);
         repeatPassword.addTextChangedListener(passwordTextWatcher);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(android.view.Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(android.view.MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.menu_db_management) {
+            showDbManagementDialog();
+            return true;
+        } else if (id == R.id.menu_about) {
+            showAboutDialog();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void showDbManagementDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Database Management");
+
+        View view = getLayoutInflater().inflate(R.layout.dialog_db_management, null);
+        android.widget.ListView listView = view.findViewById(R.id.dbListView);
+
+        updateDbManagementList(listView);
+
+        builder.setView(view);
+        builder.setPositiveButton("Close", null);
+        builder.show();
+    }
+
+    private void updateDbManagementList(android.widget.ListView listView) {
+        String[] services = getAllServiceNames();
+        if (services == null || services.length == 0) {
+            ArrayAdapter<String> emptyAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, new String[]{"No records found"});
+            listView.setAdapter(emptyAdapter);
+            return;
+        }
+
+        // Custom adapter to show delete button
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.item_db_record, R.id.serviceName, services) {
+            @Override
+            public View getView(int position, View convertView, android.view.ViewGroup parent) {
+                View view = super.getView(position, convertView, parent);
+                String serviceName = getItem(position);
+                view.findViewById(R.id.deleteButton).setOnClickListener(v -> {
+                    new AlertDialog.Builder(MainActivity.this)
+                            .setTitle("Delete")
+                            .setMessage("Delete service '" + serviceName + "'?")
+                            .setPositiveButton("Yes", (dialog, which) -> {
+                                deleteServiceEntry(serviceName);
+                                updateDbManagementList(listView);
+                                updateServiceSuggestions();
+                            })
+                            .setNegativeButton("No", null)
+                            .show();
+                });
+                return view;
+            }
+        };
+        listView.setAdapter(adapter);
+    }
+
+    private void showAboutDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("About mkpass")
+                .setMessage("mkpass - Password generator\n\nWritten in C++ with Android frontend.")
+                .setPositiveButton("OK", null)
+                .show();
     }
 
     private int lastAlgorithm = -1;
@@ -546,6 +625,7 @@ public class MainActivity extends AppCompatActivity {
     public native String[] getAllServiceNames();
     public native ServiceEntry getServiceEntry(String serviceName);
     public native void saveServiceEntry(String serviceName, int algorithm, int length, int[] charClasses, String customChars, String separator, boolean capitalizeWords, String pattern, boolean allowSubstitutions);
+    public native void deleteServiceEntry(String serviceName);
     public native String generatePasswordNative(String password, String service, int algorithm, int length, int[] charClasses, String customChars, String separator, boolean capitalizeWords, String pattern, boolean allowSubstitutions);
     public native android.graphics.Bitmap generateQrCode(String text);
     public native int getMaxPassphrasePatternLengthNative();
