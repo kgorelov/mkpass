@@ -43,6 +43,7 @@ struct CliOptions {
     std::optional<bool> capitalize;
     bool qr_code = false;
     bool infinite = false;
+    bool delete_mode = false;
     int defaults_level = 0;
 };
 
@@ -632,7 +633,7 @@ int run_cli(int argc, char *argv[]) {
     app.add_flag("-q,--qr-code", global_options.qr_code, "Show QR code instead of text");
     app.add_flag("-i,--infinite", global_options.infinite, "Run in a loop");
     app.add_flag("-d,--defaults", global_options.defaults_level, "Auto-accept defaults from DB (repeat -dd for all defaults)");
-    app.add_flag("-D", [](std::int64_t) { global_options.defaults_level = 2; }, "Auto-accept all defaults");
+    app.add_flag("-D,--delete", global_options.delete_mode, "Record deletion mode");
 
     try {
         app.parse(argc, argv);
@@ -642,6 +643,36 @@ int run_cli(int argc, char *argv[]) {
 
     mkpass::ConfigDB db(GetConfigDBPath());
     service_names = db.get_all_service_names();
+
+    if (global_options.delete_mode) {
+        do {
+            std::string service;
+            try {
+                service = AskForService();
+            } catch (const std::exception&) {
+                break;
+            }
+
+            auto db_entry = db.get_service_entry(service);
+            if (db_entry) {
+                std::cerr << "Delete service '" << service << "'? (y/n) [n]: ";
+                std::string confirm;
+                if (!std::getline(std::cin, confirm) || (confirm.empty() || std::tolower(confirm[0]) != 'y')) {
+                    std::cerr << "Not deleted.\n";
+                } else {
+                    db.delete_service_entry(service);
+                    std::cerr << "Deleted.\n";
+                    service_names = db.get_all_service_names();
+                }
+            } else {
+                std::cerr << "Service '" << service << "' not found.\n";
+            }
+
+            if (global_options.service || !global_options.infinite) break;
+            std::cerr << "\n--- Deletion Mode (Ctrl+C to exit) ---\n";
+        } while (true);
+        return 0;
+    }
 
     std::string pwd;
     std::string service;

@@ -29,6 +29,12 @@ const QrIcon = () => (
   </svg>
 );
 
+const DeleteIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor">
+    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+  </svg>
+);
+
 interface QrCodeProps {
   data: QrCodeData;
 }
@@ -110,6 +116,9 @@ function App() {
   const [wasmModule, setWasmModule] = useState<MkPassModule | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isManagementOpen, setIsManagementOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [managementFilter, setManagementFilter] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isQrCodeVisible, setIsQrCodeVisible] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<QrCodeData | null>(null);
@@ -330,9 +339,22 @@ function App() {
     setIsQrCodeVisible(!isQrCodeVisible);
   };
 
+  const handleDeleteService = (serviceName: string) => {
+    if (window.confirm(`Delete service '${serviceName}'?`)) {
+      const newSaved = { ...savedServices };
+      delete newSaved[serviceName];
+      setSavedServices(newSaved);
+      localStorage.setItem('mkpass_services', JSON.stringify(newSaved));
+    }
+  };
+
   return (
     <div className="App">
       <header className="App-header">
+        <div className="header-menu">
+          <button className="menu-btn" onClick={() => setIsManagementOpen(true)}>Database</button>
+          <button className="menu-btn" onClick={() => setIsAboutOpen(true)}>Help</button>
+        </div>
         <div className="title-container">
           <img src="/logo_mkpass.png" alt="mkpass logo" className="logo" />
           <h1>mkpass</h1>
@@ -599,6 +621,60 @@ function App() {
                 <QrIcon /> {isQrCodeVisible ? "Hide QR Code" : "Show QR Code"}
               </button>
               <button className="close-button" onClick={() => setIsModalOpen(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isManagementOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>Database Management</h2>
+            <div className="management-container">
+              <input
+                type="text"
+                placeholder="Filter services..."
+                className="search-input"
+                value={managementFilter}
+                onChange={(e) => setManagementFilter(e.target.value)}
+              />
+              <div className="service-list">
+                {Object.keys(savedServices)
+                  .filter(s => s.toLowerCase().includes(managementFilter.toLowerCase()))
+                  .map(s => (
+                    <div key={s} className="service-item">
+                      <span className="service-name">{s}</span>
+                      <button className="icon-button delete-btn" onClick={() => handleDeleteService(s)} title="Delete">
+                        <DeleteIcon />
+                      </button>
+                    </div>
+                  ))}
+                {Object.keys(savedServices).length === 0 && (
+                  <div className="no-records">No records found.</div>
+                )}
+                {Object.keys(savedServices).length > 0 &&
+                 Object.keys(savedServices).filter(s => s.toLowerCase().includes(managementFilter.toLowerCase())).length === 0 && (
+                  <div className="no-records">No matches found.</div>
+                )}
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button className="close-button" onClick={() => setIsManagementOpen(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAboutOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>About mkpass</h2>
+            <p style={{textAlign: 'left', fontSize: '1rem', lineHeight: '1.5'}}>
+              mkpass - Password generator<br/><br/>
+              Written in C++ with WebAssembly and React frontend.
+            </p>
+            <div className="modal-actions">
+              <button className="close-button" onClick={() => setIsAboutOpen(false)}>Close</button>
             </div>
           </div>
         </div>

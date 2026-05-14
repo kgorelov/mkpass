@@ -12,6 +12,7 @@ class QComboBox;
 class QGroupBox;
 class QLabel;
 class ProgressDialog;
+class QCompleter;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -32,9 +33,12 @@ private slots:
     void updateCustomCharsState();
     void updateSubstitutionsState();
     void updatePatternsList();
+    void manageDatabase();
+    void showHelp();
 
 private:
     void setupUI();
+    void refreshCompleter();
 
     QLineEdit *masterPasswordLineEdit;
     QLineEdit *repeatPasswordLineEdit;
@@ -61,6 +65,7 @@ private:
     QPushButton *generateButton;
     QPushButton *closeButton;
 
+    QCompleter *serviceCompleter;
     QFutureWatcher<std::string> *generationWatcher;
     std::string generatedPassword;
     ProgressDialog *progressDialog;

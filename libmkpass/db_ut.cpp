@@ -197,3 +197,26 @@ TEST(ConfigDB, EnvVariable) {
     unsetenv("MKPASS_DB_PATH");
     remove(db_path.c_str());
 }
+
+TEST_F(ConfigDBTest, DeleteServiceEntry) {
+    mkpass::ConfigDB db(db_path);
+
+    // Initial count: 4
+    ASSERT_EQ(db.get_all_service_names().size(), 4);
+
+    // Delete from service_entries (new table)
+    db.delete_service_entry("gitlab.com");
+    auto names = db.get_all_service_names();
+    ASSERT_EQ(names.size(), 3);
+    EXPECT_EQ(names.count("gitlab.com"), 0);
+
+    // Delete from snames (old table)
+    db.delete_service_entry("google.com");
+    names = db.get_all_service_names();
+    ASSERT_EQ(names.size(), 2);
+    EXPECT_EQ(names.count("google.com"), 0);
+
+    // Delete non-existent
+    db.delete_service_entry("non-existent.com");
+    ASSERT_EQ(db.get_all_service_names().size(), 2);
+}

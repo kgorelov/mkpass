@@ -6,6 +6,7 @@
 #include "platform_utils.h"
 #include "password_dialog.h"
 #include "progress_dialog.h"
+#include "db_management_dialog.h"
 #include "passphrase_patterns.h"
 #include "word_classes.h"
 
@@ -28,20 +29,17 @@
 #include <QCompleter>
 #include <QStringListModel>
 #include <QLabel>
+#include <QMenuBar>
+#include <QMenu>
+#include <QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent) {
+    : QMainWindow(parent), serviceCompleter(nullptr) {
     setupUI();
     generationWatcher = new QFutureWatcher<std::string>(this);
     connect(generationWatcher, &QFutureWatcher<std::string>::finished, this, &MainWindow::generationFinished);
 
-    mkpass::ConfigDB db(GetConfigDBPath());
-    QStringList services;
-    for (const auto& service : db.get_all_service_names()) {
-        services << QString::fromStdString(service);
-    }
-    QCompleter *completer = new QCompleter(services, this);
-    serviceLineEdit->setCompleter(completer);
+    refreshCompleter();
 
     connect(serviceLineEdit, &QLineEdit::textChanged, this, &MainWindow::serviceChanged);
 }
@@ -52,6 +50,15 @@ MainWindow::~MainWindow() {
 void MainWindow::setupUI() {
     setWindowTitle("mkpass");
     setMinimumWidth(500);
+
+    QMenuBar *menuBar = this->menuBar();
+    QMenu *dbMenu = menuBar->addMenu("Database");
+    QAction *manageAction = dbMenu->addAction("Management");
+    connect(manageAction, &QAction::triggered, this, &MainWindow::manageDatabase);
+
+    QMenu *helpMenu = menuBar->addMenu("Help");
+    QAction *helpAction = helpMenu->addAction("About");
+    connect(helpAction, &QAction::triggered, this, &MainWindow::showHelp);
 
     QWidget *centralWidget = new QWidget;
     setCentralWidget(centralWidget);
@@ -293,6 +300,8 @@ void MainWindow::generationFinished() {
         allowSubstitutionsCheckBox->isChecked(),
         capitalize_words
     });
+
+    refreshCompleter();
 }
 
 void MainWindow::serviceChanged(const QString &service) {
@@ -498,6 +507,32 @@ void MainWindow::updateSubstitutionsState() {
 
 void MainWindow::updateCustomCharsState() {
     customCharsLineEdit->setVisible(customCheckBox->isChecked());
+}
+
+void MainWindow::refreshCompleter() {
+    mkpass::ConfigDB db(GetConfigDBPath());
+    QStringList services;
+    for (const auto& service : db.get_all_service_names()) {
+        services << QString::fromStdString(service);
+    }
+    if (serviceCompleter) {
+        serviceCompleter->deleteLater();
+    }
+    serviceCompleter = new QCompleter(services, this);
+    serviceCompleter->setCaseSensitivity(Qt::CaseInsensitive);
+    serviceCompleter->setFilterMode(Qt::MatchContains);
+    serviceLineEdit->setCompleter(serviceCompleter);
+}
+
+void MainWindow::manageDatabase() {
+    DbManagementDialog dialog(this);
+    dialog.exec();
+
+    refreshCompleter();
+}
+
+void MainWindow::showHelp() {
+    QMessageBox::about(this, "About mkpass", "mkpass - A secure password generator.");
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {

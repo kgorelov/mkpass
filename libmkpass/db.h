@@ -35,6 +35,7 @@ public:
     std::set<std::string> get_all_service_names();
     std::optional<ServiceEntry> get_service_entry(const std::string& service_name);
     void save_service_entry(const ServiceEntry& entry);
+    void delete_service_entry(const std::string& service_name);
 
 private:
     std::set<std::string> get_service_names(const std::string& table_name);
