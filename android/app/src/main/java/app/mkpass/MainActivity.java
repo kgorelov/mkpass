@@ -238,24 +238,49 @@ public class MainActivity extends AppCompatActivity {
 
         View view = getLayoutInflater().inflate(R.layout.dialog_db_management, null);
         android.widget.ListView listView = view.findViewById(R.id.dbListView);
+        android.widget.EditText searchEditText = view.findViewById(R.id.searchEditText);
 
-        updateDbManagementList(listView);
+        updateDbManagementList(listView, "");
+
+        searchEditText.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                updateDbManagementList(listView, s.toString());
+            }
+        });
 
         builder.setView(view);
         builder.setPositiveButton("Close", null);
         builder.show();
     }
 
-    private void updateDbManagementList(android.widget.ListView listView) {
-        String[] services = getAllServiceNames();
-        if (services == null || services.length == 0) {
+    private void updateDbManagementList(android.widget.ListView listView, String filter) {
+        String[] allServices = getAllServiceNames();
+        if (allServices == null || allServices.length == 0) {
             ArrayAdapter<String> emptyAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, new String[]{"No records found"});
             listView.setAdapter(emptyAdapter);
             return;
         }
 
+        List<String> filteredList = new ArrayList<>();
+        for (String s : allServices) {
+            if (filter == null || filter.isEmpty() || s.toLowerCase().contains(filter.toLowerCase())) {
+                filteredList.add(s);
+            }
+        }
+
+        if (filteredList.isEmpty()) {
+            ArrayAdapter<String> emptyAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, new String[]{"No matches found"});
+            listView.setAdapter(emptyAdapter);
+            return;
+        }
+
         // Custom adapter to show delete button
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.item_db_record, R.id.serviceName, services) {
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.item_db_record, R.id.serviceName, filteredList) {
             @Override
             public View getView(int position, View convertView, android.view.ViewGroup parent) {
                 View view = super.getView(position, convertView, parent);
@@ -266,7 +291,8 @@ public class MainActivity extends AppCompatActivity {
                             .setMessage("Delete service '" + serviceName + "'?")
                             .setPositiveButton("Yes", (dialog, which) -> {
                                 deleteServiceEntry(serviceName);
-                                updateDbManagementList(listView);
+                                android.widget.EditText searchEditText = ((View)listView.getParent()).findViewById(R.id.searchEditText);
+                                updateDbManagementList(listView, searchEditText.getText().toString());
                                 updateServiceSuggestions();
                             })
                             .setNegativeButton("No", null)
