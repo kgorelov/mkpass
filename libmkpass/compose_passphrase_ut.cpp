@@ -293,3 +293,54 @@ TEST(ComposePassphraseTest, TestPasspharseEFF5NoCapNosub) {
 
     EXPECT_EQ(p, "glare antitoxic kilobyte outsider limeade");
 }
+
+TEST(ComposePassphraseTest, TestPassphraseWordnet3DSCapNosub) {
+    Generator<HKDF_Argon2> g("secret", "service");
+    std::map<WordClasses, Wordlist> wordlists = {
+        {WordClasses::Noun, {wordnet_nouns_get_word, wordnet_nouns_get_word_count}},
+        {WordClasses::Verb, {wordnet_verbs_get_word, wordnet_verbs_get_word_count}},
+        {WordClasses::Adj, {wordnet_adjs_get_word, wordnet_adjs_get_word_count}},
+        {WordClasses::Adv, {wordnet_advs_get_word, wordnet_advs_get_word_count}},
+    };
+    std::vector<WordClasses> pattern = {WordClasses::Verb, WordClasses::Adj, WordClasses::Noun}; // "van"
+    std::vector<CharacterClass> char_classes = {CharacterClass::DIGITS, CharacterClass::SYMBOLS};
+    bool allow_substitutions = false;
+    bool capitalize_words = true;
+
+    auto p = ComposePassPhrase(g, wordlists, pattern, 3, "", char_classes, allow_substitutions, capitalize_words);
+    EXPECT_EQ(p, "HollowNotedBass3#");
+}
+
+TEST(ComposePassphraseTest, TestPassphraseWordnet3CapNoDS) {
+    Generator<HKDF_Argon2> g("secret", "service");
+    std::map<WordClasses, Wordlist> wordlists = {
+        {WordClasses::Noun, {wordnet_nouns_get_word, wordnet_nouns_get_word_count}},
+        {WordClasses::Verb, {wordnet_verbs_get_word, wordnet_verbs_get_word_count}},
+        {WordClasses::Adj, {wordnet_adjs_get_word, wordnet_adjs_get_word_count}},
+        {WordClasses::Adv, {wordnet_advs_get_word, wordnet_advs_get_word_count}},
+    };
+    std::vector<WordClasses> pattern = {WordClasses::Verb, WordClasses::Adj, WordClasses::Noun}; // "van"
+    std::vector<CharacterClass> char_classes = {};
+    bool allow_substitutions = false;
+    bool capitalize_words = true;
+
+    auto p = ComposePassPhrase(g, wordlists, pattern, 3, " ", char_classes, allow_substitutions, capitalize_words);
+    EXPECT_EQ(p, "Cheat Trapped Desire");
+}
+
+TEST(ComposePassphraseTest, TestPassphraseWordnet3DSNoCapSub) {
+    Generator<HKDF_Argon2> g("secret", "service");
+    std::map<WordClasses, Wordlist> wordlists = {
+        {WordClasses::Noun, {wordnet_nouns_get_word, wordnet_nouns_get_word_count}},
+        {WordClasses::Verb, {wordnet_verbs_get_word, wordnet_verbs_get_word_count}},
+        {WordClasses::Adj, {wordnet_adjs_get_word, wordnet_adjs_get_word_count}},
+        {WordClasses::Adv, {wordnet_advs_get_word, wordnet_advs_get_word_count}},
+    };
+    std::vector<WordClasses> pattern = {WordClasses::Verb, WordClasses::Adj, WordClasses::Noun}; // "van"
+    std::vector<CharacterClass> char_classes = {CharacterClass::DIGITS, CharacterClass::SYMBOLS};
+    bool allow_substitutions = true;
+    bool capitalize_words = false;
+
+    auto p = ComposePassPhrase(g, wordlists, pattern, 3, "-", char_classes, allow_substitutions, capitalize_words);
+    EXPECT_EQ(p, "hollow-noted-b4$s");
+}
