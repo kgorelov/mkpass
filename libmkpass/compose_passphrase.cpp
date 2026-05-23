@@ -120,10 +120,13 @@ std::multimap<int, CharacterClass> GetModWordPositions(
     const std::vector<CharacterClass>& char_classes,
     int passprhase_length)
 {
+    auto sorted_char_classes = char_classes;
+    std::sort(sorted_char_classes.begin(), sorted_char_classes.end());
+
     UniformDistribution distibution(0, passprhase_length - 1);
     std::multimap<int, CharacterClass> result;
 
-    for (auto& cls: char_classes) {
+    for (auto& cls: sorted_char_classes) {
         auto word_idx = distibution(generator);
         result.insert({word_idx, cls});
     }

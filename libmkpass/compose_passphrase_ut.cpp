@@ -222,3 +222,74 @@ TEST(ComposePassphraseTest, TestPassphraseNoPatternException) {
         ComposePassPhrase(g, wordlists, pattern, 10, "-", char_classes, false, false),
         std::runtime_error);
 }
+
+TEST(ComposePassphraseTest, TestPasspharseEFF3DSCapNosub) {
+    Generator<HKDF_Argon2> g("secret", "service");
+    Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
+    std::vector<CharacterClass> char_classes = {
+        CharacterClass::SYMBOLS,
+        CharacterClass::DIGITS
+    };
+    bool allow_substitutions = false;
+    bool capitalize_words = true;
+    auto p = ComposePassPhrase(
+        g, wordlist, 3, "", char_classes, allow_substitutions, capitalize_words);
+
+    EXPECT_EQ(p, "KilobyteOutsiderLimeade3#");
+}
+
+TEST(ComposePassphraseTest, TestPasspharseEFF3DSNoCapNosub) {
+    Generator<HKDF_Argon2> g("secret", "service");
+    Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
+    std::vector<CharacterClass> char_classes = {
+        CharacterClass::SYMBOLS,
+        CharacterClass::DIGITS
+    };
+    bool allow_substitutions = false;
+    bool capitalize_words = false;
+    auto p = ComposePassPhrase(
+        g, wordlist, 3, "-", char_classes, allow_substitutions, capitalize_words);
+
+    EXPECT_EQ(p, "kilobyte-outsider-limeade3#");
+}
+
+TEST(ComposePassphraseTest, TestPasspharseEFF3DSCapSub) {
+    Generator<HKDF_Argon2> g("secret", "service");
+    Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
+    std::vector<CharacterClass> char_classes = {
+        CharacterClass::SYMBOLS,
+        CharacterClass::DIGITS
+    };
+    bool allow_substitutions = true;
+    bool capitalize_words = true;
+    auto p = ComposePassPhrase(
+        g, wordlist, 3, "-", char_classes, allow_substitutions, capitalize_words);
+
+    EXPECT_EQ(p, "Kilobyte-Outsider-L!m3ade");
+}
+
+TEST(ComposePassphraseTest, TestPasspharseEFF3DNoCapNosub) {
+    Generator<HKDF_Argon2> g("secret", "service");
+    Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
+    std::vector<CharacterClass> char_classes = {
+        CharacterClass::DIGITS
+    };
+    bool allow_substitutions = false;
+    bool capitalize_words = false;
+    auto p = ComposePassPhrase(
+        g, wordlist, 3, "-", char_classes, allow_substitutions, capitalize_words);
+
+    EXPECT_EQ(p, "antitoxic-kilobyte-outsider2");
+}
+
+TEST(ComposePassphraseTest, TestPasspharseEFF5NoCapNosub) {
+    Generator<HKDF_Argon2> g("secret", "service");
+    Wordlist wordlist(eff_large_get_word, eff_large_get_word_count);
+    std::vector<CharacterClass> char_classes = {};
+    bool allow_substitutions = false;
+    bool capitalize_words = false;
+    auto p = ComposePassPhrase(
+        g, wordlist, 5, " ", char_classes, allow_substitutions, capitalize_words);
+
+    EXPECT_EQ(p, "glare antitoxic kilobyte outsider limeade");
+}
