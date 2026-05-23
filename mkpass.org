@@ -19,7 +19,9 @@ The problem with using sha512 is that it's too fast to compute.
 If a resulting password is easy and quick to check then a proxy attack becomes possible, either brute force or dictionary based.
 If the master password is found, all passwords derived from that master password are compromised.
 
-** DONE Database support
+** TODO Database support
+  - [X] local sqlite3 database
+  - [ ] cleanup database code
 ** DONE Support for the old algorithm?
 ** DONE QT UI
 ** DONE Android Support
@@ -33,22 +35,21 @@ If the master password is found, all passwords derived from that master password
   - [X] linking against wordexp
   - [ ] termux package
 ** TODO Documentation
-** TODO Passphrase composer
-*** Simple passphrase algorithm
+** DONE Passphrase composer
+*** DONE Simple passphrase algorithm
   - [X] Diceware EFF large wordlist
   - [X] Simple passphare algoritm implementation
   - [X] Make params depend on algorithm entirely
   - [X] Tools: txt to C-code
   - [X] Fix tests: TestLE, E2E
-  - [ ] Testcases
+  - [X] Testcases
   - [X] Support in TUI
   - [X] Support in GUI/QT
   - [X] Support in Android
   - [X] Support in Web
   - [X] Simple passphare algoritm implementation
   - [X] Tools: txt to C-code
-  - [ ] cleanup database code
-*** Lexic formulas passphrase algorithm
+*** DONE Lexic formulas passphrase algorithm
   - [X] WordNet sanitized wordlists: nouns, verbs, adjectives, adverbs
   - [X] Tools: wordnet manipulation tools
   - [X] Passphrase algoritm implementation
@@ -66,8 +67,8 @@ If the master password is found, all passwords derived from that master password
   - [X] Let user chose length, have several patterns for each length
     Let the user chose the pattern for the length: random, pattern1, pattern2...
     Patterns must not be hardcoded in UIs, we need to have a function in libmkpass GetPassprasePatterns(int length)
-  - [ ] Cover passphrases algorithms with tests
-** TODO Web version (WebAssembly)
+  - [X] Cover passphrases algorithms with tests
+** DONE Web version (WebAssembly)
   - [X] Essential functions
   - [X] Results dialog
   - [X] Icon
