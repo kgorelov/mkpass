@@ -6,7 +6,7 @@ add_executable(mkpass main.cpp cli.cpp)
 if (MSVC)
     target_compile_options(mkpass PRIVATE /std:c++20)
 else()
-    target_compile_options(mkpass PRIVATE -std=c++20)
+    target_compile_options(mkpass PRIVATE -std=c++20 -Wsign-compare)
 endif()
 
 target_include_directories(mkpass PRIVATE ../libmkpass)
@@ -22,7 +22,7 @@ target_link_libraries(mkpass PRIVATE
 if (NOT MSVC)
   find_package(GTest REQUIRED)
   add_executable(e2e_tests e2e_test.cpp)
-  target_compile_options(e2e_tests PRIVATE -std=c++20)
+  target_compile_options(e2e_tests PRIVATE -std=c++20 -Wsign-compare)
   target_include_directories(e2e_tests PRIVATE ../libmkpass)
   target_link_libraries(e2e_tests PRIVATE
     libmkpass

@@ -15,7 +15,7 @@ struct Context {
     std::vector<CharacterClass> char_classes;
     Algorithm algorithm = Algorithm::Argon2;
     std::string separator; // Empty by default
-    unsigned length = 0;
+    size_t length = 0;
     std::optional<std::string> custom_chars;
     std::vector<WordClasses> passphrase_pattern;
     bool allow_substitutions;

@@ -34,7 +34,7 @@ struct CliOptions {
     std::optional<std::string> algorithm;
     std::optional<std::string> char_classes;
     std::optional<std::string> custom_chars;
-    std::optional<unsigned int> length;
+    std::optional<size_t> length;
     std::optional<std::string> separator;
     std::optional<std::string> passphrase_pattern;
     std::optional<bool> digits;
@@ -298,7 +298,7 @@ std::string AskForSeparator(const std::string& default_separator, bool known) {
     return AskOneChoice("Choose separator", choices, default_separator, global_options.separator, known);
 }
 
-std::vector<WordClasses> AskForPassphrasePattern(int length, const std::vector<WordClasses>& default_pattern, bool known) {
+std::vector<WordClasses> AskForPassphrasePattern(size_t length, const std::vector<WordClasses>& default_pattern, bool known) {
     PatternsList patterns = GetPassphrasePatterns(length);
 
     if (global_options.passphrase_pattern) {
@@ -378,7 +378,7 @@ std::vector<WordClasses> AskForPassphrasePattern(int length, const std::vector<W
     return default_pattern;
 }
 
-unsigned AskForLength(unsigned default_length, bool known) {
+size_t AskForLength(size_t default_length, bool known) {
     if (global_options.length) {
         return *global_options.length;
     }
@@ -463,7 +463,7 @@ void HandlePasswordAlgo(Context& ctx, const std::optional<mkpass::ServiceEntry>&
         ctx.custom_chars = AskForCustomChars(default_custom_chars, known);
     }
 
-    unsigned default_length = 16;
+    size_t default_length = 16;
     if (known && db_entry->length > 0) {
         default_length = db_entry->length;
     }
@@ -518,7 +518,7 @@ void HandlePassphraseWordnetPatternAlgo(
 {
     bool same_algo = db_entry && db_entry->algorithm == ctx.algorithm;
 
-    unsigned default_length = same_algo && db_entry->length > 0 ? db_entry->length : 3;
+    size_t default_length = same_algo && db_entry->length > 0 ? db_entry->length : 3;
     ctx.length = AskForLength(default_length, same_algo);
 
     if (ctx.length > GetMaxPassphrasePatternLength()) {
@@ -577,7 +577,7 @@ void HandleOldAlgo(
     const std::optional<mkpass::ServiceEntry>& db_entry)
 {
     bool same_algo = db_entry && db_entry->algorithm == Algorithm::Old;
-    unsigned default_length = 8;
+    size_t default_length = 8;
     if (same_algo && db_entry->length > 0) {
         default_length = db_entry->length;
     }
