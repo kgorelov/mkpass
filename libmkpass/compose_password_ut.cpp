@@ -1,5 +1,6 @@
 #include <iostream>
 #include <set>
+#include <algorithm>
 
 #include "compose_password.h"
 #include "generator.h"

@@ -44,7 +44,9 @@ set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")  # Only static
 # SQLite3 library
 add_library(sqlite3 STATIC sqlite3/sqlite3.c)
 target_include_directories(sqlite3 PUBLIC sqlite3)
-target_link_libraries(libmkpass PRIVATE sqlite3)
+
+find_package(Threads REQUIRED)
+target_link_libraries(libmkpass PRIVATE sqlite3 Threads::Threads ${CMAKE_DL_LIBS})
 
 # Linking against wordexp in termux android env
 if(ANDROID AND EXISTS "/data/data/com.termux")
@@ -107,6 +109,15 @@ if(NOT EMSCRIPTEN)
   endif()
   find_package(GTest REQUIRED)
   add_executable(mkpass_tests ${TEST_SOURCES})
+
+  if(TARGET GTest::gtest)
+    get_target_property(GTEST_INCLUDE_DIRS GTest::gtest INTERFACE_INCLUDE_DIRECTORIES)
+    message(STATUS "GTEST_INCLUDE_DIRS after property: ${GTEST_INCLUDE_DIRS}")
+    if(GTEST_INCLUDE_DIRS)
+      target_include_directories(mkpass_tests PRIVATE ${GTEST_INCLUDE_DIRS})
+    endif()
+  endif()
+
   if (MSVC)
       target_compile_options(mkpass_tests PRIVATE /std:c++20)
   else()
@@ -119,8 +130,8 @@ if(NOT EMSCRIPTEN)
     libmkpass
     sha512
     argon2
-    GTest::GTest
-    GTest::Main
+    GTest::gtest
+    GTest::gtest_main
   )
   include(GoogleTest)
   gtest_discover_tests(mkpass_tests)

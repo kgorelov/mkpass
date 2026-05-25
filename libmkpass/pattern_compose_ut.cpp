@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <algorithm>
 #include "compose_passphrase.h"
 #include "generator.h"
 #include "hkdf_argon2.h"

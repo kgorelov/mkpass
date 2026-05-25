@@ -6,6 +6,8 @@ option(WITH_WEBASSEMBLY "Build with WebAssembly" OFF)
 
 enable_testing()
 
+message(STATUS "CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES: ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES}")
+
 add_subdirectory(libmkpass)
 add_subdirectory(cli)
 if(WITH_GUI)
