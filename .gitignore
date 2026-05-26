@@ -10,3 +10,6 @@ android/app/build
 android/app/.cxx
 android/local.properties
 wordlists/wordnet/build
+AppDir
+build_tools
+*.AppImage

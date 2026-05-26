@@ -14,6 +14,9 @@ gtest = ">=1.14"
 sqlite = "*"
 cxx-compiler = "*"
 
+[target.linux-64.dependencies]
+wget = "*"
+
 [tasks]
 # Configure: Creates the build directory and generates build files
 configure = "cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_GUI=ON -DCMAKE_PREFIX_PATH=$CONDA_PREFIX -DCMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES=$CONDA_PREFIX/include"
@@ -25,6 +28,8 @@ test = "ctest --test-dir build --output-on-failure"
 run = { cmd = "./build/cli/mkpass", depends-on = ["build"] }
 # Run GUI
 run-gui = { cmd = "./build/gui/mkpass-gui", depends-on = ["build"] }
+# Build AppImage
+appimage = { cmd = "scripts/build_appimage.sh", depends-on = ["build"] }
 
 [target.win-64.tasks]
 run = { cmd = "build/cli/mkpass.exe", depends-on = ["build"] }
