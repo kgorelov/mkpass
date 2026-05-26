@@ -1,8 +1,18 @@
-# Linenoise-ng library
 add_library(linenoise STATIC linenoise-ng/linenoise.cpp linenoise-ng/ConvertUTF.cpp linenoise-ng/wcwidth.cpp)
 target_include_directories(linenoise PUBLIC linenoise-ng)
 
+option(STATIC_CLI "Link CLI mostly statically (-static-libstdc++ -static-libgcc)" OFF)
+option(FULLY_STATIC_CLI "Link CLI fully statically (-static)" OFF)
+
 add_executable(mkpass main.cpp cli.cpp)
+
+if (FULLY_STATIC_CLI)
+    set_target_properties(mkpass PROPERTIES LINK_FLAGS "-static")
+elseif (STATIC_CLI)
+    if (NOT MSVC)
+        set_target_properties(mkpass PROPERTIES LINK_FLAGS "-static-libstdc++ -static-libgcc")
+    endif()
+endif()
 if (MSVC)
     target_compile_options(mkpass PRIVATE /std:c++20)
 else()

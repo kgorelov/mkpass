@@ -36,11 +36,6 @@ if(OPENSSL_SHA512)
 endif()
 
 
-# Prefer static linking
-set(BUILD_SHARED_LIBS OFF)   # Prefer static libs globally
-set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")  # Only static
-
-
 # SQLite3 library
 add_library(sqlite3 STATIC sqlite3/sqlite3.c)
 target_include_directories(sqlite3 PUBLIC sqlite3)
@@ -93,7 +88,9 @@ target_include_directories(qrcodegen PUBLIC qrcode)
 # Testing support
 ################################################################################
 
-if(NOT EMSCRIPTEN)
+option(WITH_TESTS "Build tests" ON)
+
+if(NOT EMSCRIPTEN AND WITH_TESTS)
   enable_testing()
   set(TEST_SOURCES
     digest_ut.cpp
@@ -110,14 +107,6 @@ if(NOT EMSCRIPTEN)
   find_package(GTest REQUIRED)
   add_executable(mkpass_tests ${TEST_SOURCES})
 
-  if(TARGET GTest::gtest)
-    get_target_property(GTEST_INCLUDE_DIRS GTest::gtest INTERFACE_INCLUDE_DIRECTORIES)
-    message(STATUS "GTEST_INCLUDE_DIRS after property: ${GTEST_INCLUDE_DIRS}")
-    if(GTEST_INCLUDE_DIRS)
-      target_include_directories(mkpass_tests PRIVATE ${GTEST_INCLUDE_DIRS})
-    endif()
-  endif()
-
   if (MSVC)
       target_compile_options(mkpass_tests PRIVATE /std:c++20)
   else()
@@ -125,6 +114,11 @@ if(NOT EMSCRIPTEN)
   endif()
 
   target_include_directories(mkpass_tests PRIVATE .)
+
+  # Explicitly add GTest include directories if targets don't propagate them correctly
+  if(GTest_INCLUDE_DIRS)
+    target_include_directories(mkpass_tests PRIVATE ${GTest_INCLUDE_DIRS})
+  endif()
 
   target_link_libraries(mkpass_tests PRIVATE
     libmkpass

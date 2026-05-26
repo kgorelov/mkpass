@@ -1,6 +1,7 @@
 build
 build_wasm
 build_webasm
+build-*
 mkpass_web/node_modules
 mkpass_web/build
 mkpass_web/public/mkpass_webasm.js
