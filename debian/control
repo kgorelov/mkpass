@@ -1,0 +1,27 @@
+Source: mkpass
+Section: utils
+Priority: optional
+Maintainer: Kirill Gorelov <kgorelov@gmail.com>
+Build-Depends: debhelper-compat (= 13),
+               cmake,
+               qt6-base-dev,
+               libgtest-dev
+Standards-Version: 4.6.2
+
+Package: mkpass
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: command-line password generator using Argon2
+ mkpass is a password generator that uses the Argon2 hashing algorithm
+ to generate passwords based on a master password and service name.
+ .
+ This package contains the command-line utility.
+
+Package: mkpass-gui
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: GUI password generator using Argon2
+ mkpass is a password generator that uses the Argon2 hashing algorithm
+ to generate passwords based on a master password and service name.
+ .
+ This package contains the Qt GUI application.
