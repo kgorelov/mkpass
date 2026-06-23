@@ -17,7 +17,7 @@ namespace mkpass {
 struct ServiceEntry {
     std::string service_name;
     Algorithm algorithm;
-    unsigned length;
+    size_t length;
     std::vector<CharacterClass> char_classes;
     std::optional<std::string> custom_chars;
     std::string separator;

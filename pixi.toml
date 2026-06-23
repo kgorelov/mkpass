@@ -1,0 +1,42 @@
+[workspace]
+name = "mkpass"
+version = "0.1.0"
+description = "Command-line password generator"
+authors = ["Konstantin Gorelov <konstantin.gorelov@gmail.com>"]
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-64", "win-64"]
+
+[dependencies]
+cmake = ">=3.20"
+ninja = "*"
+qt = "5.15.*"
+gtest = ">=1.14"
+sqlite = "*"
+cxx-compiler = "*"
+
+[target.linux-64.dependencies]
+wget = "*"
+
+[tasks]
+# Configure: Creates the build directory and generates build files
+configure = "cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_GUI=ON -DCMAKE_PREFIX_PATH=$CONDA_PREFIX -DCMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES=$CONDA_PREFIX/include"
+# Build: Compiles the project
+build = "cmake --build build"
+# Build GUI specifically
+build-gui = "cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_GUI=ON -DCMAKE_PREFIX_PATH=$CONDA_PREFIX -DCMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES=$CONDA_PREFIX/include && cmake --build build"
+# Build CLI mostly-static (libstdc++, libgcc)
+cli-mostly-static = "cmake -B build-cli-mostly -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_GUI=OFF -DSTATIC_CLI=ON -DWITH_TESTS=OFF -DCMAKE_PREFIX_PATH=$CONDA_PREFIX -DCMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES=$CONDA_PREFIX/include && cmake --build build-cli-mostly"
+# Build CLI fully-static
+cli-static = "cmake -B build-cli-static -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_GUI=OFF -DFULLY_STATIC_CLI=ON -DWITH_TESTS=OFF -DCMAKE_PREFIX_PATH=$CONDA_PREFIX -DCMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES=$CONDA_PREFIX/include && cmake --build build-cli-static"
+# Test: Runs the test suite
+test = "ctest --test-dir build --output-on-failure"
+# Run CLI
+run = { cmd = "./build/cli/mkpass", depends-on = ["build"] }
+# Run GUI
+run-gui = { cmd = "./build/gui/mkpass-gui", depends-on = ["build"] }
+# Build AppImage
+appimage = { cmd = "scripts/build_appimage.sh", depends-on = ["build-gui"] }
+
+[target.win-64.tasks]
+run = { cmd = "build/cli/mkpass.exe", depends-on = ["build"] }
+run-gui = { cmd = "build/gui/mkpass-gui.exe", depends-on = ["build"] }

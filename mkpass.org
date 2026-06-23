@@ -22,6 +22,7 @@ If the master password is found, all passwords derived from that master password
 ** TODO Database support
   - [X] local sqlite3 database
   - [ ] cleanup database code
+  - [ ] Add details to the DB management window and make non-printed characters visible
 ** DONE Support for the old algorithm?
 ** DONE QT UI
 ** DONE Android Support
@@ -75,5 +76,7 @@ If the master password is found, all passwords derived from that master password
   - [X] Style
 ** Mac version
 * Bugs
+** Core
+  - [ ] Sanitize input: trim spaces in service name (core and UI)
 ** Android
 *** Passwords mismatch prefix

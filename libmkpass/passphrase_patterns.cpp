@@ -5,7 +5,7 @@
 using E = WordClasses;
 
 
-std::map<int, PatternsList> NaturalPatterns = {
+std::map<size_t, PatternsList> NaturalPatterns = {
     {
         1, // 1-word patterns
         {
@@ -67,7 +67,7 @@ std::map<int, PatternsList> NaturalPatterns = {
 };
 
 
-PatternsList GetPassphrasePatterns(int length)
+PatternsList GetPassphrasePatterns(size_t length)
 {
     auto it = NaturalPatterns.find(length);
     if (it == NaturalPatterns.end()) {
@@ -76,7 +76,7 @@ PatternsList GetPassphrasePatterns(int length)
     return it->second;
 }
 
-int GetMaxPassphrasePatternLength()
+size_t GetMaxPassphrasePatternLength()
 {
     return NaturalPatterns.size();
 }

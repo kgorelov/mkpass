@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build and Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: prefix-dev/setup-pixi@v0.8.1
+      with:
+        cache: true
+
+    - name: Configure
+      run: pixi run configure
+
+    - name: Build
+      run: pixi run build
+
+    - name: Test
+      run: pixi run test

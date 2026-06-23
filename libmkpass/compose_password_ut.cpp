@@ -1,5 +1,6 @@
 #include <iostream>
 #include <set>
+#include <algorithm>
 
 #include "compose_password.h"
 #include "generator.h"
@@ -138,8 +139,8 @@ TEST(ComposeTest, ComposeFrequency) {
     }
 
     // Count totals
-    unsigned total_chars = 0;
-    unsigned total_cnt = 0;
+    size_t total_chars = 0;
+    size_t total_cnt = 0;
     for (auto& [name, cls]: cls_counts) {
         total_chars += cls.chrs.size();
         total_cnt += cls.cnt;

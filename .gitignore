@@ -1,6 +1,7 @@
 build
 build_wasm
 build_webasm
+build-*
 mkpass_web/node_modules
 mkpass_web/build
 mkpass_web/public/mkpass_webasm.js
@@ -10,3 +11,16 @@ android/app/build
 android/app/.cxx
 android/local.properties
 wordlists/wordnet/build
+AppDir
+build_tools
+*.AppImage
+.debhelper
+debian/mkpass
+debian/mkpass-gui
+debian/tmp
+debian/files
+debian/*.log
+debian/*substvars
+debian/debhelper-build-stamp
+obj-x86_64-linux-gnu
+

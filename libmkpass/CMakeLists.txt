@@ -36,15 +36,12 @@ if(OPENSSL_SHA512)
 endif()
 
 
-# Prefer static linking
-set(BUILD_SHARED_LIBS OFF)   # Prefer static libs globally
-set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")  # Only static
-
-
 # SQLite3 library
 add_library(sqlite3 STATIC sqlite3/sqlite3.c)
 target_include_directories(sqlite3 PUBLIC sqlite3)
-target_link_libraries(libmkpass PRIVATE sqlite3)
+
+find_package(Threads REQUIRED)
+target_link_libraries(libmkpass PRIVATE sqlite3 Threads::Threads ${CMAKE_DL_LIBS})
 
 # Linking against wordexp in termux android env
 if(ANDROID AND EXISTS "/data/data/com.termux")
@@ -91,7 +88,9 @@ target_include_directories(qrcodegen PUBLIC qrcode)
 # Testing support
 ################################################################################
 
-if(NOT EMSCRIPTEN)
+option(WITH_TESTS "Build tests" ON)
+
+if(NOT EMSCRIPTEN AND WITH_TESTS)
   enable_testing()
   set(TEST_SOURCES
     digest_ut.cpp
@@ -107,6 +106,7 @@ if(NOT EMSCRIPTEN)
   endif()
   find_package(GTest REQUIRED)
   add_executable(mkpass_tests ${TEST_SOURCES})
+
   if (MSVC)
       target_compile_options(mkpass_tests PRIVATE /std:c++20)
   else()
@@ -115,12 +115,17 @@ if(NOT EMSCRIPTEN)
 
   target_include_directories(mkpass_tests PRIVATE .)
 
+  # Explicitly add GTest include directories if targets don't propagate them correctly
+  if(GTest_INCLUDE_DIRS)
+    target_include_directories(mkpass_tests PRIVATE ${GTest_INCLUDE_DIRS})
+  endif()
+
   target_link_libraries(mkpass_tests PRIVATE
     libmkpass
     sha512
     argon2
-    GTest::GTest
-    GTest::Main
+    GTest::gtest
+    GTest::gtest_main
   )
   include(GoogleTest)
   gtest_discover_tests(mkpass_tests)
