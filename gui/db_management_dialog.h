@@ -4,7 +4,7 @@
 #include <QStringList>
 
 class QLineEdit;
-class QListWidget;
+class QTableWidget;
 class QPushButton;
 
 class DbManagementDialog : public QDialog {
@@ -23,7 +23,7 @@ private:
     void updateFilter();
 
     QLineEdit *filterLineEdit;
-    QListWidget *servicesListWidget;
+    QTableWidget *servicesTableWidget;
     QPushButton *deleteButton;
     QPushButton *closeButton;
 
