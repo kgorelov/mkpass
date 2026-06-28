@@ -213,28 +213,32 @@ std::string AskForMasterPassword(const std::string& default_pwd = "") {
 }
 
 std::string AskForService(const std::string& default_service = "") {
+    std::string service;
     if (global_options.service) {
-        return *global_options.service;
+        service = *global_options.service;
+    } else {
+        linenoiseSetCompletionCallback(completion);
+        if (IsTerminal() && !default_service.empty()) {
+            linenoisePreloadBuffer(default_service.c_str());
+        }
+        char *service_c_str = linenoise("Service name: ");
+        if (service_c_str == nullptr) {
+            throw std::exception(); // Handle Ctrl+C
+        }
+        service = service_c_str;
+        free(service_c_str);
     }
 
-    linenoiseSetCompletionCallback(completion);
-    if (IsTerminal() && !default_service.empty()) {
-        linenoisePreloadBuffer(default_service.c_str());
-    }
-    char *service_c_str = linenoise("Service name: ");
-    if (service_c_str == nullptr) {
-        throw std::exception(); // Handle Ctrl+C
-    }
-    if (*service_c_str == 0) {
+    service.erase(std::find_if(service.rbegin(), service.rend(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }).base(), service.end());
+
+    if (service.empty()) {
         if (default_service.empty()) {
-            free(service_c_str);
             throw std::runtime_error("Service must not be empty");
         }
-        free(service_c_str);
         return default_service;
     }
-    std::string service(service_c_str);
-    free(service_c_str);
     return service;
 }
 

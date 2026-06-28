@@ -324,14 +324,17 @@ function App() {
       return;
     }
 
+    const trimmedService = service.replace(/\s+$/, '');
+    setService(trimmedService);
+
     setIsGenerating(true);
 
     // Save service settings if enabled
-    if (saveService && service) {
+    if (saveService && trimmedService) {
       const newSaved = {
         ...savedServices,
-        [service]: {
-          service,
+        [trimmedService]: {
+          service: trimmedService,
           algorithm,
           length: passwordLength,
           charClasses: charClassesState,
@@ -360,7 +363,7 @@ function App() {
       }
 
       try {
-        const result = wasmModule.MkPass(masterPassword, service, charClasses, algorithm, passwordLength, customChars, separator, capitalizeWords, pattern, allowSubstitutions);
+        const result = wasmModule.MkPass(masterPassword, trimmedService, charClasses, algorithm, passwordLength, customChars, separator, capitalizeWords, pattern, allowSubstitutions);
         setPassword(result);
         setIsModalOpen(true);
         setIsPasswordVisible(false);
@@ -448,6 +451,7 @@ function App() {
               list="services-list"
               value={service}
               onChange={(e) => handleServiceChange(e.target.value)}
+              onBlur={() => setService(service.replace(/\s+$/, ''))}
             />
             <datalist id="services-list">
               {Object.keys(savedServices).map(s => <option key={s} value={s} />)}

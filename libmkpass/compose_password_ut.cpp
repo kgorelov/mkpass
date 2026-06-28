@@ -196,3 +196,31 @@ TEST(MkPassTest, TestEmptyInputs) {
     };
     EXPECT_THROW(MkPass(ctx_empty_service), std::runtime_error);
 }
+
+TEST(MkPassTest, TestServiceWhitespaceStripping) {
+    Context ctx_clean = {
+        .password = "master",
+        .service = "github.com",
+        .algorithm = Algorithm::Argon2,
+        .length = 16
+    };
+    std::string pass1 = MkPass(ctx_clean);
+
+    Context ctx_spaces = {
+        .password = "master",
+        .service = "github.com   \t\n ",
+        .algorithm = Algorithm::Argon2,
+        .length = 16
+    };
+    std::string pass2 = MkPass(ctx_spaces);
+
+    EXPECT_EQ(pass1, pass2);
+
+    Context ctx_only_spaces = {
+        .password = "master",
+        .service = "   \t  ",
+        .algorithm = Algorithm::Argon2,
+        .length = 16
+    };
+    EXPECT_THROW(MkPass(ctx_only_spaces), std::runtime_error);
+}
