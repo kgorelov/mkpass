@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "compose_password.h"
+#include "mkpass.h"
 #include "generator.h"
 #include "hkdf_hmac.h"
 #include "hkdf_argon2.h"
@@ -178,4 +179,20 @@ TEST(ComposeTest, TestOldAlgo3) {
 TEST(ComposeTest, TestOldAlgo4) {
     auto p = ComposeOldMkpass1Password("Secret", "Service", 10);
     EXPECT_EQ(p, "RDeard32Oz");
+}
+
+TEST(MkPassTest, TestEmptyInputs) {
+    Context ctx_empty_pwd = {
+        .password = "",
+        .service = "some_service",
+        .algorithm = Algorithm::Argon2
+    };
+    EXPECT_THROW(MkPass(ctx_empty_pwd), std::runtime_error);
+
+    Context ctx_empty_service = {
+        .password = "some_password",
+        .service = "",
+        .algorithm = Algorithm::Argon2
+    };
+    EXPECT_THROW(MkPass(ctx_empty_service), std::runtime_error);
 }

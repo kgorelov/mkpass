@@ -496,3 +496,21 @@ TEST(E2EServiceEntriesTest, AutocompleteNewServiceEntries) {
     unsetenv("MKPASS_DB_PATH");
     remove(db_path.c_str());
 }
+
+TEST(E2ECommandLineOptionsTest, EmptyPasswordError) {
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p \"\" -s test_service -a 1 -c 123 -l 25";
+
+    ProcessOutput output = exec_with_input(cmd, "");
+    EXPECT_EQ(output.exit_code, 1);
+    EXPECT_TRUE(output.std_err.find("Master password must not be empty") != std::string::npos);
+}
+
+TEST(E2ECommandLineOptionsTest, EmptyServiceError) {
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p test_master -s \"\" -a 1 -c 123 -l 25";
+
+    ProcessOutput output = exec_with_input(cmd, "");
+    EXPECT_EQ(output.exit_code, 1);
+    EXPECT_TRUE(output.std_err.find("Service must not be empty") != std::string::npos);
+}
