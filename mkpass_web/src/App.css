@@ -365,12 +365,45 @@ button:disabled {
   border-radius: 6px;
 }
 
+.service-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  flex-grow: 1;
+  min-width: 0;
+}
+
 .service-name {
   font-size: 1rem;
   font-weight: bold;
   color: #abb2bf;
   word-break: break-all;
   text-align: left;
+}
+
+.service-params {
+  font-size: 0.8rem;
+  color: #7f848e;
+  text-align: left;
+}
+
+.highlight-trailing-space {
+  background-color: #ffb3b3;
+  color: #b30000;
+  font-family: monospace;
+  font-weight: bold;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+.highlight-nonprintable {
+  background-color: #ffe0b2;
+  color: #e65100;
+  font-family: monospace;
+  font-weight: bold;
+  padding: 0 2px;
+  border-radius: 2px;
 }
 
 .delete-btn {

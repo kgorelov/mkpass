@@ -220,3 +220,27 @@ TEST_F(ConfigDBTest, DeleteServiceEntry) {
     db.delete_service_entry("non-existent.com");
     ASSERT_EQ(db.get_all_service_names().size(), 2);
 }
+
+TEST_F(ConfigDBTest, ServiceWhitespaceStripping) {
+    mkpass::ConfigDB db(db_path);
+
+    mkpass::ServiceEntry entry;
+    entry.service_name = "test_whitespace_service   \n\t ";
+    entry.algorithm = Algorithm::Argon2;
+    entry.length = 16;
+    entry.char_classes = {CharacterClass::LOWERCASE};
+
+    db.save_service_entry(entry);
+
+    auto rec = db.get_service_entry("test_whitespace_service");
+    ASSERT_TRUE(rec.has_value());
+    EXPECT_EQ(rec->service_name, "test_whitespace_service");
+
+    auto rec2 = db.get_service_entry("test_whitespace_service  \t\n ");
+    ASSERT_TRUE(rec2.has_value());
+    EXPECT_EQ(rec2->service_name, "test_whitespace_service");
+
+    db.delete_service_entry("test_whitespace_service \t ");
+    auto rec3 = db.get_service_entry("test_whitespace_service");
+    EXPECT_FALSE(rec3.has_value());
+}

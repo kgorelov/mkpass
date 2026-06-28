@@ -218,6 +218,12 @@ void MainWindow::generatePassword() {
     progressDialog = new ProgressDialog(this);
     progressDialog->show();
 
+    QString service = serviceLineEdit->text();
+    while (!service.isEmpty() && service.at(service.length() - 1).isSpace()) {
+        service.chop(1);
+    }
+    serviceLineEdit->setText(service);
+
     Context ctx;
     ctx.password = masterPasswordLineEdit->text().toStdString();
     ctx.service = serviceLineEdit->text().toStdString();
@@ -384,6 +390,9 @@ void MainWindow::validateInputs() {
     QString masterPassword = masterPasswordLineEdit->text();
     QString repeatPassword = repeatPasswordLineEdit->text();
     QString service = serviceLineEdit->text();
+    while (!service.isEmpty() && service.at(service.length() - 1).isSpace()) {
+        service.chop(1);
+    }
 
     bool passwordsMatch = true;
     if (repeatPassword.isEmpty()) {

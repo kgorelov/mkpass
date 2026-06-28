@@ -195,6 +195,13 @@ public class MainActivity extends AppCompatActivity {
             loadServiceEntry(selectedService);
         });
 
+        service.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                String val = service.getText().toString().replaceAll("\\s+$", "");
+                service.setText(val);
+            }
+        });
+
         // Generate Button
         generateButton.setOnClickListener(v -> generatePassword());
 
@@ -279,12 +286,29 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        // Custom adapter to show delete button
+        // Custom adapter to show delete button and service details
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.item_db_record, R.id.serviceName, filteredList) {
             @Override
             public View getView(int position, View convertView, android.view.ViewGroup parent) {
                 View view = super.getView(position, convertView, parent);
                 String serviceName = getItem(position);
+
+                TextView nameView = view.findViewById(R.id.serviceName);
+                if (nameView != null) {
+                    nameView.setText(highlightServiceName(serviceName));
+                }
+
+                TextView paramsView = view.findViewById(R.id.serviceParams);
+                if (paramsView != null) {
+                    ServiceEntry entry = getServiceEntry(serviceName);
+                    if (entry != null) {
+                        String algoName = getAlgorithmName(entry.algorithm);
+                        paramsView.setText(algoName + " • Length: " + entry.length);
+                    } else {
+                        paramsView.setText("");
+                    }
+                }
+
                 view.findViewById(R.id.deleteButton).setOnClickListener(v -> {
                     new AlertDialog.Builder(MainActivity.this)
                             .setTitle("Delete")
@@ -302,6 +326,89 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         listView.setAdapter(adapter);
+    }
+
+    private String getAlgorithmName(int algorithm) {
+        if (algorithm >= 1 && algorithm <= ALGORITHMS.length) {
+            return ALGORITHMS[algorithm - 1];
+        }
+        return "Unknown";
+    }
+
+    private CharSequence highlightServiceName(String name) {
+        int len = name.length();
+        int trailingStart = len;
+        while (trailingStart > 0 && Character.isWhitespace(name.charAt(trailingStart - 1))) {
+            trailingStart--;
+        }
+
+        android.text.SpannableStringBuilder builder = new android.text.SpannableStringBuilder();
+        for (int i = 0; i < len; i++) {
+            char c = name.charAt(i);
+            int start = builder.length();
+            if (i >= trailingStart) {
+                if (c == ' ') {
+                    builder.append("\u00a0");
+                    builder.setSpan(new android.text.style.BackgroundColorSpan(android.graphics.Color.parseColor("#FFB3B3")), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.ForegroundColorSpan(android.graphics.Color.parseColor("#B30000")), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.TypefaceSpan("monospace"), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                } else if (c == '\t') {
+                    builder.append("[TAB]");
+                    builder.setSpan(new android.text.style.BackgroundColorSpan(android.graphics.Color.parseColor("#FFB3B3")), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.ForegroundColorSpan(android.graphics.Color.parseColor("#B30000")), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.TypefaceSpan("monospace"), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                } else if (c == '\r') {
+                    builder.append("[CR]");
+                    builder.setSpan(new android.text.style.BackgroundColorSpan(android.graphics.Color.parseColor("#FFB3B3")), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.ForegroundColorSpan(android.graphics.Color.parseColor("#B30000")), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.TypefaceSpan("monospace"), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                } else if (c == '\n') {
+                    builder.append("[LF]");
+                    builder.setSpan(new android.text.style.BackgroundColorSpan(android.graphics.Color.parseColor("#FFB3B3")), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.ForegroundColorSpan(android.graphics.Color.parseColor("#B30000")), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.TypefaceSpan("monospace"), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                } else {
+                    builder.append(String.format("\\x%02X", (int) c));
+                    builder.setSpan(new android.text.style.BackgroundColorSpan(android.graphics.Color.parseColor("#FFB3B3")), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.ForegroundColorSpan(android.graphics.Color.parseColor("#B30000")), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.TypefaceSpan("monospace"), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+            } else if (c < 32 || c >= 127) {
+                if (c == '\t') {
+                    builder.append("[TAB]");
+                    builder.setSpan(new android.text.style.BackgroundColorSpan(android.graphics.Color.parseColor("#FFE0B2")), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.ForegroundColorSpan(android.graphics.Color.parseColor("#E65100")), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.TypefaceSpan("monospace"), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                } else if (c == '\r') {
+                    builder.append("[CR]");
+                    builder.setSpan(new android.text.style.BackgroundColorSpan(android.graphics.Color.parseColor("#FFE0B2")), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.ForegroundColorSpan(android.graphics.Color.parseColor("#E65100")), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.TypefaceSpan("monospace"), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                } else if (c == '\n') {
+                    builder.append("[LF]");
+                    builder.setSpan(new android.text.style.BackgroundColorSpan(android.graphics.Color.parseColor("#FFE0B2")), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.ForegroundColorSpan(android.graphics.Color.parseColor("#E65100")), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.TypefaceSpan("monospace"), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                } else {
+                    builder.append(String.format("\\x%02X", (int) c));
+                    builder.setSpan(new android.text.style.BackgroundColorSpan(android.graphics.Color.parseColor("#FFCDD2")), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.ForegroundColorSpan(android.graphics.Color.parseColor("#C62828")), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.TypefaceSpan("monospace"), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    builder.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), start, builder.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+            } else {
+                builder.append(c);
+            }
+        }
+        return builder;
     }
 
     private void showAboutDialog() {
@@ -527,7 +634,8 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        String serviceName = service.getText().toString();
+        String serviceName = service.getText().toString().replaceAll("\\s+$", "");
+        service.setText(serviceName);
         if (serviceName.isEmpty()) {
             Toast.makeText(this, "Service name cannot be empty", Toast.LENGTH_SHORT).show();
             return;

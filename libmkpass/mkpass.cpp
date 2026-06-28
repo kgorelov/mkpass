@@ -85,6 +85,12 @@ std::string GenerateAndComposePassphraseWordnetPattern(const Context& ctx)
 
 
 std::string MkPass(const Context& ctx) {
+    if (ctx.password.empty()) {
+        throw std::runtime_error("Master password must not be empty");
+    }
+    if (ctx.service.empty()) {
+        throw std::runtime_error("Service must not be empty");
+    }
     switch (ctx.algorithm) {
         case Algorithm::Argon2:
             return GenerateAndComposePassword<Generator<HKDF_Argon2>>(ctx);

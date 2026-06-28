@@ -90,6 +90,63 @@ interface SavedService {
   allowSubstitutions: boolean;
 }
 
+const ALGORITHM_NAMES: Record<number, string> = {
+  1: "Argon2",
+  2: "SHA512 HMAC",
+  3: "OldPassword",
+  4: "Diceware (Argon2)",
+  5: "Wordnet Pattern (Argon2)",
+};
+
+function getAlgorithmName(algo: number): string {
+  return ALGORITHM_NAMES[algo] || "Unknown";
+}
+
+function highlightServiceName(name: string): string {
+  let trailingStart = name.length;
+  while (trailingStart > 0 && /\s/.test(name[trailingStart - 1])) {
+    trailingStart--;
+  }
+
+  let html = "";
+  for (let i = 0; i < name.length; i++) {
+    const c = name[i];
+    const code = name.charCodeAt(i);
+
+    if (i >= trailingStart) {
+      if (c === ' ') {
+        html += "<span class='highlight-trailing-space'>&nbsp;</span>";
+      } else if (c === '\t') {
+        html += "<span class='highlight-trailing-space'>[TAB]</span>";
+      } else if (c === '\r') {
+        html += "<span class='highlight-trailing-space'>[CR]</span>";
+      } else if (c === '\n') {
+        html += "<span class='highlight-trailing-space'>[LF]</span>";
+      } else {
+        html += `<span class='highlight-trailing-space'>\\x${code.toString(16).toUpperCase().padStart(2, '0')}</span>`;
+      }
+    } else if (code < 32 || code >= 127) {
+      if (c === '\t') {
+        html += "<span class='highlight-nonprintable'>[TAB]</span>";
+      } else if (c === '\r') {
+        html += "<span class='highlight-nonprintable'>[CR]</span>";
+      } else if (c === '\n') {
+        html += "<span class='highlight-nonprintable'>[LF]</span>";
+      } else {
+        html += `<span class='highlight-nonprintable'>\\x${code.toString(16).toUpperCase().padStart(2, '0')}</span>`;
+      }
+    } else {
+      if (c === '&') html += '&amp;';
+      else if (c === '<') html += '&lt;';
+      else if (c === '>') html += '&gt;';
+      else if (c === '"') html += '&quot;';
+      else if (c === "'") html += '&#39;';
+      else html += c;
+    }
+  }
+  return html;
+}
+
 function App() {
   const [service, setService] = useState('');
   const [masterPassword, setMasterPassword] = useState('');
@@ -267,14 +324,17 @@ function App() {
       return;
     }
 
+    const trimmedService = service.replace(/\s+$/, '');
+    setService(trimmedService);
+
     setIsGenerating(true);
 
     // Save service settings if enabled
-    if (saveService && service) {
+    if (saveService && trimmedService) {
       const newSaved = {
         ...savedServices,
-        [service]: {
-          service,
+        [trimmedService]: {
+          service: trimmedService,
           algorithm,
           length: passwordLength,
           charClasses: charClassesState,
@@ -303,7 +363,7 @@ function App() {
       }
 
       try {
-        const result = wasmModule.MkPass(masterPassword, service, charClasses, algorithm, passwordLength, customChars, separator, capitalizeWords, pattern, allowSubstitutions);
+        const result = wasmModule.MkPass(masterPassword, trimmedService, charClasses, algorithm, passwordLength, customChars, separator, capitalizeWords, pattern, allowSubstitutions);
         setPassword(result);
         setIsModalOpen(true);
         setIsPasswordVisible(false);
@@ -391,6 +451,7 @@ function App() {
               list="services-list"
               value={service}
               onChange={(e) => handleServiceChange(e.target.value)}
+              onBlur={() => setService(service.replace(/\s+$/, ''))}
             />
             <datalist id="services-list">
               {Object.keys(savedServices).map(s => <option key={s} value={s} />)}
@@ -641,14 +702,24 @@ function App() {
               <div className="service-list">
                 {Object.keys(savedServices)
                   .filter(s => s.toLowerCase().includes(managementFilter.toLowerCase()))
-                  .map(s => (
-                    <div key={s} className="service-item">
-                      <span className="service-name">{s}</span>
-                      <button className="icon-button delete-btn" onClick={() => handleDeleteService(s)} title="Delete">
-                        <DeleteIcon />
-                      </button>
-                    </div>
-                  ))}
+                  .map(s => {
+                    const info = savedServices[s];
+                    return (
+                      <div key={s} className="service-item">
+                        <div className="service-details">
+                          <span className="service-name" dangerouslySetInnerHTML={{ __html: highlightServiceName(s) }} />
+                          {info && (
+                            <span className="service-params">
+                              {getAlgorithmName(info.algorithm)} • Length: {info.length}
+                            </span>
+                          )}
+                        </div>
+                        <button className="icon-button delete-btn" onClick={() => handleDeleteService(s)} title="Delete">
+                          <DeleteIcon />
+                        </button>
+                      </div>
+                    );
+                  })}
                 {Object.keys(savedServices).length === 0 && (
                   <div className="no-records">No records found.</div>
                 )}

@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "compose_password.h"
+#include "mkpass.h"
 #include "generator.h"
 #include "hkdf_hmac.h"
 #include "hkdf_argon2.h"
@@ -178,4 +179,48 @@ TEST(ComposeTest, TestOldAlgo3) {
 TEST(ComposeTest, TestOldAlgo4) {
     auto p = ComposeOldMkpass1Password("Secret", "Service", 10);
     EXPECT_EQ(p, "RDeard32Oz");
+}
+
+TEST(MkPassTest, TestEmptyInputs) {
+    Context ctx_empty_pwd = {
+        .password = "",
+        .service = "some_service",
+        .algorithm = Algorithm::Argon2
+    };
+    EXPECT_THROW(MkPass(ctx_empty_pwd), std::runtime_error);
+
+    Context ctx_empty_service = {
+        .password = "some_password",
+        .service = "",
+        .algorithm = Algorithm::Argon2
+    };
+    EXPECT_THROW(MkPass(ctx_empty_service), std::runtime_error);
+}
+
+TEST(MkPassTest, TestServiceWhitespaceStripping) {
+    Context ctx_clean = {
+        .password = "master",
+        .service = "github.com",
+        .algorithm = Algorithm::Argon2,
+        .length = 16
+    };
+    std::string pass1 = MkPass(ctx_clean);
+
+    Context ctx_spaces = {
+        .password = "master",
+        .service = "github.com   \t\n ",
+        .algorithm = Algorithm::Argon2,
+        .length = 16
+    };
+    std::string pass2 = MkPass(ctx_spaces);
+
+    EXPECT_EQ(pass1, pass2);
+
+    Context ctx_only_spaces = {
+        .password = "master",
+        .service = "   \t  ",
+        .algorithm = Algorithm::Argon2,
+        .length = 16
+    };
+    EXPECT_THROW(MkPass(ctx_only_spaces), std::runtime_error);
 }

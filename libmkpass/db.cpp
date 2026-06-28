@@ -5,6 +5,7 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <algorithm>
 
 namespace mkpass {
 
@@ -16,6 +17,14 @@ int CharClassesToBitmask(const std::vector<CharacterClass>& char_classes) {
         mask |= (1 << static_cast<int>(cc));
     }
     return mask;
+}
+
+std::string StripTrailingWhitespaces(const std::string& s) {
+    std::string copy = s;
+    copy.erase(std::find_if(copy.rbegin(), copy.rend(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }).base(), copy.end());
+    return copy;
 }
 
 std::vector<CharacterClass> BitmaskToCharClasses(int mask) {
@@ -268,9 +277,10 @@ std::optional<ServiceEntry> ConfigDB::get_new_service_entry(const std::string& s
 }
 
 std::optional<ServiceEntry> ConfigDB::get_service_entry(const std::string& service_name) {
-    auto entry = get_new_service_entry(service_name);
+    std::string stripped_name = StripTrailingWhitespaces(service_name);
+    auto entry = get_new_service_entry(stripped_name);
     if (!entry) {
-        return get_old_service_entry(service_name);
+        return get_old_service_entry(stripped_name);
     }
     return entry;
 }
@@ -286,7 +296,8 @@ void ConfigDB::save_service_entry(const ServiceEntry& entry) {
         return;
     }
 
-    sqlite3_bind_text(stmt, 1, entry.service_name.c_str(), -1, SQLITE_STATIC);
+    std::string stripped_name = StripTrailingWhitespaces(entry.service_name);
+    sqlite3_bind_text(stmt, 1, stripped_name.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_int(stmt, 2, static_cast<int>(entry.algorithm));
     sqlite3_bind_int(stmt, 3, entry.length);
     sqlite3_bind_int(stmt, 4, CharClassesToBitmask(entry.char_classes));
@@ -313,17 +324,18 @@ void ConfigDB::delete_service_entry(const std::string& service_name) {
         return;
     }
 
+    std::string stripped_name = StripTrailingWhitespaces(service_name);
     const char* sql1 = "DELETE FROM service_entries WHERE name = ?";
     sqlite3_stmt *stmt;
     if (sqlite3_prepare_v2(db, sql1, -1, &stmt, nullptr) == SQLITE_OK) {
-        sqlite3_bind_text(stmt, 1, service_name.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 1, stripped_name.c_str(), -1, SQLITE_STATIC);
         sqlite3_step(stmt);
         sqlite3_finalize(stmt);
     }
 
     const char* sql2 = "DELETE FROM snames WHERE name = ?";
     if (sqlite3_prepare_v2(db, sql2, -1, &stmt, nullptr) == SQLITE_OK) {
-        sqlite3_bind_text(stmt, 1, service_name.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 1, stripped_name.c_str(), -1, SQLITE_STATIC);
         sqlite3_step(stmt);
         sqlite3_finalize(stmt);
     }
