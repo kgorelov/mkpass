@@ -195,6 +195,13 @@ public class MainActivity extends AppCompatActivity {
             loadServiceEntry(selectedService);
         });
 
+        service.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                String val = service.getText().toString().replaceAll("\\s+$", "");
+                service.setText(val);
+            }
+        });
+
         // Generate Button
         generateButton.setOnClickListener(v -> generatePassword());
 
@@ -627,7 +634,8 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        String serviceName = service.getText().toString();
+        String serviceName = service.getText().toString().replaceAll("\\s+$", "");
+        service.setText(serviceName);
         if (serviceName.isEmpty()) {
             Toast.makeText(this, "Service name cannot be empty", Toast.LENGTH_SHORT).show();
             return;
