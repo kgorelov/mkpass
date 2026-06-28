@@ -414,6 +414,7 @@ public class MainActivity extends AppCompatActivity {
     private void showAboutDialog() {
         new AlertDialog.Builder(this)
                 .setTitle("About mkpass")
+                .setIcon(R.mipmap.ic_launcher)
                 .setMessage("mkpass - Password generator\n\nWritten in C++ with Android frontend.")
                 .setPositiveButton("OK", null)
                 .show();

@@ -738,9 +738,10 @@ function App() {
 
       {isAboutOpen && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <div className="modal-content about-modal-content">
+            <img src="/logo_mkpass.png" alt="mkpass logo" className="about-logo" />
             <h2>About mkpass</h2>
-            <p style={{textAlign: 'left', fontSize: '1rem', lineHeight: '1.5'}}>
+            <p className="about-description">
               mkpass - Password generator<br/><br/>
               Written in C++ with WebAssembly and React frontend.
             </p>

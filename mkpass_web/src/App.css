@@ -448,3 +448,28 @@ button:disabled {
 .menu-btn:hover {
   background-color: rgba(128, 203, 196, 0.1);
 }
+
+/* About Dialog Custom Styling */
+.about-modal-content {
+  align-items: center;
+  text-align: center;
+}
+
+.about-logo {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 5px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  transition: transform 0.3s ease;
+}
+
+.about-logo:hover {
+  transform: scale(1.08);
+}
+
+.about-description {
+  text-align: center;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 0;
+}

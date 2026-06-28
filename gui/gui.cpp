@@ -32,6 +32,7 @@
 #include <QMenuBar>
 #include <QMenu>
 #include <QMessageBox>
+#include <QPixmap>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), serviceCompleter(nullptr) {
@@ -541,7 +542,11 @@ void MainWindow::manageDatabase() {
 }
 
 void MainWindow::showHelp() {
-    QMessageBox::about(this, "About mkpass", "mkpass - A secure password generator.");
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle("About mkpass");
+    msgBox.setText("<b>mkpass</b><br><br>A secure password generator.");
+    msgBox.setIconPixmap(QPixmap(":/app_icon").scaled(64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    msgBox.exec();
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
