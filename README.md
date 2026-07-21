@@ -116,6 +116,25 @@ pixi run cli-static
 pixi run test
 ```
 
+#### Option C: Building Debian/Ubuntu (`.deb`) Packages
+
+To build native `.deb` packages for Debian, Ubuntu, and Linux Mint:
+
+```bash
+# Install Debian build prerequisites
+sudo apt-get install build-essential debhelper cmake qt6-base-dev libgtest-dev
+
+# Build binary packages (without signing)
+dpkg-buildpackage -us -uc -b
+```
+
+This will produce `mkpass_*.deb` (CLI utility) and `mkpass-gui_*.deb` (Qt GUI) packages in the parent directory (`../`).
+
+To install the built packages:
+```bash
+sudo dpkg -i ../mkpass_*.deb ../mkpass-gui_*.deb
+```
+
 ---
 
 ### Building the Web Application
