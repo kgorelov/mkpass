@@ -7,6 +7,7 @@
 #include "password_dialog.h"
 #include "progress_dialog.h"
 #include "db_management_dialog.h"
+#include "manual_dialog.h"
 #include "passphrase_patterns.h"
 #include "word_classes.h"
 
@@ -35,7 +36,7 @@
 #include <QPixmap>
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), serviceCompleter(nullptr) {
+    : QMainWindow(parent), serviceCompleter(nullptr), manualDialog(nullptr) {
     setupUI();
     generationWatcher = new QFutureWatcher<std::string>(this);
     connect(generationWatcher, &QFutureWatcher<std::string>::finished, this, &MainWindow::generationFinished);
@@ -58,6 +59,8 @@ void MainWindow::setupUI() {
     connect(manageAction, &QAction::triggered, this, &MainWindow::manageDatabase);
 
     QMenu *helpMenu = menuBar->addMenu("Help");
+    QAction *manualAction = helpMenu->addAction("Manual");
+    connect(manualAction, &QAction::triggered, this, &MainWindow::showManual);
     QAction *helpAction = helpMenu->addAction("About");
     connect(helpAction, &QAction::triggered, this, &MainWindow::showHelp);
 
@@ -539,6 +542,15 @@ void MainWindow::manageDatabase() {
     dialog.exec();
 
     refreshCompleter();
+}
+
+void MainWindow::showManual() {
+    if (!manualDialog) {
+        manualDialog = new ManualDialog(this);
+    }
+    manualDialog->show();
+    manualDialog->raise();
+    manualDialog->activateWindow();
 }
 
 void MainWindow::showHelp() {

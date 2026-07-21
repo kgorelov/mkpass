@@ -4,5 +4,6 @@
     <file>icons/eye-off.svg</file>
     <file>icons/qr.svg</file>
     <file alias="app_icon">../icons/mkpass_256.png</file>
+    <file alias="help.html">help/help.html</file>
 </qresource>
 </RCC>

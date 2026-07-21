@@ -9,6 +9,7 @@ if(WITH_GUI)
     password_dialog.cpp
     progress_dialog.cpp
     db_management_dialog.cpp
+    manual_dialog.cpp
   )
 
   if (MKPASS_QT_VERSION EQUAL 6)
