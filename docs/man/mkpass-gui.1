@@ -1,0 +1,64 @@
+.TH MKPASS-GUI 1 "July 2026" "mkpass 0.1.0" "User Commands"
+.SH NAME
+mkpass-gui \- Qt graphical interface for mkpass password generator
+.SH SYNOPSIS
+.B mkpass-gui
+[\fIQT_OPTIONS\fR]
+.SH DESCRIPTION
+.B mkpass-gui
+is the graphical Qt user interface for the
+.B mkpass
+stateless password and passphrase generator.
+.PP
+It provides an intuitive visual interface to regenerate strong passwords on-demand using a \fBMaster Password\fR and a \fBService Name\fR.
+.PP
+Key Features of the GUI:
+.IP \(bu 2
+\fBReal-time Service Autocomplete\fR: Instant suggestions derived from the local SQLite database.
+.IP \(bu 2
+\fBInteractive Controls\fR: Dynamic form controls for algorithm selection (Argon2, SHA512, Diceware, WordNet pattern), length adjustments, and character set toggles.
+.IP \(bu 2
+\fBDatabase Management Dialog\fR: Built-in manager accessible via the Database menu to view, search, and delete saved service configurations.
+.IP \(bu 2
+\fBClipboard Security\fR: Instant clipboard copy button with automatic clipboard wiping upon application shutdown.
+.IP \(bu 2
+\fBIntegrated Help Manual\fR: Comprehensive user manual accessible directly from the Help menu.
+
+.SH OPTIONS
+.B mkpass-gui
+accepts standard Qt command-line options:
+.TP
+\fB\-style\fR \fISTYLE\fR
+Specify the Qt GUI style (e.g., fusion, breeze, cleanlooks).
+.TP
+\fB\-geometry\fR \fIGEOMETRY\fR
+Set the main window size and position.
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Display standard command-line help options.
+
+.SH USE CASES
+.TP
+.B Standard Desktop Password Generation
+1. Launch \fBmkpass-gui\fR.
+2. Type your Master Password in the password field.
+3. Type or select a Service Name (e.g. "github.com").
+4. Adjust options if required (algorithm, length, character sets).
+5. Click \fBGenerate\fR or press Enter.
+6. Click \fBCopy to Clipboard\fR.
+
+.TP
+.B Managing Stored Service Configurations
+1. Open the \fBDatabase\fR menu and select \fBManagement\fR.
+2. Search or browse saved service entries.
+3. Select and delete obsolete service configurations.
+
+.SH FILES
+.TP
+.I ~/.config/mkpass/config.db
+SQLite database storing local non-secret service configuration entries and options history.
+
+.SH SEE ALSO
+.BR mkpass (1)
+.SH AUTHORS
+Written by Kirill Gorelov <kgorelov@gmail.com>

@@ -2,7 +2,7 @@
 name = "mkpass"
 version = "0.1.0"
 description = "Command-line password generator"
-authors = ["Konstantin Gorelov <konstantin.gorelov@gmail.com>"]
+authors = ["Kirill Gorelov <kgorelov@gmail.com>"]
 channels = ["conda-forge"]
 platforms = ["linux-64", "osx-64", "win-64"]
 

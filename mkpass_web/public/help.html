@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mkpass Web Version - User Manual & Security Guide</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #24292e;
+            max-width: 880px;
+            margin: 0 auto;
+            padding: 24px;
+            background-color: #ffffff;
+        }
+        h1, h2, h3 {
+            color: #0969da;
+            border-bottom: 1px solid #d0d7de;
+            padding-bottom: 0.3em;
+        }
+        h1 { font-size: 2.2em; }
+        h2 { font-size: 1.5em; margin-top: 1.6em; }
+        h3 { font-size: 1.2em; border-bottom: none; }
+        code, pre {
+            font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+            background-color: #f6f8fa;
+            border-radius: 6px;
+        }
+        code { padding: 0.2em 0.4em; font-size: 85%; }
+        .security-hero {
+            background-color: #ddf4ff;
+            border: 2px solid #54aeff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .security-hero h2 {
+            margin-top: 0;
+            color: #0969da;
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        .screenshot-placeholder {
+            border: 2px dashed #0969da;
+            background-color: #f6f8fa;
+            color: #0969da;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .screenshot-placeholder strong { display: block; font-size: 1.1em; margin-bottom: 8px; }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+        .feature-card {
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            padding: 16px;
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>mkpass Web Version - User Manual</h1>
+    <p>Welcome to <strong>mkpass Web</strong>, the browser-based client-side application for stateless password and passphrase generation.</p>
+
+    <!-- CRITICAL INFORMATION SECURITY SECTION -->
+    <div class="security-hero">
+        <h2>🔒 Information Security & Privacy Guarantee</h2>
+        <p><strong>It is completely safe to use mkpass Web.</strong></p>
+        <ul>
+            <li><strong>100% Client-Side WebAssembly Execution</strong>: All cryptographic key derivation (Argon2id, HMAC-SHA512, Diceware, WordNet pattern generation) occurs entirely inside your web browser using WebAssembly compiled directly from native C++ code.</li>
+            <li><strong>Zero Network Data Transmission</strong>: Your Master Password, Service Names, and derived passwords are <strong>NEVER sent over the network</strong>. No servers, APIs, analytics, or remote logging are contacted during generation.</li>
+            <li><strong>Offline Capable</strong>: Once the page is loaded, you can disconnect your internet connection completely or use the app offline—password generation will continue to work seamlessly.</li>
+            <li><strong>Memory Hygiene</strong>: Master password variables reside strictly in local WebAssembly browser memory allocations.</li>
+        </ul>
+    </div>
+
+    <h2>1. The Stateless Concept</h2>
+    <p>Traditional password managers rely on encrypted cloud vaults or local database files. If a vault file is lost, corrupted, or hacked, access to all stored passwords is lost. <strong>mkpass Web</strong> operates statelessly:</p>
+    <ul>
+        <li>You only remember one secret: your <strong>Master Password</strong>.</li>
+        <li>For any service (e.g. <code>github.com</code> or <code>my-email</code>), <code>mkpass</code> derives the exact same strong password deterministically every time you enter your Master Password and service options.</li>
+        <li>Service names and non-secret configuration parameters (algorithm, length, character set choices) are saved in your browser's local storage (<code>localStorage</code>) strictly for auto-completion convenience.</li>
+    </ul>
+
+    <div class="screenshot-placeholder">
+        <strong>[SCREENSHOT PLACEHOLDER: Web Interface Main Screen]</strong>
+        <em>Description: Show the mkpass Web browser application interface displaying the Master Password input, Service autocompletion field, Algorithm dropdown selector, character toggles, and Client-Side WebAssembly security badge.</em>
+    </div>
+
+    <h2>2. Web Application Features</h2>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h3>⚡ Client-Side WebAssembly</h3>
+            <p>Runs native-speed Argon2id and HMAC-SHA512 key derivation algorithms directly in browser memory.</p>
+        </div>
+        <div class="feature-card">
+            <h3>🔍 Smart Autocomplete</h3>
+            <p>Remembers non-secret service settings in browser <code>localStorage</code> for quick one-click regeneration.</p>
+        </div>
+        <div class="feature-card">
+            <h3>📋 One-Click Copy</h3>
+            <p>Instantly copy derived passwords to system clipboard with visual feedback.</p>
+        </div>
+        <div class="feature-card">
+            <h3>📱 Responsive Design</h3>
+            <p>Optimized for mobile web browsers, tablets, and desktop displays.</p>
+        </div>
+    </div>
+
+    <h2>3. Operating Instructions</h2>
+
+    <h3>3.1 Generating a Password</h3>
+    <ol>
+        <li>Open <code>mkpass Web</code> in your browser.</li>
+        <li>Enter your secret <strong>Master Password</strong>.</li>
+        <li>Enter or select a <strong>Service Name</strong> (e.g. <code>github.com</code>).</li>
+        <li>Choose your generation algorithm:
+            <ul>
+                <li><code>Password (Argon2id)</code> (Recommended modern default)</li>
+                <li><code>Password (SHA512 HMAC)</code></li>
+                <li><code>Passphrase (Diceware EFF Large)</code></li>
+                <li><code>Passphrase (WordNet Pattern)</code></li>
+            </ul>
+        </li>
+        <li>Configure password length and character set preferences if needed.</li>
+        <li>Click <strong>Generate Password</strong>.</li>
+        <li>Click <strong>Copy to Clipboard</strong> to copy the generated password.</li>
+    </ol>
+
+    <div class="screenshot-placeholder">
+        <strong>[SCREENSHOT PLACEHOLDER: Generating Password in Browser]</strong>
+        <em>Description: Show the web interface with a generated password visible in the output box, with a green "Copied to Clipboard!" tooltip notification.</em>
+    </div>
+
+    <h3>3.2 Managing Browser Saved Profiles</h3>
+    <ol>
+        <li>Click on the <strong>Stored Services / Database</strong> tab or menu.</li>
+        <li>View all non-secret service profiles stored in your browser local storage.</li>
+        <li>Click <strong>Delete</strong> next to any service profile to clear its saved options from browser history.</li>
+    </ol>
+
+    <div class="screenshot-placeholder">
+        <strong>[SCREENSHOT PLACEHOLDER: Web Service Management]</strong>
+        <em>Description: Show the Web stored services list with search filter and clear service button.</em>
+    </div>
+
+    <h2>4. Frequently Asked Questions (FAQ)</h2>
+    <h3>Is it safe to type my Master Password into a browser?</h3>
+    <p>Yes. The Web version of <code>mkpass</code> executes 100% locally on your machine. You can verify this by opening browser developer tools (F12 -> Network tab) while generating a password: zero HTTP/HTTPS requests are made when generating passwords.</p>
+
+    <h3>What happens if I clear my browser history/cookies?</h3>
+    <p>Clearing browser data only removes saved non-secret service names and preference suggestions. It does <strong>NOT</strong> break password generation! Simply re-enter your Master Password, service name, and algorithm parameters to regenerate the exact same password.</p>
+
+</body>
+</html>

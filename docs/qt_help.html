@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mkpass-gui User Manual</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #24292e;
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #ffffff;
+        }
+        h1, h2, h3 {
+            color: #1a1f2c;
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 0.3em;
+        }
+        h1 { font-size: 2em; }
+        h2 { font-size: 1.5em; margin-top: 1.5em; }
+        h3 { font-size: 1.2em; border-bottom: none; }
+        code, pre {
+            font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+            background-color: #f6f8fa;
+            border-radius: 3px;
+        }
+        code { padding: 0.2em 0.4em; font-size: 85%; }
+        pre { padding: 16px; overflow: auto; line-height: 1.45; }
+        .screenshot-placeholder {
+            border: 2px dashed #0366d6;
+            background-color: #f1f8ff;
+            color: #0366d6;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .screenshot-placeholder strong { display: block; font-size: 1.1em; margin-bottom: 8px; }
+        .note {
+            background-color: #fff8c5;
+            border-left: 4px solid #d9d000;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        .tip {
+            background-color: #dcffe4;
+            border-left: 4px solid #2da44e;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 0 4px 4px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>mkpass-gui User Manual</h1>
+    <p>Welcome to the official user manual for <strong>mkpass-gui</strong>, the graphical interface for the <code>mkpass</code> stateless password and passphrase generator.</p>
+
+    <h2>1. The Concept Behind mkpass</h2>
+    <p>Traditional password managers store your passwords in an encrypted vault. If that vault is lost, corrupted, or hacked, your access is compromised. <strong>mkpass</strong> takes a revolutionary stateless approach:</p>
+    <ul>
+        <li><strong>No Secret Vault Needed</strong>: Your passwords are not saved anywhere. Instead, they are deterministically generated on-demand whenever you need them.</li>
+        <li><strong>One Master Password</strong>: You only remember a single Master Password.</li>
+        <li><strong>Service-Based Generation</strong>: By combining your Master Password with a Service Name (e.g. <code>github.com</code> or <code>my-email</code>) and non-secret generation rules, <code>mkpass</code> derives the exact same strong password every single time.</li>
+        <li><strong>Local Configuration History</strong>: Non-secret parameters (algorithm choice, password length, character sets) are stored locally in an SQLite database to provide convenient autocompletion and default settings.</li>
+    </ul>
+
+    <div class="screenshot-placeholder">
+        <strong>[SCREENSHOT PLACEHOLDER: Main Window Overview]</strong>
+        <em>Description: Show the main mkpass-gui application window with populated Master Password, Service field with autocomplete dropdown, Algorithm selector, Character Classes group box, Length slider/spinbox, and action buttons.</em>
+    </div>
+
+    <h2>2. Interface Overview</h2>
+    <p>The main window consists of the following key components:</p>
+    <ul>
+        <li><strong>Master Password & Repeat Password</strong>: Enter your secret master password. The repeat field ensures you haven't made a typo.</li>
+        <li><strong>Service</strong>: The name or URL of the service (e.g., <code>google.com</code>, <code>work-vpn</code>). Autocompletes known services from your database.</li>
+        <li><strong>Algorithm Selector</strong>: Choose between cryptographic key derivation algorithms and passphrase modes:
+            <ul>
+                <li><code>Password (Argon2)</code>: Modern memory-hard password generation (Recommended).</li>
+                <li><code>Password (SHA512 HMAC)</code>: Iterative HMAC-SHA512 derivation.</li>
+                <li><code>Passphrase Diceware (Argon2)</code>: Word-based passphrase using the EFF Large wordlist.</li>
+                <li><code>Passphrase Wordnet Pattern (Argon2)</code>: Grammatically structured passphrases (e.g. Adjective + Noun + Verb).</li>
+            </ul>
+        </li>
+        <li><strong>Character Classes & Custom Characters</strong>: Toggle Lower-case, Upper-case, Digits, Symbols, or define Custom characters.</li>
+        <li><strong>Length & Separator Controls</strong>: Adjust password length (characters) or passphrase length (words) and select word separators (Hyphen, Space, Slash).</li>
+        <li><strong>Action Buttons</strong>:
+            <ul>
+                <li><strong>Generate</strong>: Computes the password and displays it in a dialog.</li>
+                <li><strong>Copy to Clipboard</strong>: Directly copies the generated password to your system clipboard without revealing it on screen.</li>
+            </ul>
+        </li>
+    </ul>
+
+    <h2>3. Step-by-Step Instructions</h2>
+
+    <h3>3.1 Generating a Password for a New Service</h3>
+    <ol>
+        <li>Launch <code>mkpass-gui</code>.</li>
+        <li>Enter your <strong>Master Password</strong> in the <em>Master Password</em> and <em>Repeat Password</em> fields.</li>
+        <li>Type the new service name in the <strong>Service</strong> field (e.g., <code>amazon.com</code>).</li>
+        <li>Select your desired <strong>Algorithm</strong> (default is <code>Password (Argon2)</code>).</li>
+        <li>Select the required character sets and length (e.g., 20 characters with digits and symbols).</li>
+        <li>Click <strong>Generate Password</strong> or <strong>Copy to Clipboard</strong>.</li>
+        <li>The service parameters are automatically saved in your local database for future use.</li>
+    </ol>
+
+    <div class="screenshot-placeholder">
+        <strong>[SCREENSHOT PLACEHOLDER: Generating a New Password]</strong>
+        <em>Description: Show the user entering a new service name with character class checkboxes selected, ready to click Generate.</em>
+    </div>
+
+    <h3>3.2 Regenerating a Password for an Existing Service</h3>
+    <ol>
+        <li>Start typing the service name in the <strong>Service</strong> field.</li>
+        <li>Select the service from the autocompletion dropdown. All previously saved non-secret parameters (algorithm, length, character sets) will automatically load.</li>
+        <li>Enter your <strong>Master Password</strong>.</li>
+        <li>Click <strong>Copy to Clipboard</strong> or <strong>Generate Password</strong>.</li>
+    </ol>
+
+    <div class="screenshot-placeholder">
+        <strong>[SCREENSHOT PLACEHOLDER: Autocomplete Dropdown in Action]</strong>
+        <em>Description: Show the Service QLineEdit displaying an active autocomplete popup menu with previously saved service names.</em>
+    </div>
+
+    <h3>3.3 Managing the Saved Services Database</h3>
+    <p>To inspect or clean up your saved service configurations:</p>
+    <ol>
+        <li>Click <strong>Database</strong> in the top menu bar and select <strong>Management</strong>.</li>
+        <li>A dialog will open showing a list of all saved services along with their stored algorithm and length configurations.</li>
+        <li>Use the search filter to locate specific entries.</li>
+        <li>Select an entry and click <strong>Delete</strong> to remove it from local suggestions.</li>
+    </ol>
+
+    <div class="screenshot-placeholder">
+        <strong>[SCREENSHOT PLACEHOLDER: Database Management Dialog]</strong>
+        <em>Description: Show the Database Management Dialog listing service entries, their algorithm badges, and the Delete button.</em>
+    </div>
+
+    <h2>4. Security Features & Best Practices</h2>
+    <div class="tip">
+        <strong>Automatic Clipboard Wiping:</strong> Whenever you close <code>mkpass-gui</code>, the application automatically clears the system clipboard to prevent unauthorized applications from reading your copied password.
+    </div>
+    <ul>
+        <li><strong>Memory Protection</strong>: Master passwords are kept in memory only for the duration of the generation computation.</li>
+        <li><strong>No Network Transmission</strong>: <code>mkpass-gui</code> performs all calculations locally on your CPU. No internet connection is used or required.</li>
+        <li><strong>Backup Your Parameters</strong>: Because generation is deterministic, as long as you remember your Master Password and know your service parameters, your passwords can never be lost.</li>
+    </ul>
+
+</body>
+</html>
