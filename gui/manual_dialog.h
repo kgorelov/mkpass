@@ -11,6 +11,10 @@ public:
     explicit ManualDialog(QWidget *parent = nullptr);
     ~ManualDialog() override = default;
 
+private slots:
+    void zoomIn();
+    void zoomOut();
+
 private:
     QTextBrowser *textBrowser;
 };

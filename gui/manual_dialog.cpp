@@ -1,8 +1,11 @@
 #include "manual_dialog.h"
 #include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QPushButton>
 #include <QTextBrowser>
 #include <QFile>
 #include <QCoreApplication>
+#include <QFont>
 
 ManualDialog::ManualDialog(QWidget *parent)
     : QDialog(parent, Qt::Window) {
@@ -12,9 +15,34 @@ ManualDialog::ManualDialog(QWidget *parent)
 
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setContentsMargins(10, 10, 10, 10);
+    layout->setSpacing(8);
+
+    QHBoxLayout *toolbarLayout = new QHBoxLayout();
+
+    QPushButton *zoomInButton = new QPushButton("+", this);
+    zoomInButton->setToolTip("Increase font size");
+    zoomInButton->setFixedWidth(36);
+
+    QPushButton *zoomOutButton = new QPushButton("-", this);
+    zoomOutButton->setToolTip("Decrease font size");
+    zoomOutButton->setFixedWidth(36);
+
+    QPushButton *closeButton = new QPushButton("Close", this);
+    closeButton->setToolTip("Close user manual");
+
+    toolbarLayout->addWidget(zoomInButton);
+    toolbarLayout->addWidget(zoomOutButton);
+    toolbarLayout->addStretch();
+    toolbarLayout->addWidget(closeButton);
+
+    layout->addLayout(toolbarLayout);
 
     textBrowser = new QTextBrowser(this);
     textBrowser->setOpenExternalLinks(true);
+
+    QFont font = textBrowser->font();
+    font.setPointSize(12);
+    textBrowser->setFont(font);
 
     QString htmlContent;
 
@@ -47,4 +75,16 @@ ManualDialog::ManualDialog(QWidget *parent)
     }
 
     layout->addWidget(textBrowser);
+
+    connect(zoomInButton, &QPushButton::clicked, this, &ManualDialog::zoomIn);
+    connect(zoomOutButton, &QPushButton::clicked, this, &ManualDialog::zoomOut);
+    connect(closeButton, &QPushButton::clicked, this, &QDialog::close);
+}
+
+void ManualDialog::zoomIn() {
+    textBrowser->zoomIn(1);
+}
+
+void ManualDialog::zoomOut() {
+    textBrowser->zoomOut(1);
 }
