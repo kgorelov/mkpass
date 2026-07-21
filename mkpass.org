@@ -39,7 +39,7 @@ If the master password is found, all passwords derived from that master password
 *** DONE Man pages
 *** DONE GUI app manual
 *** DONE Android app manual
-*** TODO Web app manual
+*** DONE Web app manual
 *** TODO Better about dialogs with links to project web site
 ** DONE Passphrase composer
 *** DONE Simple passphrase algorithm

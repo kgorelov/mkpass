@@ -174,6 +174,7 @@ function App() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isManagementOpen, setIsManagementOpen] = useState(false);
+  const [isManualOpen, setIsManualOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [managementFilter, setManagementFilter] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -413,7 +414,8 @@ function App() {
       <header className="App-header">
         <div className="header-menu">
           <button className="menu-btn" onClick={() => setIsManagementOpen(true)}>Database</button>
-          <button className="menu-btn" onClick={() => setIsAboutOpen(true)}>Help</button>
+          <button className="menu-btn" onClick={() => setIsManualOpen(true)}>Manual</button>
+          <button className="menu-btn" onClick={() => setIsAboutOpen(true)}>About</button>
         </div>
         <div className="title-container">
           <img src="/logo_mkpass.png" alt="mkpass logo" className="logo" />
@@ -731,6 +733,20 @@ function App() {
             </div>
             <div className="modal-actions">
               <button className="close-button" onClick={() => setIsManagementOpen(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isManualOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content manual-modal-content">
+            <h2>mkpass User Manual</h2>
+            <div className="manual-iframe-container">
+              <iframe src="/help.html" title="mkpass User Manual" className="manual-iframe" />
+            </div>
+            <div className="modal-actions">
+              <button className="close-button" onClick={() => setIsManualOpen(false)}>Close</button>
             </div>
           </div>
         </div>
