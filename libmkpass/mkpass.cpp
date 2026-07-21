@@ -81,27 +81,39 @@ std::string GenerateAndComposePassphraseWordnetPattern(const Context& ctx)
         g, std::move(wordlists), ctx.passphrase_pattern, ctx.length, ctx.separator, ctx.char_classes, ctx.allow_substitutions, ctx.capitalize_words);
 }
 
+std::string TrimWhitespace(const std::string& str) {
+    size_t first = str.find_first_not_of(" \t\n\r");
+    if (first == std::string::npos) {
+        return "";
+    }
+    size_t last = str.find_last_not_of(" \t\n\r");
+    return str.substr(first, (last - first + 1));
+}
+
 } // namespace
 
 
 std::string MkPass(const Context& ctx) {
-    if (ctx.password.empty()) {
+    Context local_ctx = ctx;
+    local_ctx.service = TrimWhitespace(local_ctx.service);
+
+    if (local_ctx.password.empty()) {
         throw std::runtime_error("Master password must not be empty");
     }
-    if (ctx.service.empty()) {
+    if (local_ctx.service.empty()) {
         throw std::runtime_error("Service must not be empty");
     }
-    switch (ctx.algorithm) {
+    switch (local_ctx.algorithm) {
         case Algorithm::Argon2:
-            return GenerateAndComposePassword<Generator<HKDF_Argon2>>(ctx);
+            return GenerateAndComposePassword<Generator<HKDF_Argon2>>(local_ctx);
         case Algorithm::SlowSha512:
-            return GenerateAndComposePassword<Generator<HKDF_HMAC<SLOW_SHA512>>>(ctx);
+            return GenerateAndComposePassword<Generator<HKDF_HMAC<SLOW_SHA512>>>(local_ctx);
         case Algorithm::Old:
-            return ComposeOldMkpass1Password(ctx.password, ctx.service, ctx.length);
+            return ComposeOldMkpass1Password(local_ctx.password, local_ctx.service, local_ctx.length);
         case Algorithm::Passphrase_Diceware_EFF_Large:
-            return GenerateAndComposePassphraseDiceware<Generator<HKDF_Argon2>>(ctx);
+            return GenerateAndComposePassphraseDiceware<Generator<HKDF_Argon2>>(local_ctx);
         case Algorithm::Passphrase_Wordnet_Pattern:
-            return GenerateAndComposePassphraseWordnetPattern<Generator<HKDF_Argon2>>(ctx);
+            return GenerateAndComposePassphraseWordnetPattern<Generator<HKDF_Argon2>>(local_ctx);
     }
     throw std::runtime_error("Unsupported algorithm");
 }
