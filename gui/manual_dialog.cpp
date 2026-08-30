@@ -39,6 +39,7 @@ ManualDialog::ManualDialog(QWidget *parent)
 
     textBrowser = new QTextBrowser(this);
     textBrowser->setOpenExternalLinks(true);
+    textBrowser->setSearchPaths(QStringList() << ":/" << ":/img" << "docs" << "docs/img" << "gui/help" << "gui/help/img");
 
     QFont font = textBrowser->font();
     font.setPointSize(12);

@@ -5,5 +5,13 @@
     <file>icons/qr.svg</file>
     <file alias="app_icon">../icons/mkpass_256.png</file>
     <file alias="help.html">help/help.html</file>
+    <file alias="img/gui_main_window.png">help/img/gui_main_window.png</file>
+    <file alias="img/gui_main_window_algorithms.png">help/img/gui_main_window_algorithms.png</file>
+    <file alias="img/gui_main_window_suggest.png">help/img/gui_main_window_suggest.png</file>
+    <file alias="img/gui_generated_password.png">help/img/gui_generated_password.png</file>
+    <file alias="img/gui_generated_password_revealed.png">help/img/gui_generated_password_revealed.png</file>
+    <file alias="img/gui_generated_password_qrcode.png">help/img/gui_generated_password_qrcode.png</file>
+    <file alias="img/gui_generated_passphrase.png">help/img/gui_generated_passphrase.png</file>
+    <file alias="img/gui_database_management.png">help/img/gui_database_management.png</file>
 </qresource>
 </RCC>

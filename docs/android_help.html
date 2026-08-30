@@ -29,16 +29,25 @@
             border-radius: 3px;
         }
         code { padding: 0.2em 0.4em; font-size: 85%; }
-        .screenshot-placeholder {
-            border: 2px dashed #34a853;
-            background-color: #e6f4ea;
-            color: #137333;
-            padding: 20px;
-            margin: 20px 0;
+        .screenshot {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            margin: 16px auto;
+            border: 1px solid #d0d7de;
             border-radius: 8px;
-            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
-        .screenshot-placeholder strong { display: block; font-size: 1.1em; margin-bottom: 8px; }
+        .screenshot-container {
+            text-align: center;
+            margin: 24px 0;
+        }
+        .screenshot-caption {
+            font-size: 0.9em;
+            color: #57606a;
+            margin-top: 8px;
+            font-style: italic;
+        }
         .security-badge {
             background-color: #e8f0fe;
             border-left: 4px solid #1a73e8;
@@ -65,9 +74,9 @@
         <li><strong>Local Suggestions</strong>: Non-secret service parameters (algorithm choice, length, character sets) are stored locally in your mobile device database for instant selection.</li>
     </ul>
 
-    <div class="screenshot-placeholder">
-        <strong>[SCREENSHOT PLACEHOLDER: Android App Main Screen]</strong>
-        <em>Description: Show the Android application interface on a smartphone screen, depicting the Toolbar, Master Password input field, Service autocompletion spinner/text field, Algorithm selection radio buttons/dropdown, and Generate / Copy buttons.</em>
+    <div class="screenshot-container">
+        <img class="screenshot" src="img/android_main_window.jpg" alt="mkpass Android Main Screen" style="max-width: 360px;" />
+        <div class="screenshot-caption">mkpass Android main interface</div>
     </div>
 
     <h2>2. Features & Navigation</h2>
@@ -98,9 +107,9 @@
         <li>Tap <strong>Copy to Clipboard</strong> and switch to your target app to paste your password.</li>
     </ol>
 
-    <div class="screenshot-placeholder">
-        <strong>[SCREENSHOT PLACEHOLDER: Mobile Password Copy Workflow]</strong>
-        <em>Description: Show the Android app screen after generating a password, displaying a confirmation toast message "Password copied to clipboard".</em>
+    <div class="screenshot-container">
+        <img class="screenshot" src="img/android_generated_password.jpg" alt="Android Generated Password Dialog" style="max-width: 360px;" />
+        <div class="screenshot-caption">Generated password dialog with QR code and copy actions</div>
     </div>
 
     <h3>3.2 Managing Saved Service Preferences</h3>
@@ -111,9 +120,9 @@
         <li>Tap <strong>Delete</strong> next to any entry to remove it from your device history.</li>
     </ol>
 
-    <div class="screenshot-placeholder">
-        <strong>[SCREENSHOT PLACEHOLDER: Android Database Management Screen]</strong>
-        <em>Description: Show the Mobile Database Management screen displaying a list of saved service items with delete icons.</em>
+    <div class="screenshot-container">
+        <img class="screenshot" src="img/android_database_management.jpg" alt="Android Database Management Screen" style="max-width: 360px;" />
+        <div class="screenshot-caption">Android Database Management screen for managing stored services</div>
     </div>
 
     <h2>4. Security & Privacy</h2>

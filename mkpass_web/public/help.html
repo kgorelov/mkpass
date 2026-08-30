@@ -42,16 +42,25 @@
             border-bottom: none;
             padding-bottom: 0;
         }
-        .screenshot-placeholder {
-            border: 2px dashed #0969da;
-            background-color: #f6f8fa;
-            color: #0969da;
-            padding: 20px;
-            margin: 20px 0;
+        .screenshot {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            margin: 16px auto;
+            border: 1px solid #d0d7de;
             border-radius: 8px;
-            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
-        .screenshot-placeholder strong { display: block; font-size: 1.1em; margin-bottom: 8px; }
+        .screenshot-container {
+            text-align: center;
+            margin: 24px 0;
+        }
+        .screenshot-caption {
+            font-size: 0.9em;
+            color: #57606a;
+            margin-top: 8px;
+            font-style: italic;
+        }
         .feature-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -91,9 +100,9 @@
         <li>Service names and non-secret configuration parameters (algorithm, length, character set choices) are saved in your browser's local storage (<code>localStorage</code>) strictly for auto-completion convenience.</li>
     </ul>
 
-    <div class="screenshot-placeholder">
-        <strong>[SCREENSHOT PLACEHOLDER: Web Interface Main Screen]</strong>
-        <em>Description: Show the mkpass Web browser application interface displaying the Master Password input, Service autocompletion field, Algorithm dropdown selector, character toggles, and Client-Side WebAssembly security badge.</em>
+    <div class="screenshot-container">
+        <img class="screenshot" src="img/web_main_window.png" alt="mkpass Web Browser Interface" />
+        <div class="screenshot-caption">mkpass Web browser interface with client-side generation controls</div>
     </div>
 
     <h2>2. Web Application Features</h2>
@@ -136,9 +145,9 @@
         <li>Click <strong>Copy to Clipboard</strong> to copy the generated password.</li>
     </ol>
 
-    <div class="screenshot-placeholder">
-        <strong>[SCREENSHOT PLACEHOLDER: Generating Password in Browser]</strong>
-        <em>Description: Show the web interface with a generated password visible in the output box, with a green "Copied to Clipboard!" tooltip notification.</em>
+    <div class="screenshot-container">
+        <img class="screenshot" src="img/web_generated_password.png" alt="Web Generated Password Modal" />
+        <div class="screenshot-caption">Generated password modal with QR code and clipboard copy button</div>
     </div>
 
     <h3>3.2 Managing Browser Saved Profiles</h3>
@@ -148,9 +157,9 @@
         <li>Click <strong>Delete</strong> next to any service profile to clear its saved options from browser history.</li>
     </ol>
 
-    <div class="screenshot-placeholder">
-        <strong>[SCREENSHOT PLACEHOLDER: Web Service Management]</strong>
-        <em>Description: Show the Web stored services list with search filter and clear service button.</em>
+    <div class="screenshot-container">
+        <img class="screenshot" src="img/web_database_management.png" alt="Web Database Management Modal" />
+        <div class="screenshot-caption">Web Database Management modal for viewing and deleting stored service preferences</div>
     </div>
 
     <h2>4. Frequently Asked Questions (FAQ)</h2>

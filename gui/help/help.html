@@ -30,16 +30,25 @@
         }
         code { padding: 0.2em 0.4em; font-size: 85%; }
         pre { padding: 16px; overflow: auto; line-height: 1.45; }
-        .screenshot-placeholder {
-            border: 2px dashed #0366d6;
-            background-color: #f1f8ff;
-            color: #0366d6;
-            padding: 20px;
-            margin: 20px 0;
+        .screenshot {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            margin: 16px auto;
+            border: 1px solid #d0d7de;
             border-radius: 6px;
-            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
-        .screenshot-placeholder strong { display: block; font-size: 1.1em; margin-bottom: 8px; }
+        .screenshot-container {
+            text-align: center;
+            margin: 24px 0;
+        }
+        .screenshot-caption {
+            font-size: 0.9em;
+            color: #57606a;
+            margin-top: 8px;
+            font-style: italic;
+        }
         .note {
             background-color: #fff8c5;
             border-left: 4px solid #d9d000;
@@ -70,9 +79,9 @@
         <li><strong>Local Configuration History</strong>: Non-secret parameters (algorithm choice, password length, character sets) are stored locally in an SQLite database to provide convenient autocompletion and default settings.</li>
     </ul>
 
-    <div class="screenshot-placeholder">
-        <strong>[SCREENSHOT PLACEHOLDER: Main Window Overview]</strong>
-        <em>Description: Show the main mkpass-gui application window with populated Master Password, Service field with autocomplete dropdown, Algorithm selector, Character Classes group box, Length slider/spinbox, and action buttons.</em>
+    <div class="screenshot-container">
+        <img class="screenshot" src="img/gui_main_window.png" alt="mkpass-gui Main Application Window" />
+        <div class="screenshot-caption">Main mkpass-gui application window</div>
     </div>
 
     <h2>2. Interface Overview</h2>
@@ -98,6 +107,11 @@
         </li>
     </ul>
 
+    <div class="screenshot-container">
+        <img class="screenshot" src="img/gui_main_window_algorithms.png" alt="Algorithm Selection Dropdown" />
+        <div class="screenshot-caption">Selecting generation algorithms and passphrase modes</div>
+    </div>
+
     <h2>3. Step-by-Step Instructions</h2>
 
     <h3>3.1 Generating a Password for a New Service</h3>
@@ -111,9 +125,14 @@
         <li>The service parameters are automatically saved in your local database for future use.</li>
     </ol>
 
-    <div class="screenshot-placeholder">
-        <strong>[SCREENSHOT PLACEHOLDER: Generating a New Password]</strong>
-        <em>Description: Show the user entering a new service name with character class checkboxes selected, ready to click Generate.</em>
+    <div class="screenshot-container">
+        <img class="screenshot" src="img/gui_generated_password_revealed.png" alt="Generated Password Dialog" />
+        <div class="screenshot-caption">Generated password dialog with reveal and copy options</div>
+    </div>
+
+    <div class="screenshot-container">
+        <img class="screenshot" src="img/gui_generated_password_qrcode.png" alt="Generated Password QR Code Display" />
+        <div class="screenshot-caption">Generated password displayed as a QR code for mobile scanning</div>
     </div>
 
     <h3>3.2 Regenerating a Password for an Existing Service</h3>
@@ -124,9 +143,9 @@
         <li>Click <strong>Copy to Clipboard</strong> or <strong>Generate Password</strong>.</li>
     </ol>
 
-    <div class="screenshot-placeholder">
-        <strong>[SCREENSHOT PLACEHOLDER: Autocomplete Dropdown in Action]</strong>
-        <em>Description: Show the Service QLineEdit displaying an active autocomplete popup menu with previously saved service names.</em>
+    <div class="screenshot-container">
+        <img class="screenshot" src="img/gui_main_window_suggest.png" alt="Service Autocomplete Suggestions" />
+        <div class="screenshot-caption">Real-time service name autocompletion from local database</div>
     </div>
 
     <h3>3.3 Managing the Saved Services Database</h3>
@@ -138,9 +157,9 @@
         <li>Select an entry and click <strong>Delete</strong> to remove it from local suggestions.</li>
     </ol>
 
-    <div class="screenshot-placeholder">
-        <strong>[SCREENSHOT PLACEHOLDER: Database Management Dialog]</strong>
-        <em>Description: Show the Database Management Dialog listing service entries, their algorithm badges, and the Delete button.</em>
+    <div class="screenshot-container">
+        <img class="screenshot" src="img/gui_database_management.png" alt="Database Management Dialog" />
+        <div class="screenshot-caption">Database Management dialog showing saved service configurations</div>
     </div>
 
     <h2>4. Security Features & Best Practices</h2>
