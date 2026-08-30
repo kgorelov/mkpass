@@ -514,3 +514,137 @@ TEST(E2ECommandLineOptionsTest, EmptyServiceError) {
     EXPECT_EQ(output.exit_code, 1);
     EXPECT_TRUE(output.std_err.find("Service must not be empty") != std::string::npos);
 }
+
+TEST(E2EInfoTest, InfoOptionWithService) {
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-info.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
+    remove(db_path.c_str());
+
+    // 1. Create entry
+    std::string input1 = "master\nmaster\ninfo_service\n1\n1234\n18\n";
+    exec_with_input(MKPASS_EXECUTABLE_PATH, input1);
+
+    // 2. Query info with -I -s
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -I -s info_service";
+    ProcessOutput output = exec_with_input(cmd, "");
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_TRUE(output.std_out.find("Service name: info_service") != std::string::npos);
+    EXPECT_TRUE(output.std_out.find("Algorithm: Password (Argon2)") != std::string::npos);
+    EXPECT_TRUE(output.std_out.find("Password length: 18") != std::string::npos);
+    EXPECT_TRUE(output.std_out.find("Character classes: Lowercase Letters, Uppercase Letters, Digits, Symbols") != std::string::npos);
+
+    // 3. Query info with --info -s
+    std::string cmd2 = MKPASS_EXECUTABLE_PATH;
+    cmd2 += " --info -s info_service";
+    ProcessOutput output2 = exec_with_input(cmd2, "");
+    EXPECT_EQ(output2.exit_code, 0);
+    EXPECT_TRUE(output2.std_out.find("Service name: info_service") != std::string::npos);
+
+    unsetenv("MKPASS_DB_PATH");
+    remove(db_path.c_str());
+}
+
+TEST(E2EInfoTest, InfoInteractivePrompt) {
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-info-interactive.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
+    remove(db_path.c_str());
+
+    // 1. Create entry
+    std::string input1 = "master\nmaster\nprompt_service\n1\n123\n14\n";
+    exec_with_input(MKPASS_EXECUTABLE_PATH, input1);
+
+    // 2. Run -I interactively
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -I";
+    std::string input2 = "prompt_service\n";
+    ProcessOutput output = exec_with_input(cmd, input2);
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_TRUE(output.std_out.find("Service name: prompt_service") != std::string::npos);
+    EXPECT_TRUE(output.std_out.find("Password length: 14") != std::string::npos);
+
+    unsetenv("MKPASS_DB_PATH");
+    remove(db_path.c_str());
+}
+
+TEST(E2EInfoTest, InfoNotFound) {
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-info-notfound.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
+    remove(db_path.c_str());
+
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -I -s nonexistent_service";
+    ProcessOutput output = exec_with_input(cmd, "");
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_TRUE(output.std_err.find("Service 'nonexistent_service' not found.") != std::string::npos);
+
+    unsetenv("MKPASS_DB_PATH");
+    remove(db_path.c_str());
+}
+
+TEST(E2EInfoTest, InfoPassphraseDicewareAndWordnet) {
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-info-passphrase.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
+    remove(db_path.c_str());
+
+    // 1. Create Diceware entry
+    setenv("MKPASS_PASSWORD", "test_master", 1);
+    setenv("MKPASS_SERVICE", "dice_service", 1);
+    setenv("MKPASS_ALGORITHM", "4", 1);
+    setenv("MKPASS_LENGTH", "4", 1);
+    setenv("MKPASS_DIGITS", "y", 1);
+    setenv("MKPASS_SYMBOLS", "n", 1);
+    setenv("MKPASS_SUBSTITUTIONS", "y", 1);
+    setenv("MKPASS_CAPITALIZE", "n", 1);
+    setenv("MKPASS_SEPARATOR", "2", 1); // Hyphen
+    exec_with_input(MKPASS_EXECUTABLE_PATH, "");
+
+    // 2. Create Wordnet entry
+    setenv("MKPASS_SERVICE", "wordnet_service", 1);
+    setenv("MKPASS_ALGORITHM", "5", 1);
+    setenv("MKPASS_LENGTH", "3", 1);
+    setenv("MKPASS_PASSPHRASE_PATTERN", "nav", 1);
+    setenv("MKPASS_DIGITS", "n", 1);
+    setenv("MKPASS_SYMBOLS", "n", 1);
+    setenv("MKPASS_CAPITALIZE", "y", 1);
+    setenv("MKPASS_SEPARATOR", "3", 1); // Space
+    exec_with_input(MKPASS_EXECUTABLE_PATH, "");
+
+    unsetenv("MKPASS_PASSWORD");
+    unsetenv("MKPASS_SERVICE");
+    unsetenv("MKPASS_ALGORITHM");
+    unsetenv("MKPASS_LENGTH");
+    unsetenv("MKPASS_PASSPHRASE_PATTERN");
+    unsetenv("MKPASS_DIGITS");
+    unsetenv("MKPASS_SYMBOLS");
+    unsetenv("MKPASS_SUBSTITUTIONS");
+    unsetenv("MKPASS_CAPITALIZE");
+    unsetenv("MKPASS_SEPARATOR");
+
+    // 3. Test Diceware info
+    std::string cmd1 = MKPASS_EXECUTABLE_PATH;
+    cmd1 += " -I -s dice_service";
+    ProcessOutput out1 = exec_with_input(cmd1, "");
+    EXPECT_EQ(out1.exit_code, 0);
+    EXPECT_TRUE(out1.std_out.find("Algorithm: Passphrase Diceware (Argon2)") != std::string::npos);
+    EXPECT_TRUE(out1.std_out.find("Words count: 4") != std::string::npos);
+    EXPECT_TRUE(out1.std_out.find("Separator: Hyphen (-)") != std::string::npos);
+    EXPECT_TRUE(out1.std_out.find("Capitalize words: No") != std::string::npos);
+    EXPECT_TRUE(out1.std_out.find("Include digits: Yes") != std::string::npos);
+    EXPECT_TRUE(out1.std_out.find("Include symbols: No") != std::string::npos);
+    EXPECT_TRUE(out1.std_out.find("Allow substitutions: Yes") != std::string::npos);
+
+    // 4. Test Wordnet info
+    std::string cmd2 = MKPASS_EXECUTABLE_PATH;
+    cmd2 += " -I -s wordnet_service";
+    ProcessOutput out2 = exec_with_input(cmd2, "");
+    EXPECT_EQ(out2.exit_code, 0);
+    EXPECT_TRUE(out2.std_out.find("Algorithm: Passphrase Wordnet Pattern (Argon2)") != std::string::npos);
+    EXPECT_TRUE(out2.std_out.find("Words count: 3") != std::string::npos);
+    EXPECT_TRUE(out2.std_out.find("Passphrase pattern: nav") != std::string::npos);
+    EXPECT_TRUE(out2.std_out.find("Separator: Space ( )") != std::string::npos);
+    EXPECT_TRUE(out2.std_out.find("Capitalize words: Yes") != std::string::npos);
+
+    unsetenv("MKPASS_DB_PATH");
+    remove(db_path.c_str());
+}

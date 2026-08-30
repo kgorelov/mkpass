@@ -1,4 +1,5 @@
 #include "db_management_dialog.h"
+#include "service_details_dialog.h"
 #include "db.h"
 #include "platform_utils.h"
 
@@ -177,11 +178,14 @@ DbManagementDialog::DbManagementDialog(QWidget *parent)
     mainLayout->addWidget(servicesTableWidget);
 
     QHBoxLayout *buttonLayout = new QHBoxLayout;
+    detailsButton = new QPushButton("Details");
+    detailsButton->setEnabled(false);
     deleteButton = new QPushButton("Delete");
     deleteButton->setEnabled(false);
     closeButton = new QPushButton("Close");
 
     buttonLayout->addStretch();
+    buttonLayout->addWidget(detailsButton);
     buttonLayout->addWidget(deleteButton);
     buttonLayout->addWidget(closeButton);
 
@@ -189,6 +193,8 @@ DbManagementDialog::DbManagementDialog(QWidget *parent)
 
     connect(filterLineEdit, &QLineEdit::textChanged, this, &DbManagementDialog::filterChanged);
     connect(servicesTableWidget, &QTableWidget::itemSelectionChanged, this, &DbManagementDialog::selectionChanged);
+    connect(servicesTableWidget, &QTableWidget::cellDoubleClicked, this, [this](int, int) { detailsClicked(); });
+    connect(detailsButton, &QPushButton::clicked, this, &DbManagementDialog::detailsClicked);
     connect(deleteButton, &QPushButton::clicked, this, &DbManagementDialog::deleteClicked);
     connect(closeButton, &QPushButton::clicked, this, &DbManagementDialog::close);
 
@@ -236,7 +242,25 @@ void DbManagementDialog::filterChanged(const QString &text) {
 }
 
 void DbManagementDialog::selectionChanged() {
-    deleteButton->setEnabled(servicesTableWidget->currentRow() >= 0);
+    bool hasSelection = servicesTableWidget->currentRow() >= 0;
+    detailsButton->setEnabled(hasSelection);
+    deleteButton->setEnabled(hasSelection);
+}
+
+void DbManagementDialog::detailsClicked() {
+    int row = servicesTableWidget->currentRow();
+    if (row < 0) return;
+
+    QTableWidgetItem *item = servicesTableWidget->item(row, 0);
+    if (!item) return;
+
+    QString serviceName = item->data(Qt::UserRole).toString();
+    mkpass::ConfigDB db(GetConfigDBPath());
+    auto entry = db.get_service_entry(serviceName.toStdString());
+    if (entry) {
+        ServiceDetailsDialog detailsDialog(*entry, this);
+        detailsDialog.exec();
+    }
 }
 
 void DbManagementDialog::deleteClicked() {

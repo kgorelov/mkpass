@@ -50,4 +50,9 @@ private:
 std::string PatternToString(const std::vector<WordClasses>& pattern);
 std::vector<WordClasses> StringToPattern(const std::string& s);
 
+std::string GetAlgorithmName(Algorithm algo);
+std::string GetSeparatorName(const std::string& separator);
+std::string GetCharacterClassesString(const std::vector<CharacterClass>& char_classes, const std::optional<std::string>& custom_chars = std::nullopt);
+std::vector<std::pair<std::string, std::string>> GetServiceEntryDetails(const ServiceEntry& entry);
+
 } // namespace mkpass

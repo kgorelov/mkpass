@@ -244,3 +244,100 @@ TEST_F(ConfigDBTest, ServiceWhitespaceStripping) {
     auto rec3 = db.get_service_entry("test_whitespace_service");
     EXPECT_FALSE(rec3.has_value());
 }
+
+TEST(ServiceDetailsTest, HelperFunctions) {
+    EXPECT_EQ(mkpass::GetAlgorithmName(Algorithm::Argon2), "Password (Argon2)");
+    EXPECT_EQ(mkpass::GetAlgorithmName(Algorithm::SlowSha512), "Password (SHA512 HMAC)");
+    EXPECT_EQ(mkpass::GetAlgorithmName(Algorithm::Old), "OldPassword");
+    EXPECT_EQ(mkpass::GetAlgorithmName(Algorithm::Passphrase_Diceware_EFF_Large), "Passphrase Diceware (Argon2)");
+    EXPECT_EQ(mkpass::GetAlgorithmName(Algorithm::Passphrase_Wordnet_Pattern), "Passphrase Wordnet Pattern (Argon2)");
+
+    EXPECT_EQ(mkpass::GetSeparatorName(""), "None");
+    EXPECT_EQ(mkpass::GetSeparatorName("-"), "Hyphen (-)");
+    EXPECT_EQ(mkpass::GetSeparatorName(" "), "Space ( )");
+    EXPECT_EQ(mkpass::GetSeparatorName("/"), "Slash (/)");
+    EXPECT_EQ(mkpass::GetSeparatorName("_"), "_");
+
+    std::vector<CharacterClass> cc = {
+        CharacterClass::LOWERCASE,
+        CharacterClass::UPPERCASE,
+        CharacterClass::DIGITS,
+        CharacterClass::SYMBOLS,
+        CharacterClass::CUSTOM
+    };
+    EXPECT_EQ(mkpass::GetCharacterClassesString(cc, "!@#"),
+              "Lowercase Letters, Uppercase Letters, Digits, Symbols, Custom (!@#)");
+    EXPECT_EQ(mkpass::GetCharacterClassesString({}), "None");
+}
+
+TEST(ServiceDetailsTest, GetServiceEntryDetails) {
+    // 1. Password Argon2 entry
+    mkpass::ServiceEntry pass_entry;
+    pass_entry.service_name = "github.com";
+    pass_entry.algorithm = Algorithm::Argon2;
+    pass_entry.length = 16;
+    pass_entry.char_classes = {CharacterClass::LOWERCASE, CharacterClass::UPPERCASE, CharacterClass::DIGITS};
+
+    auto details1 = mkpass::GetServiceEntryDetails(pass_entry);
+    ASSERT_EQ(details1.size(), 4);
+    EXPECT_EQ(details1[0], std::make_pair(std::string("Service name"), std::string("github.com")));
+    EXPECT_EQ(details1[1], std::make_pair(std::string("Algorithm"), std::string("Password (Argon2)")));
+    EXPECT_EQ(details1[2], std::make_pair(std::string("Password length"), std::string("16")));
+    EXPECT_EQ(details1[3], std::make_pair(std::string("Character classes"), std::string("Lowercase Letters, Uppercase Letters, Digits")));
+
+    // 2. Old password entry
+    mkpass::ServiceEntry old_entry;
+    old_entry.service_name = "legacy.site";
+    old_entry.algorithm = Algorithm::Old;
+    old_entry.length = 8;
+
+    auto details2 = mkpass::GetServiceEntryDetails(old_entry);
+    ASSERT_EQ(details2.size(), 3);
+    EXPECT_EQ(details2[0], std::make_pair(std::string("Service name"), std::string("legacy.site")));
+    EXPECT_EQ(details2[1], std::make_pair(std::string("Algorithm"), std::string("OldPassword")));
+    EXPECT_EQ(details2[2], std::make_pair(std::string("Password length"), std::string("8")));
+
+    // 3. Diceware passphrase entry
+    mkpass::ServiceEntry dice_entry;
+    dice_entry.service_name = "bank.com";
+    dice_entry.algorithm = Algorithm::Passphrase_Diceware_EFF_Large;
+    dice_entry.length = 4;
+    dice_entry.separator = "-";
+    dice_entry.capitalize_words = true;
+    dice_entry.char_classes = {CharacterClass::DIGITS};
+    dice_entry.allow_substitutions = true;
+
+    auto details3 = mkpass::GetServiceEntryDetails(dice_entry);
+    ASSERT_EQ(details3.size(), 8);
+    EXPECT_EQ(details3[0], std::make_pair(std::string("Service name"), std::string("bank.com")));
+    EXPECT_EQ(details3[1], std::make_pair(std::string("Algorithm"), std::string("Passphrase Diceware (Argon2)")));
+    EXPECT_EQ(details3[2], std::make_pair(std::string("Words count"), std::string("4")));
+    EXPECT_EQ(details3[3], std::make_pair(std::string("Separator"), std::string("Hyphen (-)")));
+    EXPECT_EQ(details3[4], std::make_pair(std::string("Capitalize words"), std::string("Yes")));
+    EXPECT_EQ(details3[5], std::make_pair(std::string("Include digits"), std::string("Yes")));
+    EXPECT_EQ(details3[6], std::make_pair(std::string("Include symbols"), std::string("No")));
+    EXPECT_EQ(details3[7], std::make_pair(std::string("Allow substitutions"), std::string("Yes")));
+
+    // 4. Wordnet Pattern entry
+    mkpass::ServiceEntry wn_entry;
+    wn_entry.service_name = "pattern.com";
+    wn_entry.algorithm = Algorithm::Passphrase_Wordnet_Pattern;
+    wn_entry.length = 3;
+    wn_entry.passphrase_pattern = {WordClasses::Noun, WordClasses::Adj, WordClasses::Verb};
+    wn_entry.separator = " ";
+    wn_entry.capitalize_words = false;
+    wn_entry.char_classes = {};
+    wn_entry.allow_substitutions = false;
+
+    auto details4 = mkpass::GetServiceEntryDetails(wn_entry);
+    ASSERT_EQ(details4.size(), 9);
+    EXPECT_EQ(details4[0], std::make_pair(std::string("Service name"), std::string("pattern.com")));
+    EXPECT_EQ(details4[1], std::make_pair(std::string("Algorithm"), std::string("Passphrase Wordnet Pattern (Argon2)")));
+    EXPECT_EQ(details4[2], std::make_pair(std::string("Words count"), std::string("3")));
+    EXPECT_EQ(details4[3], std::make_pair(std::string("Passphrase pattern"), std::string("nav")));
+    EXPECT_EQ(details4[4], std::make_pair(std::string("Separator"), std::string("Space ( )")));
+    EXPECT_EQ(details4[5], std::make_pair(std::string("Capitalize words"), std::string("No")));
+    EXPECT_EQ(details4[6], std::make_pair(std::string("Include digits"), std::string("No")));
+    EXPECT_EQ(details4[7], std::make_pair(std::string("Include symbols"), std::string("No")));
+    EXPECT_EQ(details4[8], std::make_pair(std::string("Allow substitutions"), std::string("No")));
+}

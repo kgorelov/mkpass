@@ -90,6 +90,9 @@ Automatically accept saved default settings from the local database. Repeat flag
 \fB\-D\fR, \fB\-\-delete\fR
 Enter record deletion mode to remove stored service configurations from the local database.
 .TP
+\fB\-I\fR, \fB\-\-info\fR
+Enter record info mode to display full service configuration from the local database.
+.TP
 \fB\-h\fR, \fB\-\-help\fR
 Display command summary and exit.
 
@@ -146,6 +149,9 @@ $ MKPASS_PASSWORD="my_master_secret" mkpass -s github.com -d -d
 .TP
 .B Generate password as a terminal QR code:
 $ mkpass -s email -q
+.TP
+.B Display full service record from local database:
+$ mkpass -I -s github.com
 .TP
 .B Delete a saved service entry from local database:
 $ mkpass -D -s oldservice.com

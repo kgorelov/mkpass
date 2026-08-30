@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <utility>
 
 namespace mkpass {
 
@@ -345,6 +346,111 @@ std::set<std::string> ConfigDB::get_all_service_names() {
     std::set<std::string> names = get_service_names("snames");
     names.merge(get_service_names("service_entries"));
     return names;
+}
+
+std::string GetAlgorithmName(Algorithm algo) {
+    switch (algo) {
+        case Algorithm::Argon2:
+            return "Password (Argon2)";
+        case Algorithm::SlowSha512:
+            return "Password (SHA512 HMAC)";
+        case Algorithm::Old:
+            return "OldPassword";
+        case Algorithm::Passphrase_Diceware_EFF_Large:
+            return "Passphrase Diceware (Argon2)";
+        case Algorithm::Passphrase_Wordnet_Pattern:
+            return "Passphrase Wordnet Pattern (Argon2)";
+        default:
+            return "Unknown";
+    }
+}
+
+std::string GetSeparatorName(const std::string& separator) {
+    if (separator.empty()) {
+        return "None";
+    } else if (separator == "-") {
+        return "Hyphen (-)";
+    } else if (separator == " ") {
+        return "Space ( )";
+    } else if (separator == "/") {
+        return "Slash (/)";
+    }
+    return separator;
+}
+
+std::string GetCharacterClassesString(const std::vector<CharacterClass>& char_classes, const std::optional<std::string>& custom_chars) {
+    std::vector<std::string> class_names;
+    for (auto cc : char_classes) {
+        switch (cc) {
+            case CharacterClass::LOWERCASE:
+                class_names.push_back("Lowercase Letters");
+                break;
+            case CharacterClass::UPPERCASE:
+                class_names.push_back("Uppercase Letters");
+                break;
+            case CharacterClass::DIGITS:
+                class_names.push_back("Digits");
+                break;
+            case CharacterClass::SYMBOLS:
+                class_names.push_back("Symbols");
+                break;
+            case CharacterClass::CUSTOM:
+                if (custom_chars && !custom_chars->empty()) {
+                    class_names.push_back("Custom (" + *custom_chars + ")");
+                } else {
+                    class_names.push_back("Custom");
+                }
+                break;
+        }
+    }
+    if (class_names.empty()) {
+        return "None";
+    }
+    std::string result;
+    for (size_t i = 0; i < class_names.size(); ++i) {
+        if (i > 0) {
+            result += ", ";
+        }
+        result += class_names[i];
+    }
+    return result;
+}
+
+std::vector<std::pair<std::string, std::string>> GetServiceEntryDetails(const ServiceEntry& entry) {
+    std::vector<std::pair<std::string, std::string>> details;
+    details.emplace_back("Service name", entry.service_name);
+    details.emplace_back("Algorithm", GetAlgorithmName(entry.algorithm));
+
+    if (entry.algorithm == Algorithm::Argon2 || entry.algorithm == Algorithm::SlowSha512) {
+        details.emplace_back("Password length", std::to_string(entry.length));
+        details.emplace_back("Character classes", GetCharacterClassesString(entry.char_classes, entry.custom_chars));
+        if (entry.custom_chars && !entry.custom_chars->empty()) {
+            details.emplace_back("Custom characters", *entry.custom_chars);
+        }
+    } else if (entry.algorithm == Algorithm::Old) {
+        details.emplace_back("Password length", std::to_string(entry.length));
+    } else if (entry.algorithm == Algorithm::Passphrase_Diceware_EFF_Large) {
+        details.emplace_back("Words count", std::to_string(entry.length));
+        details.emplace_back("Separator", GetSeparatorName(entry.separator));
+        details.emplace_back("Capitalize words", entry.capitalize_words ? "Yes" : "No");
+        bool has_digits = std::find(entry.char_classes.begin(), entry.char_classes.end(), CharacterClass::DIGITS) != entry.char_classes.end();
+        bool has_symbols = std::find(entry.char_classes.begin(), entry.char_classes.end(), CharacterClass::SYMBOLS) != entry.char_classes.end();
+        details.emplace_back("Include digits", has_digits ? "Yes" : "No");
+        details.emplace_back("Include symbols", has_symbols ? "Yes" : "No");
+        details.emplace_back("Allow substitutions", entry.allow_substitutions ? "Yes" : "No");
+    } else if (entry.algorithm == Algorithm::Passphrase_Wordnet_Pattern) {
+        details.emplace_back("Words count", std::to_string(entry.length));
+        details.emplace_back("Passphrase pattern", entry.passphrase_pattern.empty() ? "Random" : PatternToString(entry.passphrase_pattern));
+        details.emplace_back("Separator", GetSeparatorName(entry.separator));
+        details.emplace_back("Capitalize words", entry.capitalize_words ? "Yes" : "No");
+        bool has_digits = std::find(entry.char_classes.begin(), entry.char_classes.end(), CharacterClass::DIGITS) != entry.char_classes.end();
+        bool has_symbols = std::find(entry.char_classes.begin(), entry.char_classes.end(), CharacterClass::SYMBOLS) != entry.char_classes.end();
+        details.emplace_back("Include digits", has_digits ? "Yes" : "No");
+        details.emplace_back("Include symbols", has_symbols ? "Yes" : "No");
+        details.emplace_back("Allow substitutions", entry.allow_substitutions ? "Yes" : "No");
+    }
+
+    return details;
 }
 
 } // namespace mkpass

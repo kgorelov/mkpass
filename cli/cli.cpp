@@ -44,6 +44,7 @@ struct CliOptions {
     bool qr_code = false;
     bool infinite = false;
     bool delete_mode = false;
+    bool info_mode = false;
     int defaults_level = 0;
 };
 
@@ -638,6 +639,7 @@ int run_cli(int argc, char *argv[]) {
     app.add_flag("-i,--infinite", global_options.infinite, "Run in a loop");
     app.add_flag("-d,--defaults", global_options.defaults_level, "Auto-accept defaults from DB (repeat -dd for all defaults)");
     app.add_flag("-D,--delete", global_options.delete_mode, "Record deletion mode");
+    app.add_flag("-I,--info", global_options.info_mode, "Record info mode");
 
     try {
         app.parse(argc, argv);
@@ -647,6 +649,31 @@ int run_cli(int argc, char *argv[]) {
 
     mkpass::ConfigDB db(GetConfigDBPath());
     service_names = db.get_all_service_names();
+
+    if (global_options.info_mode) {
+        do {
+            std::string service;
+            try {
+                service = AskForService();
+            } catch (const std::exception&) {
+                break;
+            }
+
+            auto db_entry = db.get_service_entry(service);
+            if (db_entry) {
+                auto details = mkpass::GetServiceEntryDetails(*db_entry);
+                for (const auto& [k, v] : details) {
+                    std::cout << k << ": " << v << "\n";
+                }
+            } else {
+                std::cerr << "Service '" << service << "' not found.\n";
+            }
+
+            if (global_options.service || !global_options.infinite) break;
+            std::cerr << "\n--- Info Mode (Ctrl+C to exit) ---\n";
+        } while (true);
+        return 0;
+    }
 
     if (global_options.delete_mode) {
         do {

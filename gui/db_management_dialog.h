@@ -17,6 +17,7 @@ private slots:
     void filterChanged(const QString &text);
     void selectionChanged();
     void deleteClicked();
+    void detailsClicked();
 
 private:
     void loadServices();
@@ -24,6 +25,7 @@ private:
 
     QLineEdit *filterLineEdit;
     QTableWidget *servicesTableWidget;
+    QPushButton *detailsButton;
     QPushButton *deleteButton;
     QPushButton *closeButton;
 

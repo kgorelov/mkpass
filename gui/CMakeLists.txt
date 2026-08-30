@@ -9,6 +9,7 @@ if(WITH_GUI)
     password_dialog.cpp
     progress_dialog.cpp
     db_management_dialog.cpp
+    service_details_dialog.cpp
     manual_dialog.cpp
   )
 
