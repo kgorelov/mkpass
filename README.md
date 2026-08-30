@@ -23,19 +23,19 @@ Service names and generation preferences are stored in a local SQLite database f
 
 The terminal-based version offers an interactive interface as well as command-line flag and environment variable modes. It supports terminal-rendered QR codes for easily scanning passwords onto mobile devices.
 
-![CLI Terminal Interface Screenshot Placeholder: Interactive prompt showing service selection, algorithm selection, generated password, and terminal QR code display](docs/images/cli-screenshot.png)
+![Command-Line Interface](docs/img/cli_main_flow.png)
 
 ### 2. Qt Graphical Interface (`mkpass-gui`)
 
 A native desktop application built with Qt 5/6. Features include real-time service auto-completion, configurable character sets and passphrase options, database management modal, and automatic clipboard clearing upon window close for enhanced security.
 
-![Qt Desktop GUI Screenshot Placeholder: Main window displaying Master Password field, Service autocomplete box, Algorithm dropdown, character class checkboxes, and Copy to Clipboard action](docs/images/gui-screenshot.png)
+![Qt Desktop Graphical Interface](docs/img/gui_main_window.png)
 
 ### 3. Android Application
 
 A mobile application bringing `mkpass` functionality to Android devices. Runs entirely offline on-device with zero network requirements and includes local database history for quick service selection.
 
-![Android App Screenshot Placeholder: Mobile layout showcasing master password input, service dropdown, algorithm parameter toggles, and copy button](docs/images/android-screenshot.png)
+![Android Mobile Application](docs/img/android_main_window.jpg)
 
 ### 4. Web Application (`mkpass_web`)
 
@@ -44,7 +44,7 @@ A client-side web application built with React, TypeScript, and WebAssembly (C++
 > [!IMPORTANT]
 > **Security Guarantee**: The web version operates 100% client-side inside your web browser. No master passwords, service names, or derived passwords are ever transmitted over the network. All cryptographic hashing takes place in local WebAssembly execution memory.
 
-![Web Application Screenshot Placeholder: Web browser interface with responsive layout, parameter controls, and client-side WebAssembly execution badge](docs/images/web-screenshot.png)
+![Web Application Interface](docs/img/web_main_window.png)
 
 ---
 
