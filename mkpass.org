@@ -36,6 +36,11 @@ If the master password is found, all passwords derived from that master password
   - [X] linking against wordexp
   - [ ] termux package
 ** TODO Documentation
+*** DONE Man pages
+*** DONE GUI app manual
+*** DONE Android app manual
+*** DONE Web app manual
+*** TODO Better about dialogs with links to project web site
 ** DONE Passphrase composer
 *** DONE Simple passphrase algorithm
   - [X] Diceware EFF large wordlist

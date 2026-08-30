@@ -232,6 +232,9 @@ public class MainActivity extends AppCompatActivity {
         if (id == R.id.menu_db_management) {
             showDbManagementDialog();
             return true;
+        } else if (id == R.id.menu_manual) {
+            showManualDialog();
+            return true;
         } else if (id == R.id.menu_about) {
             showAboutDialog();
             return true;
@@ -409,6 +412,21 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return builder;
+    }
+
+    private void showManualDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("mkpass User Manual");
+
+        android.webkit.WebView webView = new android.webkit.WebView(this);
+        webView.getSettings().setBuiltInZoomControls(true);
+        webView.getSettings().setDisplayZoomControls(false);
+        webView.loadUrl("file:///android_asset/help.html");
+
+        builder.setView(webView);
+        builder.setPositiveButton("Close", (dialog, which) -> dialog.dismiss());
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     private void showAboutDialog() {

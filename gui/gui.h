@@ -13,6 +13,7 @@ class QGroupBox;
 class QLabel;
 class ProgressDialog;
 class QCompleter;
+class ManualDialog;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -34,6 +35,7 @@ private slots:
     void updateSubstitutionsState();
     void updatePatternsList();
     void manageDatabase();
+    void showManual();
     void showHelp();
 
 private:
@@ -69,6 +71,7 @@ private:
     QFutureWatcher<std::string> *generationWatcher;
     std::string generatedPassword;
     ProgressDialog *progressDialog;
+    ManualDialog *manualDialog;
 };
 
 int run_gui(int argc, char *argv[]);

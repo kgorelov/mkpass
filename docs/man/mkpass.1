@@ -1,0 +1,156 @@
+.TH MKPASS 1 "July 2026" "mkpass 0.1.0" "User Commands"
+.SH NAME
+mkpass \- stateless deterministic password and passphrase generator
+.SH SYNOPSIS
+.B mkpass
+[\fIOPTIONS\fR]
+.SH DESCRIPTION
+.B mkpass
+is a stateless, deterministic password and passphrase generator. Instead of storing generated secret passwords in an encrypted vault,
+.B mkpass
+derives strong passwords on-demand using a single \fBMaster Password\fR and a public \fBService Name\fR (such as "github.com" or "email").
+.PP
+Every time you enter the same Master Password, Service Name, and parameters (such as length or character sets),
+.B mkpass
+computes the exact same password using cryptographic key derivation functions (Argon2id or HMAC-SHA512).
+.PP
+Non-secret configuration parameters (algorithm choice, length, character sets, separators, patterns) are stored in a local SQLite database (\fB~/.config/mkpass/config.db\fR) to provide auto-completion suggestions and remember per-service preferences. Even without access to the local database, knowing your Master Password and configuration parameters guarantees password regeneration on any device.
+
+.SH OPTIONS
+.TP
+\fB\-p\fR, \fB\-\-password\fR \fIPASSWORD\fR
+Specify the Master Password. If omitted in interactive mode, the user will be securely prompted. Can also be set via the \fBMKPASS_PASSWORD\fR environment variable.
+.TP
+\fB\-s\fR, \fB\-\-service\fR \fISERVICE\fR
+Specify the target Service Name (e.g., "github.com"). Supports auto-completion in interactive mode. Can also be set via the \fBMKPASS_SERVICE\fR environment variable.
+.TP
+\fB\-a\fR, \fB\-\-algorithm\fR \fIALGO\fR
+Specify the generation algorithm (1-5):
+.RS
+.IP "1" 4
+Password using \fBArgon2id\fR key derivation (Recommended modern default).
+.IP "2" 4
+Password using \fBHMAC-SHA512\fR iterative hashing.
+.IP "3" 4
+Legacy algorithm support (for backwards compatibility).
+.IP "4" 4
+Passphrase using \fBDiceware EFF Large\fR wordlist.
+.IP "5" 4
+Passphrase using \fBWordNet Pattern\fR grammatical structure.
+.RE
+.TP
+\fB\-c\fR, \fB\-\-char\-classes\fR \fICLASSES\fR
+Specify character classes to include for password generation (e.g. \fB1234\fR):
+.RS
+.IP "1" 4
+Lower-case letters (a-z)
+.IP "2" 4
+Upper-case letters (A-Z)
+.IP "3" 4
+Digits (0-9)
+.IP "4" 4
+Special symbols (!@#$%^&*...)
+.IP "5" 4
+Custom character set (specified via \fB\-\-custom\-chars\fR)
+.RE
+.TP
+\fB\-\-custom\-chars\fR \fICHARS\fR
+Specify custom characters to append to the generation pool when character class 5 is selected.
+.TP
+\fB\-l\fR, \fB\-\-length\fR \fILEN\fR
+Set derived password or passphrase length (number of characters or words depending on algorithm). Range: 1 to 128. Default: 16.
+.TP
+\fB\-\-separator\fR \fISEPARATOR\fR
+Set word separator string for passphrases (e.g., "-", " ", "/").
+.TP
+\fB\-\-pattern\fR \fIPATTERN\fR
+Set grammatical passphrase structure for WordNet pattern algorithm (e.g., "adj,noun,verb").
+.TP
+\fB\-\-digits\fR \fIy|n\fR
+Enable or disable inclusion of random digits in generated passphrases.
+.TP
+\fB\-\-symbols\fR \fIy|n\fR
+Enable or disable inclusion of random symbols in generated passphrases.
+.TP
+\fB\-\-substitutions\fR \fIy|n\fR
+Allow or disallow leetspeak-style character substitutions in passphrases (e.g., 'a' -> '4').
+.TP
+\fB\-\-capitalize\fR \fIy|n\fR
+Enable or disable word capitalization in passphrases.
+.TP
+\fB\-q\fR, \fB\-\-qr\-code\fR
+Render the generated password directly in the terminal as a UTF-8 / ASCII QR code instead of plain text.
+.TP
+\fB\-i\fR, \fB\-\-infinite\fR
+Run in a continuous interactive prompt loop until interrupted (Ctrl+C).
+.TP
+\fB\-d\fR, \fB\-\-defaults\fR
+Automatically accept saved default settings from the local database. Repeat flag (\fB\-dd\fR) to bypass all non-essential interactive prompts.
+.TP
+\fB\-D\fR, \fB\-\-delete\fR
+Enter record deletion mode to remove stored service configurations from the local database.
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Display command summary and exit.
+
+.SH ENVIRONMENT VARIABLES
+.TP
+.B MKPASS_PASSWORD
+Master Password to use for generation.
+.TP
+.B MKPASS_SERVICE
+Target Service Name.
+.TP
+.B MKPASS_ALGORITHM
+Default algorithm ID (1-5).
+.TP
+.B MKPASS_CHAR_CLASSES
+Character classes string.
+.TP
+.B MKPASS_CUSTOM_CHARS
+Custom character set.
+.TP
+.B MKPASS_LENGTH
+Password length.
+.TP
+.B MKPASS_SEPARATOR
+Passphrase word separator.
+.TP
+.B MKPASS_PASSPHRASE_PATTERN
+WordNet passphrase pattern.
+.TP
+.B MKPASS_DIGITS
+Include digits flag (y/n).
+.TP
+.B MKPASS_SYMBOLS
+Include symbols flag (y/n).
+.TP
+.B MKPASS_SUBSTITUTIONS
+Allow substitutions flag (y/n).
+.TP
+.B MKPASS_CAPITALIZE
+Capitalize words flag (y/n).
+
+.SH FILES
+.TP
+.I ~/.config/mkpass/config.db
+SQLite database storing local non-secret service configuration entries and options history.
+
+.SH EXAMPLES
+.TP
+.B Interactive execution:
+$ mkpass
+.TP
+.B Generate password for github.com non-interactively using defaults:
+$ MKPASS_PASSWORD="my_master_secret" mkpass -s github.com -d -d
+.TP
+.B Generate password as a terminal QR code:
+$ mkpass -s email -q
+.TP
+.B Delete a saved service entry from local database:
+$ mkpass -D -s oldservice.com
+
+.SH SEE ALSO
+.BR mkpass-gui (1)
+.SH AUTHORS
+Written by Kirill Gorelov <kgorelov@gmail.com>

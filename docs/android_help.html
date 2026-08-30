@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mkpass Android User Manual</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #24292e;
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #ffffff;
+        }
+        h1, h2, h3 {
+            color: #1a1f2c;
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 0.3em;
+        }
+        h1 { font-size: 2em; }
+        h2 { font-size: 1.5em; margin-top: 1.5em; }
+        h3 { font-size: 1.2em; border-bottom: none; }
+        code, pre {
+            font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+            background-color: #f6f8fa;
+            border-radius: 3px;
+        }
+        code { padding: 0.2em 0.4em; font-size: 85%; }
+        .screenshot {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            margin: 16px auto;
+            border: 1px solid #d0d7de;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .screenshot-container {
+            text-align: center;
+            margin: 24px 0;
+        }
+        .screenshot-caption {
+            font-size: 0.9em;
+            color: #57606a;
+            margin-top: 8px;
+            font-style: italic;
+        }
+        .security-badge {
+            background-color: #e8f0fe;
+            border-left: 4px solid #1a73e8;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 0 4px 4px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>mkpass for Android - User Manual</h1>
+    <p>Welcome to <strong>mkpass for Android</strong>, the mobile application for on-the-go stateless password and passphrase generation.</p>
+
+    <div class="security-badge">
+        <strong>100% Offline & Mobile Secure:</strong> The Android app requires zero network permissions. Password derivation occurs natively on your device using compiled native C++ (JNI / Argon2). No passwords or service names ever leave your device.
+    </div>
+
+    <h2>1. About mkpass</h2>
+    <p><code>mkpass</code> is a stateless password generator. Instead of storing passwords in an encrypted vault or syncing secrets across servers, <code>mkpass</code> derives your passwords deterministically on-demand.</p>
+    <ul>
+        <li><strong>One Master Password</strong>: You only remember one master secret.</li>
+        <li><strong>Service-Based Generation</strong>: Combine your Master Password with a Service Name (e.g., <code>twitter.com</code> or <code>banking-app</code>) to generate your password.</li>
+        <li><strong>Local Suggestions</strong>: Non-secret service parameters (algorithm choice, length, character sets) are stored locally in your mobile device database for instant selection.</li>
+    </ul>
+
+    <div class="screenshot-container">
+        <img class="screenshot" src="img/android_main_window.jpg" alt="mkpass Android Main Screen" style="max-width: 360px;" />
+        <div class="screenshot-caption">mkpass Android main interface</div>
+    </div>
+
+    <h2>2. Features & Navigation</h2>
+    <ul>
+        <li><strong>Master Password Input</strong>: Secure password field with toggleable visibility.</li>
+        <li><strong>Service Autocomplete</strong>: Dropdown menu listing previously generated services on your device.</li>
+        <li><strong>Algorithm Options</strong>:
+            <ul>
+                <li><code>Password (Argon2id)</code>: High-security memory-hard derivation (Default).</li>
+                <li><code>Password (SHA512 HMAC)</code>: SHA-512 derivation option.</li>
+                <li><code>Passphrase (Diceware EFF)</code>: Multi-word passphrases using EFF wordlists.</li>
+                <li><code>Passphrase (WordNet Pattern)</code>: Structured grammatical passphrases.</li>
+            </ul>
+        </li>
+        <li><strong>One-Tap Copy to Clipboard</strong>: Instantly copy the generated password for pasting into Android apps or browsers.</li>
+        <li><strong>Database Management</strong>: View and remove old service profiles via the Android overflow menu.</li>
+    </ul>
+
+    <h2>3. How to Use</h2>
+
+    <h3>3.1 Generating a Password on Mobile</h3>
+    <ol>
+        <li>Open the <strong>mkpass</strong> app on your Android device.</li>
+        <li>Enter your <strong>Master Password</strong>.</li>
+        <li>Type the <strong>Service Name</strong> (e.g. <code>email.com</code>).</li>
+        <li>Select your configuration preferences (Length, Character Classes, or Passphrase options).</li>
+        <li>Tap <strong>Generate Password</strong>.</li>
+        <li>Tap <strong>Copy to Clipboard</strong> and switch to your target app to paste your password.</li>
+    </ol>
+
+    <div class="screenshot-container">
+        <img class="screenshot" src="img/android_generated_password.jpg" alt="Android Generated Password Dialog" style="max-width: 360px;" />
+        <div class="screenshot-caption">Generated password dialog with QR code and copy actions</div>
+    </div>
+
+    <h3>3.2 Managing Saved Service Preferences</h3>
+    <ol>
+        <li>Tap the three dots (<strong>Menu</strong>) in the top-right corner of the action bar.</li>
+        <li>Select <strong>Database Management</strong>.</li>
+        <li>Browse saved services or search for a specific entry.</li>
+        <li>Tap <strong>Delete</strong> next to any entry to remove it from your device history.</li>
+    </ol>
+
+    <div class="screenshot-container">
+        <img class="screenshot" src="img/android_database_management.jpg" alt="Android Database Management Screen" style="max-width: 360px;" />
+        <div class="screenshot-caption">Android Database Management screen for managing stored services</div>
+    </div>
+
+    <h2>4. Security & Privacy</h2>
+    <ul>
+        <li><strong>Zero Network Usage</strong>: The application operates entirely offline. No telemetry, analytics, or remote sync.</li>
+        <li><strong>Protected Memory</strong>: Master password buffers are cleared when the app is minimized or closed.</li>
+        <li><strong>Deterministic Reliability</strong>: Even if you switch phones or reinstall the app, entering the same Master Password and service options will generate the exact same password.</li>
+    </ul>
+
+</body>
+</html>
