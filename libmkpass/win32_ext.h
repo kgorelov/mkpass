@@ -29,4 +29,15 @@ std::string GetConfigDBPath() {
     return db_path;
 }
 
+std::string GetTmpDir() {
+    char *tmpdir = getenv("TEMP");
+    if (!tmpdir) {
+        tmpdir = getenv("TMP");
+    }
+    if (tmpdir) {
+        return std::string(tmpdir);
+    }
+    return "C:\\Windows\\Temp";
+}
+
 }

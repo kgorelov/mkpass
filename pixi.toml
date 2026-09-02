@@ -38,5 +38,7 @@ run-gui = { cmd = "./build/gui/mkpass-gui", depends-on = ["build"] }
 appimage = { cmd = "scripts/build_appimage.sh", depends-on = ["build-gui"] }
 
 [target.win-64.tasks]
+# Configure with MSVC on Windows (Qt from conda-forge requires MSVC)
+configure = "cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_GUI=ON -DCMAKE_PREFIX_PATH=$CONDA_PREFIX"
 run = { cmd = "build/cli/mkpass.exe", depends-on = ["build"] }
 run-gui = { cmd = "build/gui/mkpass-gui.exe", depends-on = ["build"] }
