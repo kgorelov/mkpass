@@ -90,7 +90,7 @@ target_include_directories(qrcodegen PUBLIC qrcode)
 
 option(WITH_TESTS "Build tests" ON)
 
-if(NOT EMSCRIPTEN AND WITH_TESTS)
+if(NOT EMSCRIPTEN AND NOT WIN32 AND WITH_TESTS)
   enable_testing()
   set(TEST_SOURCES
     digest_ut.cpp
@@ -101,7 +101,7 @@ if(NOT EMSCRIPTEN AND WITH_TESTS)
     pattern_compose_ut.cpp
     hkdf_argon2_ut.cpp
   )
-  if (NOT MSVC)
+  if (NOT WIN32)
     list(APPEND TEST_SOURCES db_ut.cpp)
   endif()
   find_package(GTest REQUIRED)

@@ -29,7 +29,7 @@ target_link_libraries(mkpass PRIVATE
   qrcodegen
 )
 
-if (NOT MSVC)
+if (NOT WIN32)
   find_package(GTest REQUIRED)
   add_executable(e2e_tests e2e_test.cpp)
 
