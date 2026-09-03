@@ -49,6 +49,65 @@ if(WITH_GUI)
     target_compile_options(mkpass-gui PRIVATE -std=c++20)
   endif()
 
+  # Deploy Qt dependencies on Windows
+  if(WIN32)
+    if (MKPASS_QT_VERSION EQUAL 6)
+      find_program(WINDEPLOYQT_EXECUTABLE windeployqt6 HINTS "${Qt6_DIR}/../../../bin")
+      set(QT_PLUGINS_DIR "${Qt6_DIR}/../../../plugins")
+    else()
+      find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${Qt5_DIR}/../../../bin")
+      set(QT_PLUGINS_DIR "${Qt5_DIR}/../../../plugins")
+    endif()
+
+    if(WINDEPLOYQT_EXECUTABLE)
+      add_custom_command(TARGET mkpass-gui POST_BUILD
+        COMMAND "${WINDEPLOYQT_EXECUTABLE}" --no-translations "$<TARGET_FILE:mkpass-gui>"
+        COMMENT "Deploying Qt dependencies for mkpass-gui"
+      )
+    else()
+      # Manual deployment when windeployqt is not available (conda-forge Qt)
+      message(STATUS "windeployqt not found - using manual Qt deployment")
+
+      # Copy platform plugins (required for Qt apps to run)
+      add_custom_command(TARGET mkpass-gui POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:mkpass-gui>/platforms"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          "${QT_PLUGINS_DIR}/platforms/qwindows.dll"
+          "$<TARGET_FILE_DIR:mkpass-gui>/platforms/"
+        COMMENT "Copying Qt platform plugins"
+      )
+
+      # Copy image format plugins (optional but recommended)
+      add_custom_command(TARGET mkpass-gui POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:mkpass-gui>/imageformats"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          "${QT_PLUGINS_DIR}/imageformats/qico.dll"
+          "${QT_PLUGINS_DIR}/imageformats/qjpeg.dll"
+          "${QT_PLUGINS_DIR}/imageformats/qgif.dll"
+          "$<TARGET_FILE_DIR:mkpass-gui>/imageformats/"
+        COMMENT "Copying Qt image format plugins"
+      )
+    endif()
+
+    # Copy runtime dependencies (required for both windeployqt and manual deployment)
+    # These are system libraries that Qt depends on but windeployqt doesn't copy
+    if(DEFINED ENV{CONDA_PREFIX})
+      set(CONDA_BIN_DIR "$ENV{CONDA_PREFIX}/Library/bin")
+      add_custom_command(TARGET mkpass-gui POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          "${CONDA_BIN_DIR}/libpng16.dll"
+          "${CONDA_BIN_DIR}/zlib.dll"
+          "${CONDA_BIN_DIR}/pcre2-16.dll"
+          "${CONDA_BIN_DIR}/zstd.dll"
+          "${CONDA_BIN_DIR}/freetype.dll"
+          "${CONDA_BIN_DIR}/harfbuzz.dll"
+          "${CONDA_BIN_DIR}/libbz2.dll"
+          "$<TARGET_FILE_DIR:mkpass-gui>/"
+        COMMENT "Copying Qt runtime dependencies"
+      )
+    endif()
+  endif()
+
 
 if(UNIX AND NOT APPLE)
     include(GNUInstallDirs)
