@@ -648,3 +648,388 @@ TEST(E2EInfoTest, InfoPassphraseDicewareAndWordnet) {
     unsetenv("MKPASS_DB_PATH");
     remove(db_path.c_str());
 }
+
+TEST(E2EConfigSubcommandTest, SetAndGet) {
+    std::string config_path = GetTmpDir() + "/mkpass-e2e-config-setget.conf";
+    setenv("MKPASS_CONFIG_PATH", config_path.c_str(), 1);
+    remove(config_path.c_str());
+
+    // 1. Set algorithm
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config set algorithm password/argon2";
+    ProcessOutput out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+
+    // 2. Get algorithm
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config get algorithm";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+    trim(out.std_out);
+    EXPECT_EQ(out.std_out, "password/argon2");
+
+    // 3. Set char_classes
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config set char_classes lowercase,uppercase,digits,symbols";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config get char_classes";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+    trim(out.std_out);
+    EXPECT_EQ(out.std_out, "lowercase,uppercase,digits,symbols");
+
+    // 4. Set length
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config set length 24";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config get length";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+    trim(out.std_out);
+    EXPECT_EQ(out.std_out, "24");
+
+    // 5. Set separator
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config set separator -";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config get separator";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+    trim(out.std_out);
+    EXPECT_EQ(out.std_out, "-");
+
+    // 6. Set digits
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config set digits true";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config get digits";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+    trim(out.std_out);
+    EXPECT_EQ(out.std_out, "true");
+
+    // 7. Set enable_old_algorithm
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config set enable_old_algorithm false";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config get enable_old_algorithm";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+    trim(out.std_out);
+    EXPECT_EQ(out.std_out, "false");
+
+    unsetenv("MKPASS_CONFIG_PATH");
+    remove(config_path.c_str());
+}
+
+TEST(E2EConfigSubcommandTest, UnsetAndPrint) {
+    std::string config_path = GetTmpDir() + "/mkpass-e2e-config-unset.conf";
+    setenv("MKPASS_CONFIG_PATH", config_path.c_str(), 1);
+    remove(config_path.c_str());
+
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config set algorithm password/argon2";
+    ProcessOutput out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config print";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+    EXPECT_TRUE(out.std_out.find("algorithm = 'password/argon2'") != std::string::npos ||
+                out.std_out.find("algorithm = \"password/argon2\"") != std::string::npos);
+
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config unset algorithm";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config get algorithm";
+    out = exec_with_input(cmd, "");
+    EXPECT_NE(out.exit_code, 0);
+    EXPECT_TRUE(out.std_err.find("is not set") != std::string::npos);
+
+    unsetenv("MKPASS_CONFIG_PATH");
+    remove(config_path.c_str());
+}
+
+TEST(E2EConfigSubcommandTest, ErrorHandling) {
+    std::string config_path = GetTmpDir() + "/mkpass-e2e-config-err.conf";
+    setenv("MKPASS_CONFIG_PATH", config_path.c_str(), 1);
+    remove(config_path.c_str());
+
+    // 1. Invalid key in get
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config get invalid_key";
+    ProcessOutput out = exec_with_input(cmd, "");
+    EXPECT_NE(out.exit_code, 0);
+
+    // 2. Invalid key in set
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config set invalid_key value";
+    out = exec_with_input(cmd, "");
+    EXPECT_NE(out.exit_code, 0);
+
+    // 3. Invalid algorithm value
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config set algorithm invalid_algorithm";
+    out = exec_with_input(cmd, "");
+    EXPECT_NE(out.exit_code, 0);
+
+    // 4. Invalid length value
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config set length abc";
+    out = exec_with_input(cmd, "");
+    EXPECT_NE(out.exit_code, 0);
+
+    // 5. Invalid char_classes value
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config set char_classes invalid_class";
+    out = exec_with_input(cmd, "");
+    EXPECT_NE(out.exit_code, 0);
+
+    // 6. Invalid boolean value
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config set digits not_a_bool";
+    out = exec_with_input(cmd, "");
+    EXPECT_NE(out.exit_code, 0);
+
+    unsetenv("MKPASS_CONFIG_PATH");
+    remove(config_path.c_str());
+}
+
+TEST(E2EConfigDefaultsTest, GeneratorUsesConfigDefaults) {
+    std::string config_path = GetTmpDir() + "/mkpass-e2e-cfg-gen.conf";
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-cfg-gen.db";
+    setenv("MKPASS_CONFIG_PATH", config_path.c_str(), 1);
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
+    remove(config_path.c_str());
+    remove(db_path.c_str());
+
+    // Set defaults in config
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config set length 22";
+    exec_with_input(cmd, "");
+
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config set char_classes digits";
+    exec_with_input(cmd, "");
+
+    // Generate with -dd for a new service
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p master -s test_config_service -dd";
+    ProcessOutput out = exec_with_input(cmd, "");
+    trim(out.std_out);
+    EXPECT_EQ(out.exit_code, 0);
+    EXPECT_EQ(out.std_out.length(), 22);
+    for (char c : out.std_out) {
+        EXPECT_TRUE(std::isdigit(c));
+    }
+
+    // CLI option overrides config default length
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p master -s test_config_service2 -l 10 -dd";
+    out = exec_with_input(cmd, "");
+    trim(out.std_out);
+    EXPECT_EQ(out.exit_code, 0);
+    EXPECT_EQ(out.std_out.length(), 10);
+
+    unsetenv("MKPASS_CONFIG_PATH");
+    unsetenv("MKPASS_DB_PATH");
+    remove(config_path.c_str());
+    remove(db_path.c_str());
+}
+
+TEST(E2EHumanReadableStringsTest, CommandLineOptions) {
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-cmd-strings.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
+    remove(db_path.c_str());
+
+    // 1. --algorithm password/sha512
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p master -s test_sha512 --algorithm password/sha512 -dd";
+    ProcessOutput out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+
+    // Verify in db info
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -I -s test_sha512";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+    EXPECT_TRUE(out.std_out.find("Password (SHA512 HMAC)") != std::string::npos);
+
+    // 2. --char-classes digits,symbols
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p master -s test_chars --char-classes digits,symbols -l 20 -dd";
+    out = exec_with_input(cmd, "");
+    trim(out.std_out);
+    EXPECT_EQ(out.exit_code, 0);
+    EXPECT_EQ(out.std_out.length(), 20);
+    for (char c : out.std_out) {
+        EXPECT_TRUE(std::isdigit(c) || Symbols.find(c) != std::string::npos);
+    }
+
+    // 3. Passphrase Diceware with string algo
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p master -s test_dice --algorithm passphrase/diceware -l 4 --separator - --digits y --symbols n --capitalize y -dd";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -I -s test_dice";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+    EXPECT_TRUE(out.std_out.find("Algorithm: Passphrase Diceware (Argon2)") != std::string::npos);
+    EXPECT_TRUE(out.std_out.find("Words count: 4") != std::string::npos);
+
+    // 4. Passphrase Wordnet with string algo
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p master -s test_wordnet --algorithm passphrase/wordnet -l 3 --pattern nav --separator / -dd";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -I -s test_wordnet";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+    EXPECT_TRUE(out.std_out.find("Algorithm: Passphrase Wordnet Pattern (Argon2)") != std::string::npos);
+    EXPECT_TRUE(out.std_out.find("Words count: 3") != std::string::npos);
+
+    unsetenv("MKPASS_DB_PATH");
+    remove(db_path.c_str());
+}
+
+TEST(E2EHumanReadableStringsTest, EnvironmentVariables) {
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-env-strings.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
+    remove(db_path.c_str());
+
+    // 1. Test MKPASS_ALGORITHM="password/argon2" and MKPASS_CHAR_CLASSES="lowercase,digits"
+    setenv("MKPASS_PASSWORD", "master", 1);
+    setenv("MKPASS_SERVICE", "test_env_pwd", 1);
+    setenv("MKPASS_ALGORITHM", "password/argon2", 1);
+    setenv("MKPASS_CHAR_CLASSES", "lowercase,digits", 1);
+    setenv("MKPASS_LENGTH", "16", 1);
+
+    ProcessOutput out = exec_with_input(MKPASS_EXECUTABLE_PATH, "");
+    trim(out.std_out);
+    EXPECT_EQ(out.exit_code, 0);
+    EXPECT_EQ(out.std_out.length(), 16);
+    for (char c : out.std_out) {
+        EXPECT_TRUE(std::islower(c) || std::isdigit(c));
+    }
+
+    unsetenv("MKPASS_PASSWORD");
+    unsetenv("MKPASS_SERVICE");
+    unsetenv("MKPASS_ALGORITHM");
+    unsetenv("MKPASS_CHAR_CLASSES");
+    unsetenv("MKPASS_LENGTH");
+
+    // 2. Test MKPASS_ALGORITHM="passphrase/diceware"
+    setenv("MKPASS_PASSWORD", "master", 1);
+    setenv("MKPASS_SERVICE", "test_env_dice", 1);
+    setenv("MKPASS_ALGORITHM", "passphrase/diceware", 1);
+    setenv("MKPASS_LENGTH", "4", 1);
+    setenv("MKPASS_DIGITS", "y", 1);
+    setenv("MKPASS_SYMBOLS", "n", 1);
+    setenv("MKPASS_SUBSTITUTIONS", "y", 1);
+    setenv("MKPASS_CAPITALIZE", "n", 1);
+    setenv("MKPASS_SEPARATOR", "-", 1);
+
+    out = exec_with_input(MKPASS_EXECUTABLE_PATH, "");
+    trim(out.std_out);
+    EXPECT_EQ(out.exit_code, 0);
+    EXPECT_FALSE(out.std_out.empty());
+
+    unsetenv("MKPASS_PASSWORD");
+    unsetenv("MKPASS_SERVICE");
+    unsetenv("MKPASS_ALGORITHM");
+    unsetenv("MKPASS_LENGTH");
+    unsetenv("MKPASS_DIGITS");
+    unsetenv("MKPASS_SYMBOLS");
+    unsetenv("MKPASS_SUBSTITUTIONS");
+    unsetenv("MKPASS_CAPITALIZE");
+    unsetenv("MKPASS_SEPARATOR");
+
+    unsetenv("MKPASS_DB_PATH");
+    remove(db_path.c_str());
+}
+
+TEST(E2EOldAlgorithmGatingTest, GatingAndEnforcement) {
+    std::string config_path = GetTmpDir() + "/mkpass-e2e-oldgating.conf";
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-oldgating.db";
+    setenv("MKPASS_CONFIG_PATH", config_path.c_str(), 1);
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
+    remove(config_path.c_str());
+    remove(db_path.c_str());
+
+    // 1. Run interactive prompt for a new service without enable_old_algorithm -> verify OldPassword is omitted
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    std::string input = "master\nmaster\ninteractive_new_service\n1\n1234\n16\n";
+    ProcessOutput out = exec_with_input(cmd, input);
+    EXPECT_EQ(out.exit_code, 0);
+    EXPECT_EQ(out.std_err.find("OldPassword"), std::string::npos);
+
+    // 2. Attempt to create a new service with -a password/old when disabled -> verify failure with descriptive error
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p master -s illegal_service -a password/old -dd";
+    out = exec_with_input(cmd, "");
+    EXPECT_NE(out.exit_code, 0);
+    EXPECT_TRUE(out.std_err.find("Legacy algorithm 'password/old' is disabled. Set 'enable_old_algorithm = true' in config or environment to enable.") != std::string::npos);
+
+    // Also with legacy numeric ID -a 3
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p master -s illegal_service -a 3 -dd";
+    out = exec_with_input(cmd, "");
+    EXPECT_NE(out.exit_code, 0);
+    EXPECT_TRUE(out.std_err.find("Legacy algorithm 'password/old' is disabled. Set 'enable_old_algorithm = true' in config or environment to enable.") != std::string::npos);
+
+    // 3. Set enable_old_algorithm = true in config
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config set enable_old_algorithm true";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+
+    // Creating service with -a password/old now succeeds
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p master -s allowed_old_service -a password/old -dd";
+    out = exec_with_input(cmd, "");
+    trim(out.std_out);
+    EXPECT_EQ(out.exit_code, 0);
+    EXPECT_EQ(out.std_out.length(), 8);
+
+    // 4. Disable enable_old_algorithm again in config
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config set enable_old_algorithm false";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+
+    // Generating password for the existing service using Old algorithm in DB still works
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p master -s allowed_old_service -dd";
+    out = exec_with_input(cmd, "");
+    trim(out.std_out);
+    EXPECT_EQ(out.exit_code, 0);
+    EXPECT_EQ(out.std_out.length(), 8);
+
+    unsetenv("MKPASS_CONFIG_PATH");
+    unsetenv("MKPASS_DB_PATH");
+    remove(config_path.c_str());
+    remove(db_path.c_str());
+}
