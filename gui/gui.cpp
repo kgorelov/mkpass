@@ -10,6 +10,8 @@
 #include "manual_dialog.h"
 #include "passphrase_patterns.h"
 #include "word_classes.h"
+#include "settings_dialog.h"
+#include "config.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -44,6 +46,7 @@ MainWindow::MainWindow(QWidget *parent)
     refreshCompleter();
 
     connect(serviceLineEdit, &QLineEdit::textChanged, this, &MainWindow::serviceChanged);
+    serviceChanged("");
 }
 
 MainWindow::~MainWindow() {
@@ -57,6 +60,11 @@ void MainWindow::setupUI() {
     QMenu *dbMenu = menuBar->addMenu("Database");
     QAction *manageAction = dbMenu->addAction("Management");
     connect(manageAction, &QAction::triggered, this, &MainWindow::manageDatabase);
+
+    QMenu *settingsMenu = menuBar->addMenu("Settings");
+    QAction *preferencesAction = settingsMenu->addAction("Preferences...");
+    preferencesAction->setShortcut(QKeySequence::Preferences);
+    connect(preferencesAction, &QAction::triggered, this, &MainWindow::showSettings);
 
     QMenu *helpMenu = menuBar->addMenu("Help");
     QAction *manualAction = helpMenu->addAction("Manual");
@@ -83,11 +91,7 @@ void MainWindow::setupUI() {
     formLayout->addRow("Service:", serviceLineEdit);
 
     algorithmComboBox = new QComboBox;
-    algorithmComboBox->addItem("Password (Argon2)", static_cast<int>(Algorithm::Argon2));
-    algorithmComboBox->addItem("Password (SHA512 HMAC)", static_cast<int>(Algorithm::SlowSha512));
-    algorithmComboBox->addItem("OldPassword", static_cast<int>(Algorithm::Old));
-    algorithmComboBox->addItem("Passphrase Diceware (Argon2)", static_cast<int>(Algorithm::Passphrase_Diceware_EFF_Large));
-    algorithmComboBox->addItem("Passphrase Wordnet Pattern (Argon2)", static_cast<int>(Algorithm::Passphrase_Wordnet_Pattern));
+    updateAlgorithmComboBox(false);
     formLayout->addRow("Algorithm:", algorithmComboBox);
 
     characterClassesGroupBox = new QGroupBox("Character Classes");
@@ -318,15 +322,15 @@ void MainWindow::serviceChanged(const QString &service) {
     mkpass::ConfigDB db(GetConfigDBPath());
     auto entry = db.get_service_entry(service.toStdString());
 
-    Algorithm currentAlgo = static_cast<Algorithm>(algorithmComboBox->currentData().toInt());
-    Algorithm newAlgo = entry ? entry->algorithm : Algorithm::Argon2;
-
-    int index = algorithmComboBox->findData(static_cast<int>(newAlgo));
-    if (index != -1) {
-        algorithmComboBox->setCurrentIndex(index);
-    }
+    bool isOldRecord = (entry && entry->algorithm == Algorithm::Old);
+    updateAlgorithmComboBox(isOldRecord);
 
     if (entry) {
+        int index = algorithmComboBox->findData(static_cast<int>(entry->algorithm));
+        if (index != -1) {
+            algorithmComboBox->setCurrentIndex(index);
+        }
+
         lengthSpinBox->setValue(entry->length);
 
         lowerCaseCheckBox->setChecked(false);
@@ -367,25 +371,93 @@ void MainWindow::serviceChanged(const QString &service) {
 
         allowSubstitutionsCheckBox->setChecked(entry->allow_substitutions);
     } else {
-        // Reset to default values based on algorithm
-        allowSubstitutionsCheckBox->setChecked(false);
-        capitalizeCheckBox->setChecked(true);
-        if (newAlgo == Algorithm::Argon2 || newAlgo == Algorithm::SlowSha512) {
-            lengthSpinBox->setValue(16);
-            lowerCaseCheckBox->setChecked(true);
-            upperCaseCheckBox->setChecked(true);
-            digitsCheckBox->setChecked(true);
-            symbolsCheckBox->setChecked(true);
-            customCheckBox->setChecked(false);
-            customCharsLineEdit->setText("");
-        } else if (newAlgo == Algorithm::Passphrase_Diceware_EFF_Large || newAlgo == Algorithm::Passphrase_Wordnet_Pattern) {
+        mkpass::Config cfg(GetConfigFilePath());
+        cfg.load();
+        const auto& opts = cfg.options();
+
+        Algorithm defaultAlgo = opts.algorithm.value_or(Algorithm::Argon2);
+        if (defaultAlgo == Algorithm::Old && !mkpass::IsOldAlgorithmEnabled(cfg)) {
+            defaultAlgo = Algorithm::Argon2;
+        }
+
+        int index = algorithmComboBox->findData(static_cast<int>(defaultAlgo));
+        if (index != -1) {
+            algorithmComboBox->setCurrentIndex(index);
+        }
+
+        bool isPassword = (defaultAlgo == Algorithm::Argon2 || defaultAlgo == Algorithm::SlowSha512);
+        bool isPassphrase = (defaultAlgo == Algorithm::Passphrase_Diceware_EFF_Large || defaultAlgo == Algorithm::Passphrase_Wordnet_Pattern);
+
+        if (opts.char_classes.has_value()) {
+            lowerCaseCheckBox->setChecked(false);
+            upperCaseCheckBox->setChecked(false);
             digitsCheckBox->setChecked(false);
             symbolsCheckBox->setChecked(false);
-            lengthSpinBox->setValue(3);
-        } else if (newAlgo == Algorithm::Old) {
-            lengthSpinBox->setValue(8);
+            customCheckBox->setChecked(false);
+            for (const auto& cc : *opts.char_classes) {
+                if (cc == CharacterClass::LOWERCASE) lowerCaseCheckBox->setChecked(true);
+                if (cc == CharacterClass::UPPERCASE) upperCaseCheckBox->setChecked(true);
+                if (cc == CharacterClass::DIGITS) digitsCheckBox->setChecked(true);
+                if (cc == CharacterClass::SYMBOLS) symbolsCheckBox->setChecked(true);
+                if (cc == CharacterClass::CUSTOM) customCheckBox->setChecked(true);
+            }
+        } else {
+            if (isPassword) {
+                lowerCaseCheckBox->setChecked(true);
+                upperCaseCheckBox->setChecked(true);
+                digitsCheckBox->setChecked(true);
+                symbolsCheckBox->setChecked(true);
+                customCheckBox->setChecked(false);
+            } else if (isPassphrase) {
+                lowerCaseCheckBox->setChecked(false);
+                upperCaseCheckBox->setChecked(false);
+                digitsCheckBox->setChecked(opts.digits.value_or(false));
+                symbolsCheckBox->setChecked(opts.symbols.value_or(false));
+                customCheckBox->setChecked(false);
+            }
         }
-        separatorComboBox->setCurrentIndex(0); // Default to None
+
+        if (isPassphrase) {
+            if (opts.digits.has_value()) digitsCheckBox->setChecked(*opts.digits);
+            if (opts.symbols.has_value()) symbolsCheckBox->setChecked(*opts.symbols);
+        }
+
+        if (opts.custom_chars.has_value()) {
+            customCharsLineEdit->setText(QString::fromStdString(*opts.custom_chars));
+        } else {
+            customCharsLineEdit->setText("");
+        }
+
+        if (isPassphrase) {
+            lengthSpinBox->setValue(static_cast<int>(opts.length.value_or(3)));
+        } else if (defaultAlgo == Algorithm::Old) {
+            lengthSpinBox->setValue(static_cast<int>(opts.length.value_or(8)));
+        } else {
+            lengthSpinBox->setValue(static_cast<int>(opts.length.value_or(16)));
+        }
+
+        std::string sep = opts.separator.value_or("");
+        int sepIndex = separatorComboBox->findData(QString::fromStdString(sep));
+        if (sepIndex != -1) {
+            separatorComboBox->setCurrentIndex(sepIndex);
+        } else {
+            separatorComboBox->setCurrentIndex(0);
+        }
+
+        capitalizeCheckBox->setChecked(opts.capitalize.value_or(true));
+        allowSubstitutionsCheckBox->setChecked(opts.substitutions.value_or(false));
+
+        if (opts.passphrase_pattern.has_value() && !opts.passphrase_pattern->empty()) {
+            updatePatternsList();
+            int pIndex = patternComboBox->findData(QString::fromStdString(mkpass::PatternToString(*opts.passphrase_pattern)));
+            if (pIndex != -1) {
+                patternComboBox->setCurrentIndex(pIndex);
+            } else {
+                patternComboBox->setCurrentIndex(0);
+            }
+        } else {
+            patternComboBox->setCurrentIndex(0);
+        }
     }
     updateAlgorithmSpecificUI();
 }
@@ -449,21 +521,56 @@ void MainWindow::updateAlgorithmSpecificUI() {
     // Apply defaults if switching to passphrase
     static Algorithm lastAlgo = Algorithm::Argon2;
     if (isPassphrase && !(lastAlgo == Algorithm::Passphrase_Diceware_EFF_Large || lastAlgo == Algorithm::Passphrase_Wordnet_Pattern)) {
-        digitsCheckBox->setChecked(false);
-        symbolsCheckBox->setChecked(false);
-        allowSubstitutionsCheckBox->setChecked(false);
-        capitalizeCheckBox->setChecked(true);
+        mkpass::Config cfg(GetConfigFilePath());
+        cfg.load();
+        const auto& opts = cfg.options();
+
+        digitsCheckBox->setChecked(opts.digits.value_or(false));
+        symbolsCheckBox->setChecked(opts.symbols.value_or(false));
+        allowSubstitutionsCheckBox->setChecked(opts.substitutions.value_or(false));
+        capitalizeCheckBox->setChecked(opts.capitalize.value_or(true));
         if (algorithm == Algorithm::Passphrase_Diceware_EFF_Large) {
-            lengthSpinBox->setValue(3);
+            lengthSpinBox->setValue(static_cast<int>(opts.length.value_or(3)));
         }
-        separatorComboBox->setCurrentIndex(0);
+        std::string sep = opts.separator.value_or("");
+        int sepIndex = separatorComboBox->findData(QString::fromStdString(sep));
+        if (sepIndex != -1) {
+            separatorComboBox->setCurrentIndex(sepIndex);
+        } else {
+            separatorComboBox->setCurrentIndex(0);
+        }
         patternComboBox->setCurrentIndex(0); // Default to Random
     } else if (isPassword && !(lastAlgo == Algorithm::Argon2 || lastAlgo == Algorithm::SlowSha512)) {
-        digitsCheckBox->setChecked(true);
-        symbolsCheckBox->setChecked(true);
-        lowerCaseCheckBox->setChecked(true);
-        upperCaseCheckBox->setChecked(true);
-        lengthSpinBox->setValue(16);
+        mkpass::Config cfg(GetConfigFilePath());
+        cfg.load();
+        const auto& opts = cfg.options();
+
+        if (opts.char_classes.has_value()) {
+            lowerCaseCheckBox->setChecked(false);
+            upperCaseCheckBox->setChecked(false);
+            digitsCheckBox->setChecked(false);
+            symbolsCheckBox->setChecked(false);
+            customCheckBox->setChecked(false);
+            for (const auto& cc : *opts.char_classes) {
+                if (cc == CharacterClass::LOWERCASE) lowerCaseCheckBox->setChecked(true);
+                if (cc == CharacterClass::UPPERCASE) upperCaseCheckBox->setChecked(true);
+                if (cc == CharacterClass::DIGITS) digitsCheckBox->setChecked(true);
+                if (cc == CharacterClass::SYMBOLS) symbolsCheckBox->setChecked(true);
+                if (cc == CharacterClass::CUSTOM) customCheckBox->setChecked(true);
+            }
+        } else {
+            digitsCheckBox->setChecked(true);
+            symbolsCheckBox->setChecked(true);
+            lowerCaseCheckBox->setChecked(true);
+            upperCaseCheckBox->setChecked(true);
+            customCheckBox->setChecked(false);
+        }
+        if (opts.custom_chars.has_value()) {
+            customCharsLineEdit->setText(QString::fromStdString(*opts.custom_chars));
+        } else {
+            customCharsLineEdit->setText("");
+        }
+        lengthSpinBox->setValue(static_cast<int>(opts.length.value_or(16)));
     }
     lastAlgo = algorithm;
 
@@ -537,6 +644,33 @@ void MainWindow::refreshCompleter() {
     serviceLineEdit->setCompleter(serviceCompleter);
 }
 
+void MainWindow::updateAlgorithmComboBox(bool force_include_old) {
+    mkpass::Config cfg(GetConfigFilePath());
+    cfg.load();
+    bool old_enabled = mkpass::IsOldAlgorithmEnabled(cfg);
+    bool include_old = old_enabled || force_include_old;
+
+    QVariant currentAlgoData = algorithmComboBox->currentData();
+
+    algorithmComboBox->blockSignals(true);
+    algorithmComboBox->clear();
+    algorithmComboBox->addItem("Password (Argon2)", static_cast<int>(Algorithm::Argon2));
+    algorithmComboBox->addItem("Password (SHA512 HMAC)", static_cast<int>(Algorithm::SlowSha512));
+    if (include_old) {
+        algorithmComboBox->addItem("OldPassword", static_cast<int>(Algorithm::Old));
+    }
+    algorithmComboBox->addItem("Passphrase Diceware (Argon2)", static_cast<int>(Algorithm::Passphrase_Diceware_EFF_Large));
+    algorithmComboBox->addItem("Passphrase Wordnet Pattern (Argon2)", static_cast<int>(Algorithm::Passphrase_Wordnet_Pattern));
+
+    int index = algorithmComboBox->findData(currentAlgoData);
+    if (index != -1) {
+        algorithmComboBox->setCurrentIndex(index);
+    } else {
+        algorithmComboBox->setCurrentIndex(0);
+    }
+    algorithmComboBox->blockSignals(false);
+}
+
 void MainWindow::manageDatabase() {
     DbManagementDialog dialog(this);
     dialog.exec();
@@ -559,6 +693,18 @@ void MainWindow::showHelp() {
     msgBox.setText("<b>mkpass</b><br><br>A secure password generator.");
     msgBox.setIconPixmap(QPixmap(":/app_icon").scaled(64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     msgBox.exec();
+}
+
+void MainWindow::showSettings() {
+    SettingsDialog dialog(this);
+    if (dialog.exec() == QDialog::Accepted) {
+        mkpass::ConfigDB db(GetConfigDBPath());
+        auto entry = db.get_service_entry(serviceLineEdit->text().toStdString());
+        bool isOldRecord = (entry && entry->algorithm == Algorithm::Old);
+        updateAlgorithmComboBox(isOldRecord);
+
+        serviceChanged(serviceLineEdit->text());
+    }
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
