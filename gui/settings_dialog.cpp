@@ -2,30 +2,89 @@
 #include "platform_utils.h"
 #include "algorithms.h"
 #include "character_classes.h"
+#include "passphrase_patterns.h"
+#include "word_classes.h"
+#include "db.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QMessageBox>
 #include <QLabel>
+#include <cctype>
+
+namespace {
+
+QString GetPatternDescription(const PassphrasePattern& pattern) {
+    QStringList parts;
+    for (auto wc : pattern) {
+        switch (wc) {
+            case WordClasses::Noun: parts << "Noun"; break;
+            case WordClasses::Verb: parts << "Verb"; break;
+            case WordClasses::Adj:  parts << "Adj"; break;
+            case WordClasses::Adv:  parts << "Adv"; break;
+        }
+    }
+    return parts.join(", ");
+}
+
+QTableWidget* createSettingsTable(int rowCount, QWidget *parent) {
+    QTableWidget *table = new QTableWidget(rowCount, 3, parent);
+    table->setHorizontalHeaderLabels({"Enabled", "Variable Name", "Default Value"});
+    table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Fixed);
+    table->setColumnWidth(0, 65);
+    table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Fixed);
+    table->setColumnWidth(1, 175);
+    table->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+    table->verticalHeader()->setVisible(false);
+    table->setSelectionMode(QAbstractItemView::NoSelection);
+    table->setShowGrid(true);
+    table->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    table->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    int headerHeight = table->horizontalHeader()->sizeHint().height();
+    if (headerHeight < 28) headerHeight = 28;
+    int rowHeight = table->fontMetrics().height() + 16;
+    if (rowHeight < 34) rowHeight = 34;
+
+    int totalHeight = headerHeight;
+    for (int i = 0; i < rowCount; ++i) {
+        table->setRowHeight(i, rowHeight);
+        totalHeight += rowHeight;
+    }
+    totalHeight += 4;
+    table->setFixedHeight(totalHeight);
+
+    return table;
+}
+
+} // namespace
 
 SettingsDialog::SettingsDialog(QWidget *parent)
     : QDialog(parent),
-      tableWidget(nullptr),
+      scrollArea(nullptr),
+      generalTable(nullptr),
+      passwordTable(nullptr),
+      passphraseTable(nullptr),
       restoreDefaultsButton(nullptr),
       saveButton(nullptr),
       cancelButton(nullptr),
       algorithmComboBox(nullptr),
-      charClassesLineEdit(nullptr),
-      customCharsLineEdit(nullptr),
       lengthSpinBox(nullptr),
+      enableOldAlgoComboBox(nullptr),
+      charClassesWidget(nullptr),
+      charLowerCheckBox(nullptr),
+      charUpperCheckBox(nullptr),
+      charDigitsCheckBox(nullptr),
+      charSymbolsCheckBox(nullptr),
+      charCustomCheckBox(nullptr),
+      customCharsLineEdit(nullptr),
       separatorComboBox(nullptr),
-      passphrasePatternLineEdit(nullptr),
+      passphrasePatternComboBox(nullptr),
       digitsComboBox(nullptr),
       symbolsComboBox(nullptr),
       substitutionsComboBox(nullptr),
       capitalizeComboBox(nullptr),
-      enableOldAlgoComboBox(nullptr),
       config_(GetConfigFilePath()) {
     setupUI();
     loadFromConfig();
@@ -34,93 +93,150 @@ SettingsDialog::SettingsDialog(QWidget *parent)
 void SettingsDialog::setupUI() {
     setWindowTitle("Preferences");
     setModal(true);
-    resize(620, 480);
+    setMinimumWidth(640);
+    resize(680, 580);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
-    tableWidget = new QTableWidget(this);
-    tableWidget->setColumnCount(3);
-    tableWidget->setHorizontalHeaderLabels({"Enabled", "Variable Name", "Default Value"});
-    tableWidget->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    tableWidget->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    tableWidget->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
-    tableWidget->verticalHeader()->setVisible(false);
-    tableWidget->setSelectionMode(QAbstractItemView::NoSelection);
-    tableWidget->setShowGrid(true);
+    scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
 
-    algorithmComboBox = new QComboBox(this);
+    QWidget *contentWidget = new QWidget(scrollArea);
+    QVBoxLayout *contentLayout = new QVBoxLayout(contentWidget);
+    contentLayout->setContentsMargins(4, 4, 4, 4);
+    contentLayout->setSpacing(12);
 
-    charClassesLineEdit = new QLineEdit(this);
-    charClassesLineEdit->setPlaceholderText("lowercase,uppercase,digits,symbols");
-
-    customCharsLineEdit = new QLineEdit(this);
-    customCharsLineEdit->setPlaceholderText("e.g. !@#$%");
-
-    lengthSpinBox = new QSpinBox(this);
-    lengthSpinBox->setRange(1, 128);
-    lengthSpinBox->setValue(16);
-
-    separatorComboBox = new QComboBox(this);
-    separatorComboBox->addItem("None", QString(""));
-    separatorComboBox->addItem("Hyphen (-)", QString("-"));
-    separatorComboBox->addItem("Space ( )", QString(" "));
-    separatorComboBox->addItem("Slash (/)", QString("/"));
-
-    passphrasePatternLineEdit = new QLineEdit(this);
-    passphrasePatternLineEdit->setPlaceholderText("e.g. navrn (or empty for Random)");
-
-    auto make_bool_combo = [this]() {
-        QComboBox *cb = new QComboBox(this);
+    auto make_bool_combo = [](QWidget *parent) {
+        QComboBox *cb = new QComboBox(parent);
         cb->addItem("false", QString("false"));
         cb->addItem("true", QString("true"));
         return cb;
     };
 
-    digitsComboBox = make_bool_combo();
-    symbolsComboBox = make_bool_combo();
-    substitutionsComboBox = make_bool_combo();
-    capitalizeComboBox = make_bool_combo();
-    enableOldAlgoComboBox = make_bool_combo();
+    // 1. General Group
+    QGroupBox *generalGroupBox = new QGroupBox("General", contentWidget);
+    QVBoxLayout *genLayout = new QVBoxLayout(generalGroupBox);
+    generalTable = createSettingsTable(3, generalGroupBox);
+    genLayout->addWidget(generalTable);
+
+    algorithmComboBox = new QComboBox(generalTable);
+    lengthSpinBox = new QSpinBox(generalTable);
+    lengthSpinBox->setRange(1, 128);
+    lengthSpinBox->setValue(16);
+    enableOldAlgoComboBox = make_bool_combo(generalTable);
 
     connect(enableOldAlgoComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &SettingsDialog::updateAlgorithmChoices);
 
+    contentLayout->addWidget(generalGroupBox);
+
+    // 2. Password Options Group
+    QGroupBox *passwordGroupBox = new QGroupBox("Password Options", contentWidget);
+    QVBoxLayout *pwdLayout = new QVBoxLayout(passwordGroupBox);
+    passwordTable = createSettingsTable(2, passwordGroupBox);
+    pwdLayout->addWidget(passwordTable);
+
+    charClassesWidget = new QWidget(passwordTable);
+    QHBoxLayout *ccLayout = new QHBoxLayout(charClassesWidget);
+    ccLayout->setContentsMargins(6, 0, 6, 0);
+    ccLayout->setSpacing(10);
+    charLowerCheckBox = new QCheckBox("Lower-case", charClassesWidget);
+    charUpperCheckBox = new QCheckBox("Upper-case", charClassesWidget);
+    charDigitsCheckBox = new QCheckBox("Digits", charClassesWidget);
+    charSymbolsCheckBox = new QCheckBox("Symbols", charClassesWidget);
+    charCustomCheckBox = new QCheckBox("Custom", charClassesWidget);
+    ccLayout->addWidget(charLowerCheckBox);
+    ccLayout->addWidget(charUpperCheckBox);
+    ccLayout->addWidget(charDigitsCheckBox);
+    ccLayout->addWidget(charSymbolsCheckBox);
+    ccLayout->addWidget(charCustomCheckBox);
+    ccLayout->addStretch();
+
+    customCharsLineEdit = new QLineEdit(passwordTable);
+    customCharsLineEdit->setPlaceholderText("e.g. !@#$%");
+
+    contentLayout->addWidget(passwordGroupBox);
+
+    // 3. Passphrase Options Group
+    QGroupBox *passphraseGroupBox = new QGroupBox("Passphrase Options", contentWidget);
+    QVBoxLayout *passLayout = new QVBoxLayout(passphraseGroupBox);
+    passphraseTable = createSettingsTable(6, passphraseGroupBox);
+    passLayout->addWidget(passphraseTable);
+
+    separatorComboBox = new QComboBox(passphraseTable);
+    separatorComboBox->addItem("None", QString(""));
+    separatorComboBox->addItem("Hyphen (-)", QString("-"));
+    separatorComboBox->addItem("Space ( )", QString(" "));
+    separatorComboBox->addItem("Slash (/)", QString("/"));
+
+    passphrasePatternComboBox = new QComboBox(passphraseTable);
+    passphrasePatternComboBox->setEditable(true);
+    passphrasePatternComboBox->setInsertPolicy(QComboBox::NoInsert);
+    passphrasePatternComboBox->addItem("Random", QString(""));
+    size_t maxLen = GetMaxPassphrasePatternLength();
+    for (size_t l = 1; l <= maxLen; ++l) {
+        PatternsList patterns = GetPassphrasePatterns(l);
+        for (const auto& p : patterns) {
+            std::string pStr = mkpass::PatternToString(p);
+            QString desc = GetPatternDescription(p);
+            QString label = QString("%1 (%2)").arg(QString::fromStdString(pStr), desc);
+            passphrasePatternComboBox->addItem(label, QString::fromStdString(pStr));
+        }
+    }
+
+    digitsComboBox = make_bool_combo(passphraseTable);
+    symbolsComboBox = make_bool_combo(passphraseTable);
+    substitutionsComboBox = make_bool_combo(passphraseTable);
+    capitalizeComboBox = make_bool_combo(passphraseTable);
+
+    contentLayout->addWidget(passphraseGroupBox);
+
+    scrollArea->setWidget(contentWidget);
+    mainLayout->addWidget(scrollArea);
+
     rowDefs_ = {
-        {"algorithm", algorithmComboBox},
-        {"char_classes", charClassesLineEdit},
-        {"custom_chars", customCharsLineEdit},
-        {"length", lengthSpinBox},
-        {"separator", separatorComboBox},
-        {"passphrase_pattern", passphrasePatternLineEdit},
-        {"digits", digitsComboBox},
-        {"symbols", symbolsComboBox},
-        {"substitutions", substitutionsComboBox},
-        {"capitalize", capitalizeComboBox},
-        {"enable_old_algorithm", enableOldAlgoComboBox}
+        // General
+        {"algorithm", algorithmComboBox, generalTable, 0},
+        {"length", lengthSpinBox, generalTable, 1},
+        {"enable_old_algorithm", enableOldAlgoComboBox, generalTable, 2},
+
+        // Password
+        {"char_classes", charClassesWidget, passwordTable, 0},
+        {"custom_chars", customCharsLineEdit, passwordTable, 1},
+
+        // Passphrase
+        {"separator", separatorComboBox, passphraseTable, 0},
+        {"passphrase_pattern", passphrasePatternComboBox, passphraseTable, 1},
+        {"digits", digitsComboBox, passphraseTable, 2},
+        {"symbols", symbolsComboBox, passphraseTable, 3},
+        {"substitutions", substitutionsComboBox, passphraseTable, 4},
+        {"capitalize", capitalizeComboBox, passphraseTable, 5}
     };
 
-    tableWidget->setRowCount(rowDefs_.size());
-
-    for (int i = 0; i < rowDefs_.size(); ++i) {
+    for (const auto& def : rowDefs_) {
         QTableWidgetItem *checkItem = new QTableWidgetItem();
         checkItem->setFlags(Qt::ItemIsUserCheckable | Qt::ItemIsEnabled);
         checkItem->setCheckState(Qt::Unchecked);
-        tableWidget->setItem(i, 0, checkItem);
+        def.table->setItem(def.rowInTable, 0, checkItem);
 
-        QTableWidgetItem *nameItem = new QTableWidgetItem(rowDefs_[i].key);
+        QTableWidgetItem *nameItem = new QTableWidgetItem(def.key);
         nameItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
-        tableWidget->setItem(i, 1, nameItem);
+        def.table->setItem(def.rowInTable, 1, nameItem);
 
-        tableWidget->setCellWidget(i, 2, rowDefs_[i].editor);
+        def.table->setCellWidget(def.rowInTable, 2, def.editor);
     }
 
-    connect(tableWidget, &QTableWidget::itemChanged, this, [this](QTableWidgetItem *item) {
-        if (item && item->column() == 0) {
-            updateRowAppearance(item->row());
-        }
-    });
-
-    mainLayout->addWidget(tableWidget);
+    auto connectTable = [this](QTableWidget *tbl) {
+        connect(tbl, &QTableWidget::itemChanged, this, [this](QTableWidgetItem *item) {
+            if (item && item->column() == 0) {
+                updateRowAppearance(item->tableWidget(), item->row());
+            }
+        });
+    };
+    connectTable(generalTable);
+    connectTable(passwordTable);
+    connectTable(passphraseTable);
 
     QHBoxLayout *buttonLayout = new QHBoxLayout;
     restoreDefaultsButton = new QPushButton("Restore Defaults", this);
@@ -166,17 +282,18 @@ void SettingsDialog::updateAlgorithmChoices() {
     algorithmComboBox->blockSignals(false);
 }
 
-void SettingsDialog::updateRowAppearance(int row) {
-    QTableWidgetItem *checkItem = tableWidget->item(row, 0);
+void SettingsDialog::updateRowAppearance(QTableWidget *table, int row) {
+    if (!table) return;
+    QTableWidgetItem *checkItem = table->item(row, 0);
     if (!checkItem) return;
     bool checked = (checkItem->checkState() == Qt::Checked);
 
-    QTableWidgetItem *nameItem = tableWidget->item(row, 1);
+    QTableWidgetItem *nameItem = table->item(row, 1);
     if (nameItem) {
         nameItem->setForeground(checked ? palette().color(QPalette::Text) : QBrush(Qt::gray));
     }
 
-    QWidget *editor = tableWidget->cellWidget(row, 2);
+    QWidget *editor = table->cellWidget(row, 2);
     if (editor) {
         editor->setEnabled(checked);
     }
@@ -188,9 +305,11 @@ void SettingsDialog::loadFromConfig() {
 
     updateAlgorithmChoices();
 
-    tableWidget->blockSignals(true);
-    for (int i = 0; i < rowDefs_.size(); ++i) {
-        const auto& def = rowDefs_[i];
+    generalTable->blockSignals(true);
+    passwordTable->blockSignals(true);
+    passphraseTable->blockSignals(true);
+
+    for (const auto& def : rowDefs_) {
         bool is_set = config_.is_set(def.key.toStdString());
         std::string val;
         if (is_set) {
@@ -198,23 +317,39 @@ void SettingsDialog::loadFromConfig() {
         } else {
             val = mkpass::Config::get_built_in_default(def.key.toStdString());
         }
-        setEditorValue(i, val);
+        setEditorValue(def.key, val);
 
-        QTableWidgetItem *checkItem = tableWidget->item(i, 0);
+        QTableWidgetItem *checkItem = def.table->item(def.rowInTable, 0);
         if (checkItem) {
             checkItem->setCheckState(is_set ? Qt::Checked : Qt::Unchecked);
         }
-        updateRowAppearance(i);
+        updateRowAppearance(def.table, def.rowInTable);
     }
-    tableWidget->blockSignals(false);
+
+    generalTable->blockSignals(false);
+    passwordTable->blockSignals(false);
+    passphraseTable->blockSignals(false);
 }
 
-std::string SettingsDialog::getEditorValue(int row) const {
-    const QString& key = rowDefs_[row].key;
+std::string SettingsDialog::getEditorValue(const QString& key) const {
     if (key == "algorithm") {
         return algorithmComboBox->currentData().toString().toStdString();
     } else if (key == "char_classes") {
-        return charClassesLineEdit->text().toStdString();
+        std::vector<std::string> tokens;
+        if (charLowerCheckBox->isChecked()) tokens.push_back("lowercase");
+        if (charUpperCheckBox->isChecked()) tokens.push_back("uppercase");
+        if (charDigitsCheckBox->isChecked()) tokens.push_back("digits");
+        if (charSymbolsCheckBox->isChecked()) tokens.push_back("symbols");
+        if (charCustomCheckBox->isChecked()) tokens.push_back("custom");
+
+        std::string result;
+        for (size_t i = 0; i < tokens.size(); ++i) {
+            if (i > 0) {
+                result += ",";
+            }
+            result += tokens[i];
+        }
+        return result;
     } else if (key == "custom_chars") {
         return customCharsLineEdit->text().toStdString();
     } else if (key == "length") {
@@ -222,7 +357,19 @@ std::string SettingsDialog::getEditorValue(int row) const {
     } else if (key == "separator") {
         return separatorComboBox->currentData().toString().toStdString();
     } else if (key == "passphrase_pattern") {
-        return passphrasePatternLineEdit->text().toStdString();
+        QString currentText = passphrasePatternComboBox->currentText().trimmed();
+        if (currentText.isEmpty() || currentText.compare("Random", Qt::CaseInsensitive) == 0) {
+            return "";
+        }
+        int idx = passphrasePatternComboBox->currentIndex();
+        if (idx >= 0 && currentText == passphrasePatternComboBox->itemText(idx)) {
+            return passphrasePatternComboBox->currentData().toString().toStdString();
+        }
+        int findIdx = passphrasePatternComboBox->findText(currentText);
+        if (findIdx != -1) {
+            return passphrasePatternComboBox->itemData(findIdx).toString().toStdString();
+        }
+        return currentText.toLower().toStdString();
     } else if (key == "digits") {
         return digitsComboBox->currentData().toString().toStdString();
     } else if (key == "symbols") {
@@ -237,8 +384,7 @@ std::string SettingsDialog::getEditorValue(int row) const {
     return "";
 }
 
-void SettingsDialog::setEditorValue(int row, const std::string& value) {
-    const QString& key = rowDefs_[row].key;
+void SettingsDialog::setEditorValue(const QString& key, const std::string& value) {
     if (key == "algorithm") {
         int idx = algorithmComboBox->findData(QString::fromStdString(value));
         if (idx != -1) {
@@ -250,7 +396,21 @@ void SettingsDialog::setEditorValue(int row, const std::string& value) {
             }
         }
     } else if (key == "char_classes") {
-        charClassesLineEdit->setText(QString::fromStdString(value));
+        auto classes = ParseCharacterClasses(value);
+        charLowerCheckBox->setChecked(false);
+        charUpperCheckBox->setChecked(false);
+        charDigitsCheckBox->setChecked(false);
+        charSymbolsCheckBox->setChecked(false);
+        charCustomCheckBox->setChecked(false);
+        for (auto cc : classes) {
+            switch (cc) {
+                case CharacterClass::LOWERCASE: charLowerCheckBox->setChecked(true); break;
+                case CharacterClass::UPPERCASE: charUpperCheckBox->setChecked(true); break;
+                case CharacterClass::DIGITS:    charDigitsCheckBox->setChecked(true); break;
+                case CharacterClass::SYMBOLS:   charSymbolsCheckBox->setChecked(true); break;
+                case CharacterClass::CUSTOM:    charCustomCheckBox->setChecked(true); break;
+            }
+        }
     } else if (key == "custom_chars") {
         customCharsLineEdit->setText(QString::fromStdString(value));
     } else if (key == "length") {
@@ -268,7 +428,21 @@ void SettingsDialog::setEditorValue(int row, const std::string& value) {
             separatorComboBox->setCurrentIndex(separatorComboBox->count() - 1);
         }
     } else if (key == "passphrase_pattern") {
-        passphrasePatternLineEdit->setText(QString::fromStdString(value));
+        std::string v = value;
+        while (!v.empty() && std::isspace(static_cast<unsigned char>(v.front()))) v.erase(v.begin());
+        while (!v.empty() && std::isspace(static_cast<unsigned char>(v.back()))) v.pop_back();
+
+        if (v.empty() || v == "random" || v == "1") {
+            passphrasePatternComboBox->setCurrentIndex(0);
+            passphrasePatternComboBox->setEditText("Random");
+        } else {
+            int idx = passphrasePatternComboBox->findData(QString::fromStdString(v));
+            if (idx != -1) {
+                passphrasePatternComboBox->setCurrentIndex(idx);
+            } else {
+                passphrasePatternComboBox->setEditText(QString::fromStdString(v));
+            }
+        }
     } else if (key == "digits") {
         int idx = digitsComboBox->findData(QString::fromStdString(value));
         if (idx != -1) digitsComboBox->setCurrentIndex(idx);
@@ -288,26 +462,31 @@ void SettingsDialog::setEditorValue(int row, const std::string& value) {
 }
 
 void SettingsDialog::onRestoreDefaults() {
-    tableWidget->blockSignals(true);
-    for (int i = 0; i < rowDefs_.size(); ++i) {
-        std::string dflt = mkpass::Config::get_built_in_default(rowDefs_[i].key.toStdString());
-        setEditorValue(i, dflt);
+    generalTable->blockSignals(true);
+    passwordTable->blockSignals(true);
+    passphraseTable->blockSignals(true);
 
-        QTableWidgetItem *checkItem = tableWidget->item(i, 0);
+    for (const auto& def : rowDefs_) {
+        std::string dflt = mkpass::Config::get_built_in_default(def.key.toStdString());
+        setEditorValue(def.key, dflt);
+
+        QTableWidgetItem *checkItem = def.table->item(def.rowInTable, 0);
         if (checkItem) {
             checkItem->setCheckState(Qt::Unchecked);
         }
-        updateRowAppearance(i);
+        updateRowAppearance(def.table, def.rowInTable);
     }
-    tableWidget->blockSignals(false);
+
+    generalTable->blockSignals(false);
+    passwordTable->blockSignals(false);
+    passphraseTable->blockSignals(false);
 }
 
 void SettingsDialog::onSave() {
-    for (int i = 0; i < rowDefs_.size(); ++i) {
-        const auto& def = rowDefs_[i];
-        bool enabled = (tableWidget->item(i, 0)->checkState() == Qt::Checked);
+    for (const auto& def : rowDefs_) {
+        bool enabled = (def.table->item(def.rowInTable, 0)->checkState() == Qt::Checked);
         if (enabled) {
-            std::string val = getEditorValue(i);
+            std::string val = getEditorValue(def.key);
             try {
                 config_.set_raw(def.key.toStdString(), val);
             } catch (const std::exception& e) {

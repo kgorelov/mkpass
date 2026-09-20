@@ -345,8 +345,20 @@ In [`gui/gui.cpp`](file:///home/kgorelov/git/mkpass/gui/gui.cpp):
   ```
 
 ### 8.2 Settings Dialog UI (`SettingsDialog`)
-Create `gui/settings_dialog.h` and `gui/settings_dialog.cpp`:
-- Modal `QDialog` containing a `QTableWidget` with 3 columns:
+Implement `gui/settings_dialog.h` and `gui/settings_dialog.cpp`:
+- Modal `QDialog` containing a `QScrollArea` with distinct visual group boxes (`QGroupBox`):
+  1. **General**:
+     - `algorithm`: `QComboBox` showing display names mapped to canonical strings (`password/argon2`, `password/sha512`, `passphrase/diceware`, `passphrase/wordnet`, and `password/old` if enabled).
+     - `length`: `QSpinBox` (range `1`..`128`).
+     - `enable_old_algorithm`: `QComboBox` (`true`, `false`).
+  2. **Password Options**:
+     - `char_classes`: Checkbox group widget (`Lower-case`, `Upper-case`, `Digits`, `Symbols`, `Custom`).
+     - `custom_chars`: `QLineEdit` for custom character sets.
+  3. **Passphrase Options**:
+     - `separator`: `QComboBox` (`None`, `Hyphen (-)`, `Space ( )`, `Slash (/ )`).
+     - `passphrase_pattern`: Editable `QComboBox` with `Random` and all standard natural patterns with descriptions (e.g. `van (Verb, Adj, Noun)`), allowing custom pattern input.
+     - `digits`, `symbols`, `substitutions`, `capitalize`: `QComboBox` (`true`, `false`).
+- Each group box embeds a 3-column table (`QTableWidget`) with auto-sized height:
   1. **Column 0: Enabled (Tickbox)**
      - `QTableWidgetItem` with `Qt::ItemIsUserCheckable`.
      - Checked: row text color is normal (`QPalette::Text`), value editor is enabled.
@@ -354,13 +366,7 @@ Create `gui/settings_dialog.h` and `gui/settings_dialog.cpp`:
   2. **Column 1: Variable Name**
      - Non-editable text displaying option name (`algorithm`, `char_classes`, `length`, etc.).
   3. **Column 2: Default Value**
-     - Editors using human-readable string values:
-       - `algorithm`: `QComboBox` showing display names mapped to canonical strings (`password/argon2`, `password/sha512`, `passphrase/diceware`, `passphrase/wordnet`, and `password/old` if enabled).
-       - `char_classes`: Multi-selection popup / checklist or line edit displaying `"lowercase,uppercase,digits,symbols"`.
-       - `length`: `QSpinBox` (range `1`..`128`).
-       - `separator`: `QComboBox` (`None`, `Hyphen (-)`, `Space ( )`, `Slash (/ )`).
-       - `passphrase_pattern`: `QLineEdit`.
-       - `digits`, `symbols`, `substitutions`, `capitalize`, `enable_old_algorithm`: `QComboBox` (`true`, `false`).
+     - Form editors for option configuration.
 - **Dialog Controls**:
   - `Save` Button: Writes enabled entries to `~/.config/mkpass/mkpass.conf` and unsets disabled ones. Notifies `MainWindow`.
   - `Cancel` Button: Discards uncommitted modifications.

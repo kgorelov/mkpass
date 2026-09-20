@@ -6,6 +6,9 @@
 #include <QComboBox>
 #include <QLineEdit>
 #include <QSpinBox>
+#include <QCheckBox>
+#include <QScrollArea>
+#include <QGroupBox>
 #include <QVector>
 #include <QString>
 
@@ -18,6 +21,8 @@ public:
     explicit SettingsDialog(QWidget *parent = nullptr);
     ~SettingsDialog() override = default;
 
+    friend class SettingsDialogTest;
+
 private slots:
     void onRestoreDefaults();
     void onSave();
@@ -25,31 +30,47 @@ private slots:
 private:
     void setupUI();
     void loadFromConfig();
-    void updateRowAppearance(int row);
+    void updateRowAppearance(QTableWidget *table, int row);
     void updateAlgorithmChoices();
-    std::string getEditorValue(int row) const;
-    void setEditorValue(int row, const std::string& value);
+    std::string getEditorValue(const QString& key) const;
+    void setEditorValue(const QString& key, const std::string& value);
 
-    QTableWidget *tableWidget;
+    QScrollArea *scrollArea;
+    QTableWidget *generalTable;
+    QTableWidget *passwordTable;
+    QTableWidget *passphraseTable;
+
     QPushButton *restoreDefaultsButton;
     QPushButton *saveButton;
     QPushButton *cancelButton;
 
+    // General editors
     QComboBox *algorithmComboBox;
-    QLineEdit *charClassesLineEdit;
-    QLineEdit *customCharsLineEdit;
     QSpinBox *lengthSpinBox;
+    QComboBox *enableOldAlgoComboBox;
+
+    // Password editors
+    QWidget *charClassesWidget;
+    QCheckBox *charLowerCheckBox;
+    QCheckBox *charUpperCheckBox;
+    QCheckBox *charDigitsCheckBox;
+    QCheckBox *charSymbolsCheckBox;
+    QCheckBox *charCustomCheckBox;
+    QLineEdit *customCharsLineEdit;
+
+    // Passphrase editors
     QComboBox *separatorComboBox;
-    QLineEdit *passphrasePatternLineEdit;
+    QComboBox *passphrasePatternComboBox;
     QComboBox *digitsComboBox;
     QComboBox *symbolsComboBox;
     QComboBox *substitutionsComboBox;
     QComboBox *capitalizeComboBox;
-    QComboBox *enableOldAlgoComboBox;
 
     struct SettingRowDef {
         QString key;
         QWidget *editor;
+        QTableWidget *table;
+        int rowInTable;
     };
     QVector<SettingRowDef> rowDefs_;
     mkpass::Config config_;
