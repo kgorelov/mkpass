@@ -84,6 +84,9 @@ TEST_F(SettingsDialogTest, VisualGroupStructure) {
     EXPECT_EQ(passTbl->item(3, 1)->text(), "symbols");
     EXPECT_EQ(passTbl->item(4, 1)->text(), "substitutions");
     EXPECT_EQ(passTbl->item(5, 1)->text(), "capitalize");
+
+    EXPECT_GE(dialog.width(), 800);
+    EXPECT_GE(dialog.minimumWidth(), 800);
 }
 
 TEST_F(SettingsDialogTest, CharClassesTickBoxes) {

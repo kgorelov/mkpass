@@ -93,8 +93,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)
 void SettingsDialog::setupUI() {
     setWindowTitle("Preferences");
     setModal(true);
-    setMinimumWidth(640);
-    resize(680, 580);
+    setMinimumWidth(800);
+    resize(800, 580);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
