@@ -35,7 +35,7 @@ public:
     void set_raw(const std::string& key, const std::string& value);
     bool unset_raw(const std::string& key);
     bool is_set(const std::string& key) const;
-    std::string print() const;
+    std::string print(bool all = false) const;
 
     const ConfigOptions& options() const { return options_; }
     void set_options(const ConfigOptions& opts) { options_ = opts; }

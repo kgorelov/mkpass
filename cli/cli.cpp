@@ -776,6 +776,8 @@ int run_cli(int argc, char *argv[]) {
     unset_cmd->add_option("key", config_key, "Configuration key")->required();
 
     auto print_cmd = config_cmd->add_subcommand("print", "Print configuration");
+    bool print_all = false;
+    print_cmd->add_flag("-a,--all", print_all, "Print all configuration options including defaults");
 
     try {
         app.parse(argc, argv);
@@ -843,7 +845,7 @@ int run_cli(int argc, char *argv[]) {
         }
 
         if (print_cmd->parsed()) {
-            std::string output = cfg.print();
+            std::string output = cfg.print(print_all);
             std::cout << output;
             if (!output.empty() && output.back() != '\n') {
                 std::cout << "\n";

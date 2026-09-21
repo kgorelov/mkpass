@@ -238,6 +238,22 @@ TEST_F(ConfigTest, LegacyNumericTomlParsing) {
     EXPECT_NE(print_out.find("lowercase,uppercase,digits,symbols"), std::string::npos);
 }
 
+TEST_F(ConfigTest, PrintAllIncludesAllKeysAndDefaults) {
+    mkpass::Config cfg(test_config_path);
+    cfg.set_raw("algorithm", "password/sha512");
+    std::string print_out = cfg.print(true);
+
+    EXPECT_NE(print_out.find("# Explicit options"), std::string::npos);
+    EXPECT_NE(print_out.find("# Default options"), std::string::npos);
+    EXPECT_NE(print_out.find("password/sha512"), std::string::npos);
+
+    for (const auto& key : mkpass::Config::get_all_keys()) {
+        EXPECT_NE(print_out.find(key), std::string::npos);
+    }
+    EXPECT_NE(print_out.find("16"), std::string::npos);
+    EXPECT_NE(print_out.find("enable_old_algorithm = false"), std::string::npos);
+}
+
 TEST_F(ConfigTest, OldAlgorithmEnforcementFlag) {
     mkpass::Config cfg(test_config_path);
 

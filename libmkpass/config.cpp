@@ -402,8 +402,8 @@ bool Config::is_set(const std::string& key) const {
     return get_raw(key).has_value();
 }
 
-std::string Config::print() const {
-    if (exists()) {
+std::string Config::print(bool all) const {
+    if (!all && exists()) {
         std::ifstream in(path_);
         if (in.is_open()) {
             std::stringstream ss;
@@ -412,43 +412,127 @@ std::string Config::print() const {
         }
     }
 
-    toml::table tbl;
+    if (!all) {
+        toml::table tbl;
+        if (options_.algorithm) {
+            tbl.insert_or_assign("algorithm", AlgorithmToIdentifier(*options_.algorithm));
+        }
+        if (options_.char_classes) {
+            tbl.insert_or_assign("char_classes", CharacterClassesToIdentifierString(*options_.char_classes));
+        }
+        if (options_.custom_chars) {
+            tbl.insert_or_assign("custom_chars", *options_.custom_chars);
+        }
+        if (options_.length) {
+            tbl.insert_or_assign("length", static_cast<int64_t>(*options_.length));
+        }
+        if (options_.separator) {
+            tbl.insert_or_assign("separator", *options_.separator);
+        }
+        if (options_.passphrase_pattern) {
+            tbl.insert_or_assign("passphrase_pattern", PatternToString(*options_.passphrase_pattern));
+        }
+        if (options_.digits) {
+            tbl.insert_or_assign("digits", *options_.digits);
+        }
+        if (options_.symbols) {
+            tbl.insert_or_assign("symbols", *options_.symbols);
+        }
+        if (options_.substitutions) {
+            tbl.insert_or_assign("substitutions", *options_.substitutions);
+        }
+        if (options_.capitalize) {
+            tbl.insert_or_assign("capitalize", *options_.capitalize);
+        }
+        if (options_.enable_old_algorithm) {
+            tbl.insert_or_assign("enable_old_algorithm", *options_.enable_old_algorithm);
+        }
+
+        std::stringstream ss;
+        ss << tbl << "\n";
+        return ss.str();
+    }
+
+    toml::table explicit_tbl;
+    toml::table default_tbl;
+
     if (options_.algorithm) {
-        tbl.insert_or_assign("algorithm", AlgorithmToIdentifier(*options_.algorithm));
+        explicit_tbl.insert_or_assign("algorithm", AlgorithmToIdentifier(*options_.algorithm));
+    } else {
+        default_tbl.insert_or_assign("algorithm", AlgorithmToIdentifier(Algorithm::Argon2));
     }
+
     if (options_.char_classes) {
-        tbl.insert_or_assign("char_classes", CharacterClassesToIdentifierString(*options_.char_classes));
+        explicit_tbl.insert_or_assign("char_classes", CharacterClassesToIdentifierString(*options_.char_classes));
+    } else {
+        default_tbl.insert_or_assign("char_classes", get_built_in_default("char_classes"));
     }
+
     if (options_.custom_chars) {
-        tbl.insert_or_assign("custom_chars", *options_.custom_chars);
+        explicit_tbl.insert_or_assign("custom_chars", *options_.custom_chars);
+    } else {
+        default_tbl.insert_or_assign("custom_chars", "");
     }
+
     if (options_.length) {
-        tbl.insert_or_assign("length", static_cast<int64_t>(*options_.length));
+        explicit_tbl.insert_or_assign("length", static_cast<int64_t>(*options_.length));
+    } else {
+        default_tbl.insert_or_assign("length", static_cast<int64_t>(16));
     }
+
     if (options_.separator) {
-        tbl.insert_or_assign("separator", *options_.separator);
+        explicit_tbl.insert_or_assign("separator", *options_.separator);
+    } else {
+        default_tbl.insert_or_assign("separator", "");
     }
+
     if (options_.passphrase_pattern) {
-        tbl.insert_or_assign("passphrase_pattern", PatternToString(*options_.passphrase_pattern));
+        explicit_tbl.insert_or_assign("passphrase_pattern", PatternToString(*options_.passphrase_pattern));
+    } else {
+        default_tbl.insert_or_assign("passphrase_pattern", "");
     }
+
     if (options_.digits) {
-        tbl.insert_or_assign("digits", *options_.digits);
+        explicit_tbl.insert_or_assign("digits", *options_.digits);
+    } else {
+        default_tbl.insert_or_assign("digits", false);
     }
+
     if (options_.symbols) {
-        tbl.insert_or_assign("symbols", *options_.symbols);
+        explicit_tbl.insert_or_assign("symbols", *options_.symbols);
+    } else {
+        default_tbl.insert_or_assign("symbols", false);
     }
+
     if (options_.substitutions) {
-        tbl.insert_or_assign("substitutions", *options_.substitutions);
+        explicit_tbl.insert_or_assign("substitutions", *options_.substitutions);
+    } else {
+        default_tbl.insert_or_assign("substitutions", false);
     }
+
     if (options_.capitalize) {
-        tbl.insert_or_assign("capitalize", *options_.capitalize);
+        explicit_tbl.insert_or_assign("capitalize", *options_.capitalize);
+    } else {
+        default_tbl.insert_or_assign("capitalize", true);
     }
+
     if (options_.enable_old_algorithm) {
-        tbl.insert_or_assign("enable_old_algorithm", *options_.enable_old_algorithm);
+        explicit_tbl.insert_or_assign("enable_old_algorithm", *options_.enable_old_algorithm);
+    } else {
+        default_tbl.insert_or_assign("enable_old_algorithm", false);
     }
 
     std::stringstream ss;
-    ss << tbl << "\n";
+    if (!explicit_tbl.empty()) {
+        ss << "# Explicit options\n\n" << explicit_tbl << "\n";
+        if (!default_tbl.empty()) {
+            ss << "\n";
+        }
+    }
+    if (!default_tbl.empty()) {
+        ss << "# Default options\n\n" << default_tbl << "\n";
+    }
+
     return ss.str();
 }
 

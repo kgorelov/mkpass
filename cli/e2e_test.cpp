@@ -754,6 +754,28 @@ TEST(E2EConfigSubcommandTest, UnsetAndPrint) {
     EXPECT_TRUE(out.std_out.find("algorithm = 'password/argon2'") != std::string::npos ||
                 out.std_out.find("algorithm = \"password/argon2\"") != std::string::npos);
 
+    // Print all options including defaults
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config print -a";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+    EXPECT_NE(out.std_out.find("# Explicit options"), std::string::npos);
+    EXPECT_NE(out.std_out.find("# Default options"), std::string::npos);
+    EXPECT_TRUE(out.std_out.find("algorithm = 'password/argon2'") != std::string::npos ||
+                out.std_out.find("algorithm = \"password/argon2\"") != std::string::npos);
+    EXPECT_NE(out.std_out.find("length = 16"), std::string::npos);
+    EXPECT_NE(out.std_out.find("char_classes"), std::string::npos);
+    EXPECT_NE(out.std_out.find("enable_old_algorithm = false"), std::string::npos);
+
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " config print --all";
+    out = exec_with_input(cmd, "");
+    EXPECT_EQ(out.exit_code, 0);
+    EXPECT_NE(out.std_out.find("# Explicit options"), std::string::npos);
+    EXPECT_NE(out.std_out.find("# Default options"), std::string::npos);
+    EXPECT_NE(out.std_out.find("length = 16"), std::string::npos);
+    EXPECT_NE(out.std_out.find("capitalize = true"), std::string::npos);
+
     cmd = MKPASS_EXECUTABLE_PATH;
     cmd += " config unset algorithm";
     out = exec_with_input(cmd, "");
@@ -861,6 +883,10 @@ TEST(E2EHumanReadableStringsTest, CommandLineOptions) {
     setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
     remove(db_path.c_str());
 
+    std::string config_path = GetTmpDir() + "/mkpass-e2e-cmd-strings.conf";
+    setenv("MKPASS_CONFIG_PATH", config_path.c_str(), 1);
+    remove(config_path.c_str());
+
     // 1. --algorithm password/sha512
     std::string cmd = MKPASS_EXECUTABLE_PATH;
     cmd += " -p master -s test_sha512 --algorithm password/sha512 -dd";
@@ -912,7 +938,9 @@ TEST(E2EHumanReadableStringsTest, CommandLineOptions) {
     EXPECT_TRUE(out.std_out.find("Words count: 3") != std::string::npos);
 
     unsetenv("MKPASS_DB_PATH");
+    unsetenv("MKPASS_CONFIG_PATH");
     remove(db_path.c_str());
+    remove(config_path.c_str());
 }
 
 TEST(E2EHumanReadableStringsTest, EnvironmentVariables) {

@@ -302,8 +302,8 @@ mkpass config unset separator
   - Exit code `0` on success, `1` on error.
 - `mkpass config unset <key>`:
   - Removes entry and writes to disk; exit code `0`.
-- `mkpass config print`:
-  - Prints raw TOML content to `std::cout`; exit code `0`.
+- `mkpass config print [-a, --all]`:
+  - Prints raw TOML content to `std::cout`; exit code `0`. When `-a` or `--all` is specified, prints all supported configuration options including their default values.
 
 ### 7.3 Generator Precedence Integration
 In `run_cli()`:
