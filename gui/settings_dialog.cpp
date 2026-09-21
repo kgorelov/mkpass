@@ -13,8 +13,6 @@
 #include <QLabel>
 #include <cctype>
 
-namespace {
-
 QString GetPatternDescription(const PassphrasePattern& pattern) {
     QStringList parts;
     for (auto wc : pattern) {
@@ -27,6 +25,8 @@ QString GetPatternDescription(const PassphrasePattern& pattern) {
     }
     return parts.join(", ");
 }
+
+namespace {
 
 QTableWidget* createSettingsTable(int rowCount, QWidget *parent) {
     QTableWidget *table = new QTableWidget(rowCount, 3, parent);

@@ -13,6 +13,9 @@
 #include <QString>
 
 #include "config.h"
+#include "passphrase_patterns.h"
+
+QString GetPatternDescription(const PassphrasePattern& pattern);
 
 class SettingsDialog : public QDialog {
     Q_OBJECT

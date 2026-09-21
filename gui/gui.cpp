@@ -209,7 +209,9 @@ void MainWindow::updatePatternsList() {
     PatternsList patterns = GetPassphrasePatterns(length);
     for (const auto& p : patterns) {
         std::string pStr = mkpass::PatternToString(p);
-        patternComboBox->addItem(QString::fromStdString(pStr), QString::fromStdString(pStr));
+        QString desc = GetPatternDescription(p);
+        QString label = QString("%1 (%2)").arg(QString::fromStdString(pStr), desc);
+        patternComboBox->addItem(label, QString::fromStdString(pStr));
     }
 
     int index = patternComboBox->findData(currentPattern);

@@ -4,6 +4,7 @@
 #include <fstream>
 
 #include "settings_dialog.h"
+#include "gui.h"
 #include "platform_utils.h"
 #include "passphrase_patterns.h"
 
@@ -230,4 +231,48 @@ TEST_F(SettingsDialogTest, RestoreDefaults) {
 
         EXPECT_EQ(getEditorValue(dialog, "passphrase_pattern"), "");
     }
+}
+
+TEST(PassphrasePatternTest, GetPatternDescription) {
+    EXPECT_EQ(GetPatternDescription({WordClasses::Verb, WordClasses::Adj, WordClasses::Noun}), "Verb, Adj, Noun");
+    EXPECT_EQ(GetPatternDescription({WordClasses::Noun, WordClasses::Adv}), "Noun, Adv");
+    EXPECT_EQ(GetPatternDescription({WordClasses::Adj}), "Adj");
+}
+
+class MainWindowTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() {
+        qputenv("QT_QPA_PLATFORM", "offscreen");
+        int argc = 0;
+        char *argv[] = {nullptr};
+        if (!QApplication::instance()) {
+            new QApplication(argc, argv);
+        }
+    }
+
+    static QComboBox* algorithmComboBox(MainWindow& win) { return win.algorithmComboBox; }
+    static QSpinBox* lengthSpinBox(MainWindow& win) { return win.lengthSpinBox; }
+    static QComboBox* patternComboBox(MainWindow& win) { return win.patternComboBox; }
+};
+
+TEST_F(MainWindowTest, PassphrasePatternDropdownExplanation) {
+    MainWindow win;
+    auto algoCombo = algorithmComboBox(win);
+    int index = algoCombo->findData(static_cast<int>(Algorithm::Passphrase_Wordnet_Pattern));
+    ASSERT_NE(index, -1);
+    algoCombo->setCurrentIndex(index);
+    lengthSpinBox(win)->setValue(3);
+
+    auto combo = patternComboBox(win);
+    ASSERT_NE(combo, nullptr);
+    ASSERT_GT(combo->count(), 1);
+
+    EXPECT_EQ(combo->itemText(0), "Random");
+    EXPECT_EQ(combo->itemData(0).toString().toStdString(), "");
+
+    EXPECT_EQ(combo->itemText(1), "van (Verb, Adj, Noun)");
+    EXPECT_EQ(combo->itemData(1).toString().toStdString(), "van");
+
+    EXPECT_EQ(combo->itemText(2), "vnr (Verb, Noun, Adv)");
+    EXPECT_EQ(combo->itemData(2).toString().toStdString(), "vnr");
 }

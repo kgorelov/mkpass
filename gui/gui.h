@@ -22,6 +22,8 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    friend class MainWindowTest;
+
 protected:
     void closeEvent(QCloseEvent *event) override;
 
