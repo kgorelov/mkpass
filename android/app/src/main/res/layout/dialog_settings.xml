@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical">
@@ -193,16 +194,49 @@
                     android:paddingStart="8dp"
                     android:paddingEnd="12dp"
                     android:textSize="13sp" />
-                <TextView
-                    android:id="@+id/text_char_classes"
+                <GridLayout
+                    android:id="@+id/layout_char_classes"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:minHeight="40dp"
-                    android:gravity="center_vertical"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
-                    android:textSize="13sp"
-                    android:background="?android:attr/selectableItemBackground" />
+                    android:columnCount="2"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp">
+
+                    <CheckBox
+                        android:id="@+id/check_char_lower"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Lower-case"
+                        android:textSize="13sp" />
+
+                    <CheckBox
+                        android:id="@+id/check_char_upper"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Upper-case"
+                        android:textSize="13sp" />
+
+                    <CheckBox
+                        android:id="@+id/check_char_digits"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Digits"
+                        android:textSize="13sp" />
+
+                    <CheckBox
+                        android:id="@+id/check_char_symbols"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Symbols"
+                        android:textSize="13sp" />
+
+                    <CheckBox
+                        android:id="@+id/check_char_custom"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Custom"
+                        android:textSize="13sp" />
+                </GridLayout>
             </TableRow>
 
             <!-- custom_chars -->
@@ -438,10 +472,11 @@
 
         <Button
             android:id="@+id/btnRestoreDefaults"
-            style="?android:attr/borderlessButtonStyle"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Restore Defaults"
+            android:textColor="?attr/colorPrimary"
             android:textSize="13sp" />
 
         <View
@@ -451,18 +486,23 @@
 
         <Button
             android:id="@+id/btnCancel"
-            style="?android:attr/borderlessButtonStyle"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Cancel"
+            android:textColor="?attr/colorPrimary"
+            app:strokeColor="?attr/colorPrimary"
+            android:layout_marginEnd="8dp"
             android:textSize="13sp" />
 
         <Button
             android:id="@+id/btnSave"
-            style="?android:attr/borderlessButtonStyle"
+            style="@style/Widget.MaterialComponents.Button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Save"
+            android:textColor="?attr/colorOnPrimary"
+            app:backgroundTint="?attr/colorPrimary"
             android:textSize="13sp"
             android:textStyle="bold" />
     </LinearLayout>

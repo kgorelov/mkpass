@@ -11,6 +11,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.GridLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -93,7 +94,12 @@ public class SettingsDialog extends AppCompatDialog {
     private Spinner spinnerEnableOldAlgo;
 
     // Password
-    private TextView textCharClasses;
+    private GridLayout layoutCharClasses;
+    private CheckBox checkCharLower;
+    private CheckBox checkCharUpper;
+    private CheckBox checkCharDigits;
+    private CheckBox checkCharSymbols;
+    private CheckBox checkCharCustom;
     private EditText editCustomChars;
 
     // Passphrase
@@ -155,7 +161,12 @@ public class SettingsDialog extends AppCompatDialog {
         editLength = findViewById(R.id.edit_length);
         spinnerEnableOldAlgo = findViewById(R.id.spinner_enable_old_algorithm);
 
-        textCharClasses = findViewById(R.id.text_char_classes);
+        layoutCharClasses = findViewById(R.id.layout_char_classes);
+        checkCharLower = findViewById(R.id.check_char_lower);
+        checkCharUpper = findViewById(R.id.check_char_upper);
+        checkCharDigits = findViewById(R.id.check_char_digits);
+        checkCharSymbols = findViewById(R.id.check_char_symbols);
+        checkCharCustom = findViewById(R.id.check_char_custom);
         editCustomChars = findViewById(R.id.edit_custom_chars);
 
         spinnerSeparator = findViewById(R.id.spinner_separator);
@@ -192,20 +203,13 @@ public class SettingsDialog extends AppCompatDialog {
         // Pattern adapter
         setupPatternSpinner();
 
-        // Char classes dialog click
-        textCharClasses.setOnClickListener(v -> {
-            if (textCharClasses.isEnabled()) {
-                showCharClassesDialog();
-            }
-        });
-
         // Register row definitions
         rowDefs.clear();
         rowDefs.add(new SettingRowDef("algorithm", findViewById(R.id.check_algorithm), findViewById(R.id.name_algorithm), spinnerAlgorithm));
         rowDefs.add(new SettingRowDef("length", findViewById(R.id.check_length), findViewById(R.id.name_length), editLength));
         rowDefs.add(new SettingRowDef("enable_old_algorithm", findViewById(R.id.check_enable_old_algorithm), findViewById(R.id.name_enable_old_algorithm), spinnerEnableOldAlgo));
 
-        rowDefs.add(new SettingRowDef("char_classes", findViewById(R.id.check_char_classes), findViewById(R.id.name_char_classes), textCharClasses));
+        rowDefs.add(new SettingRowDef("char_classes", findViewById(R.id.check_char_classes), findViewById(R.id.name_char_classes), layoutCharClasses));
         rowDefs.add(new SettingRowDef("custom_chars", findViewById(R.id.check_custom_chars), findViewById(R.id.name_custom_chars), editCustomChars));
 
         rowDefs.add(new SettingRowDef("separator", findViewById(R.id.check_separator), findViewById(R.id.name_separator), spinnerSeparator));
@@ -401,6 +405,12 @@ public class SettingsDialog extends AppCompatDialog {
         if (def.editorView instanceof TextView && !(def.editorView instanceof EditText)) {
             ((TextView) def.editorView).setTextColor(checked ? normalTextColor : Color.GRAY);
         }
+        if (def.editorView instanceof ViewGroup) {
+            ViewGroup vg = (ViewGroup) def.editorView;
+            for (int i = 0; i < vg.getChildCount(); i++) {
+                vg.getChildAt(i).setEnabled(checked);
+            }
+        }
     }
 
     private void loadFromConfig() {
@@ -428,7 +438,13 @@ public class SettingsDialog extends AppCompatDialog {
         } else if ("enable_old_algorithm".equals(key)) {
             setBoolSpinnerValue(spinnerEnableOldAlgo, value);
         } else if ("char_classes".equals(key)) {
-            textCharClasses.setText(value != null && !value.isEmpty() ? value : "lowercase,uppercase,digits,symbols");
+            String effective = (value != null && !value.trim().isEmpty()) ? value : "lowercase,uppercase,digits,symbols";
+            List<String> tokens = parseTokens(effective);
+            checkCharLower.setChecked(tokens.contains("lowercase"));
+            checkCharUpper.setChecked(tokens.contains("uppercase"));
+            checkCharDigits.setChecked(tokens.contains("digits"));
+            checkCharSymbols.setChecked(tokens.contains("symbols"));
+            checkCharCustom.setChecked(tokens.contains("custom"));
         } else if ("custom_chars".equals(key)) {
             editCustomChars.setText(value != null ? value : "");
         } else if ("separator".equals(key)) {
@@ -487,7 +503,18 @@ public class SettingsDialog extends AppCompatDialog {
         } else if ("enable_old_algorithm".equals(key)) {
             return getBoolSpinnerValue(spinnerEnableOldAlgo);
         } else if ("char_classes".equals(key)) {
-            return textCharClasses.getText().toString().trim();
+            List<String> selected = new ArrayList<>();
+            if (checkCharLower.isChecked()) selected.add("lowercase");
+            if (checkCharUpper.isChecked()) selected.add("uppercase");
+            if (checkCharDigits.isChecked()) selected.add("digits");
+            if (checkCharSymbols.isChecked()) selected.add("symbols");
+            if (checkCharCustom.isChecked()) selected.add("custom");
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < selected.size(); i++) {
+                if (i > 0) sb.append(",");
+                sb.append(selected.get(i));
+            }
+            return sb.toString();
         } else if ("custom_chars".equals(key)) {
             return editCustomChars.getText().toString();
         } else if ("separator".equals(key)) {
@@ -556,41 +583,6 @@ public class SettingsDialog extends AppCompatDialog {
 
         saved = true;
         dismiss();
-    }
-
-    private void showCharClassesDialog() {
-        String current = textCharClasses.getText().toString();
-        List<String> currentTokens = parseTokens(current);
-
-        String[] classLabels = {"Lower-case", "Upper-case", "Digits", "Symbols", "Custom"};
-        String[] classTokens = {"lowercase", "uppercase", "digits", "symbols", "custom"};
-        boolean[] checkedItems = new boolean[classTokens.length];
-
-        for (int i = 0; i < classTokens.length; i++) {
-            checkedItems[i] = currentTokens.contains(classTokens[i]);
-        }
-
-        new AlertDialog.Builder(getContext())
-            .setTitle("Character Classes")
-            .setMultiChoiceItems(classLabels, checkedItems, (dialog, which, isChecked) -> {
-                checkedItems[which] = isChecked;
-            })
-            .setPositiveButton("OK", (dialog, which) -> {
-                List<String> selected = new ArrayList<>();
-                for (int i = 0; i < classTokens.length; i++) {
-                    if (checkedItems[i]) {
-                        selected.add(classTokens[i]);
-                    }
-                }
-                StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < selected.size(); i++) {
-                    if (i > 0) sb.append(",");
-                    sb.append(selected.get(i));
-                }
-                textCharClasses.setText(sb.toString());
-            })
-            .setNegativeButton("Cancel", null)
-            .show();
     }
 
     private List<String> parseTokens(String str) {
