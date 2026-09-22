@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstdlib>
+#ifndef __ANDROID__
 #include <wordexp.h>
+#endif
 #include <unistd.h>
 #include <stdexcept>
 
@@ -16,6 +18,9 @@ inline std::string GetConfigDBPath() {
         return std::string(db_path_env);
     }
 
+#ifdef __ANDROID__
+    return "/data/data/app.mkpass/databases/mkpass.db";
+#else
     wordexp_t p;
     if (wordexp("~/.mkpass.db", &p, 0) != 0) {
         throw std::runtime_error("Can't make DB path");
@@ -23,6 +28,7 @@ inline std::string GetConfigDBPath() {
     std::string db_path = p.we_wordv[0];
     wordfree(&p);
     return db_path;
+#endif
 }
 
 inline std::string GetConfigFilePath() {
@@ -30,6 +36,9 @@ inline std::string GetConfigFilePath() {
         return std::string(config_path_env);
     }
 
+#ifdef __ANDROID__
+    return "/data/data/app.mkpass/files/mkpass.conf";
+#else
     if (const char* xdg_config_home = std::getenv("XDG_CONFIG_HOME")) {
         if (*xdg_config_home != '\0') {
             return std::string(xdg_config_home) + "/mkpass/mkpass.conf";
@@ -43,6 +52,7 @@ inline std::string GetConfigFilePath() {
     std::string config_path = p.we_wordv[0];
     wordfree(&p);
     return config_path;
+#endif
 }
 
 inline std::string GetTmpDir() {
@@ -50,7 +60,11 @@ inline std::string GetTmpDir() {
     if (tmpdir) {
       return std::string(tmpdir);
     }
+#ifdef __ANDROID__
+    return "/data/data/app.mkpass/cache";
+#else
     return "/tmp";
+#endif
 }
 
 }
