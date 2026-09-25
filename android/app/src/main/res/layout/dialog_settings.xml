@@ -194,11 +194,11 @@
                     android:paddingStart="8dp"
                     android:paddingEnd="12dp"
                     android:textSize="13sp" />
-                <GridLayout
+                <LinearLayout
                     android:id="@+id/layout_char_classes"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:columnCount="2"
+                    android:orientation="vertical"
                     android:paddingTop="2dp"
                     android:paddingBottom="2dp">
 
@@ -236,7 +236,7 @@
                         android:layout_height="wrap_content"
                         android:text="Custom"
                         android:textSize="13sp" />
-                </GridLayout>
+                </LinearLayout>
             </TableRow>
 
             <!-- custom_chars -->

@@ -11,7 +11,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.GridLayout;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -94,7 +94,7 @@ public class SettingsDialog extends AppCompatDialog {
     private Spinner spinnerEnableOldAlgo;
 
     // Password
-    private GridLayout layoutCharClasses;
+    private LinearLayout layoutCharClasses;
     private CheckBox checkCharLower;
     private CheckBox checkCharUpper;
     private CheckBox checkCharDigits;
