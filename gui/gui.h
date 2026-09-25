@@ -22,6 +22,8 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    friend class MainWindowTest;
+
 protected:
     void closeEvent(QCloseEvent *event) override;
 
@@ -37,10 +39,12 @@ private slots:
     void manageDatabase();
     void showManual();
     void showHelp();
+    void showSettings();
 
 private:
     void setupUI();
     void refreshCompleter();
+    void updateAlgorithmComboBox(bool force_include_old = false);
 
     QLineEdit *masterPasswordLineEdit;
     QLineEdit *repeatPasswordLineEdit;

@@ -9,6 +9,9 @@
 #include "character_classes.h"
 #include "qrcodegen.hpp"
 #include "passphrase_patterns.h"
+#include "word_classes.h"
+#include "algorithms.h"
+#include "config.h"
 
 // Helper to convert jstring to std::string
 std::string jstringToString(JNIEnv* env, jstring jstr) {
@@ -216,6 +219,122 @@ Java_app_mkpass_MainActivity_getPassphrasePatternsNative(JNIEnv *env, jobject /*
     jobjectArray result = env->NewObjectArray(patterns.size(), env->FindClass("java/lang/String"), nullptr);
     for (size_t i = 0; i < patterns.size(); ++i) {
         env->SetObjectArrayElement(result, i, stringToJstring(env, mkpass::PatternToString(patterns[i])));
+    }
+    return result;
+}
+
+namespace {
+
+std::string GetPatternDescription(const PassphrasePattern& pattern) {
+    std::string result;
+    for (size_t i = 0; i < pattern.size(); ++i) {
+        if (i > 0) result += ", ";
+        switch (pattern[i]) {
+            case WordClasses::Noun: result += "Noun"; break;
+            case WordClasses::Verb: result += "Verb"; break;
+            case WordClasses::Adj:  result += "Adj"; break;
+            case WordClasses::Adv:  result += "Adv"; break;
+        }
+    }
+    return result;
+}
+
+} // namespace
+
+std::unique_ptr<mkpass::Config> config;
+
+extern "C" JNIEXPORT void JNICALL
+Java_app_mkpass_MainActivity_initConfig(JNIEnv *env, jobject /* this */, jstring configPath) {
+    std::string path = jstringToString(env, configPath);
+    config = std::make_unique<mkpass::Config>(path);
+    config->load();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_app_mkpass_MainActivity_reloadConfig(JNIEnv *env, jobject /* this */) {
+    if (config) {
+        config->load();
+    }
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_app_mkpass_MainActivity_getConfigValue(JNIEnv *env, jobject /* this */, jstring key) {
+    if (!config) return nullptr;
+    auto val = config->get_raw(jstringToString(env, key));
+    if (!val) return nullptr;
+    return stringToJstring(env, *val);
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_app_mkpass_MainActivity_setConfigValue(JNIEnv *env, jobject /* this */, jstring key, jstring val) {
+    if (!config) return stringToJstring(env, "Config not initialized");
+    try {
+        config->set_raw(jstringToString(env, key), jstringToString(env, val));
+        return nullptr;
+    } catch (const std::exception& e) {
+        return stringToJstring(env, e.what());
+    }
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_app_mkpass_MainActivity_unsetConfigValue(JNIEnv *env, jobject /* this */, jstring key) {
+    if (!config) return JNI_FALSE;
+    return config->unset_raw(jstringToString(env, key)) ? JNI_TRUE : JNI_FALSE;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_app_mkpass_MainActivity_isConfigKeySet(JNIEnv *env, jobject /* this */, jstring key) {
+    if (!config) return JNI_FALSE;
+    return config->is_set(jstringToString(env, key)) ? JNI_TRUE : JNI_FALSE;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_app_mkpass_MainActivity_isOldAlgorithmEnabledNative(JNIEnv *env, jobject /* this */) {
+    if (!config) return JNI_FALSE;
+    return mkpass::IsOldAlgorithmEnabled(*config) ? JNI_TRUE : JNI_FALSE;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_app_mkpass_MainActivity_saveConfig(JNIEnv *env, jobject /* this */) {
+    if (!config) return JNI_FALSE;
+    return config->save() ? JNI_TRUE : JNI_FALSE;
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_app_mkpass_MainActivity_getConfigBuiltInDefault(JNIEnv *env, jobject /* this */, jstring key) {
+    std::string dflt = mkpass::Config::get_built_in_default(jstringToString(env, key));
+    return stringToJstring(env, dflt);
+}
+
+extern "C" JNIEXPORT jobjectArray JNICALL
+Java_app_mkpass_MainActivity_getPassphrasePatternsWithDescriptionsNative(JNIEnv *env, jobject /* this */, jint length) {
+    PatternsList patterns = GetPassphrasePatterns(length);
+    jobjectArray result = env->NewObjectArray(patterns.size(), env->FindClass("java/lang/String"), nullptr);
+    for (size_t i = 0; i < patterns.size(); ++i) {
+        std::string pStr = mkpass::PatternToString(patterns[i]);
+        std::string desc = GetPatternDescription(patterns[i]);
+        std::string formatted = pStr + "\t" + pStr + " (" + desc + ")";
+        env->SetObjectArrayElement(result, i, stringToJstring(env, formatted));
+    }
+    return result;
+}
+
+extern "C" JNIEXPORT jobjectArray JNICALL
+Java_app_mkpass_MainActivity_getAllPassphrasePatternsWithDescriptionsNative(JNIEnv *env, jobject /* this */) {
+    std::vector<std::string> all;
+    size_t maxLen = GetMaxPassphrasePatternLength();
+    for (size_t l = 1; l <= maxLen; ++l) {
+        PatternsList patterns = GetPassphrasePatterns(l);
+        for (const auto& p : patterns) {
+            std::string pStr = mkpass::PatternToString(p);
+            std::string desc = GetPatternDescription(p);
+            std::string formatted = pStr + "\t" + pStr + " (" + desc + ")";
+            all.push_back(formatted);
+        }
+    }
+    jobjectArray result = env->NewObjectArray(all.size(), env->FindClass("java/lang/String"), nullptr);
+    for (size_t i = 0; i < all.size(); ++i) {
+        env->SetObjectArrayElement(result, i, stringToJstring(env, all[i]));
     }
     return result;
 }

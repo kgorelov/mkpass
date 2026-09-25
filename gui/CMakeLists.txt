@@ -11,6 +11,7 @@ if(WITH_GUI)
     db_management_dialog.cpp
     service_details_dialog.cpp
     manual_dialog.cpp
+    settings_dialog.cpp
   )
 
   if (MKPASS_QT_VERSION EQUAL 6)
@@ -47,6 +48,21 @@ if(WITH_GUI)
     target_sources(mkpass-gui PRIVATE mkpass.rc)
   else()
     target_compile_options(mkpass-gui PRIVATE -std=c++20)
+  endif()
+
+  if(WITH_TESTS AND NOT EMSCRIPTEN AND NOT WIN32)
+    find_package(GTest REQUIRED)
+    add_executable(gui_tests settings_dialog_test.cpp)
+    target_compile_definitions(gui_tests PRIVATE WITH_GUI)
+    if (MSVC)
+      target_compile_options(gui_tests PRIVATE /std:c++20)
+    else()
+      target_compile_options(gui_tests PRIVATE -std=c++20)
+    endif()
+    target_include_directories(gui_tests PRIVATE . ../libmkpass)
+    target_link_libraries(gui_tests PRIVATE gui_part libmkpass sha512 argon2 qrcodegen GTest::gtest GTest::gtest_main)
+    include(GoogleTest)
+    gtest_discover_tests(gui_tests)
   endif()
 
   # Deploy Qt dependencies on Windows

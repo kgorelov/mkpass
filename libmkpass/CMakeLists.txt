@@ -7,6 +7,8 @@ set(SOURCES
   hkdf_argon2.cpp
   db.cpp
   character_classes.cpp
+  algorithms.cpp
+  config.cpp
   passphrase_patterns.cpp
   wordlists/eff_large_words.cpp
   wordlists/wordnet_nouns.cpp
@@ -100,6 +102,7 @@ if(NOT EMSCRIPTEN AND NOT WIN32 AND WITH_TESTS)
     compose_passphrase_ut.cpp
     pattern_compose_ut.cpp
     hkdf_argon2_ut.cpp
+    config_ut.cpp
   )
   if (NOT WIN32)
     list(APPEND TEST_SOURCES db_ut.cpp)

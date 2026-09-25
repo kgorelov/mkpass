@@ -1,0 +1,510 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp">
+
+        <TableLayout
+            android:id="@+id/settingsTable"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:stretchColumns="2">
+
+            <!-- Section 1: General -->
+            <TableRow android:paddingTop="4dp" android:paddingBottom="4dp">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_span="3"
+                    android:text="General"
+                    android:textStyle="bold"
+                    android:textSize="15sp"
+                    android:textColor="?attr/colorPrimary"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp" />
+            </TableRow>
+
+            <TableRow
+                android:background="#20888888"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:gravity="center_vertical">
+                <TextView
+                    android:text="Enabled"
+                    android:textStyle="bold"
+                    android:textSize="12sp"
+                    android:gravity="center"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp" />
+                <TextView
+                    android:text="Variable Name"
+                    android:textStyle="bold"
+                    android:textSize="12sp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="12dp" />
+                <TextView
+                    android:text="Default Value"
+                    android:textStyle="bold"
+                    android:textSize="12sp"
+                    android:paddingStart="8dp" />
+            </TableRow>
+
+            <!-- algorithm -->
+            <TableRow
+                android:id="@+id/row_algorithm"
+                android:gravity="center_vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+                <CheckBox
+                    android:id="@+id/check_algorithm"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+                <TextView
+                    android:id="@+id/name_algorithm"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="algorithm"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="12dp"
+                    android:textSize="13sp" />
+                <Spinner
+                    android:id="@+id/spinner_algorithm"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:minHeight="40dp" />
+            </TableRow>
+
+            <!-- length -->
+            <TableRow
+                android:id="@+id/row_length"
+                android:gravity="center_vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+                <CheckBox
+                    android:id="@+id/check_length"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+                <TextView
+                    android:id="@+id/name_length"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="length"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="12dp"
+                    android:textSize="13sp" />
+                <EditText
+                    android:id="@+id/edit_length"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:maxLength="3"
+                    android:minHeight="40dp"
+                    android:textSize="14sp" />
+            </TableRow>
+
+            <!-- enable_old_algorithm -->
+            <TableRow
+                android:id="@+id/row_enable_old_algorithm"
+                android:gravity="center_vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+                <CheckBox
+                    android:id="@+id/check_enable_old_algorithm"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+                <TextView
+                    android:id="@+id/name_enable_old_algorithm"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="enable_old_algorithm"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="12dp"
+                    android:textSize="13sp" />
+                <Spinner
+                    android:id="@+id/spinner_enable_old_algorithm"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:minHeight="40dp" />
+            </TableRow>
+
+            <!-- Section 2: Password Options -->
+            <TableRow android:paddingTop="12dp" android:paddingBottom="4dp">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_span="3"
+                    android:text="Password Options"
+                    android:textStyle="bold"
+                    android:textSize="15sp"
+                    android:textColor="?attr/colorPrimary"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="4dp" />
+            </TableRow>
+
+            <TableRow
+                android:background="#20888888"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:gravity="center_vertical">
+                <TextView
+                    android:text="Enabled"
+                    android:textStyle="bold"
+                    android:textSize="12sp"
+                    android:gravity="center"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp" />
+                <TextView
+                    android:text="Variable Name"
+                    android:textStyle="bold"
+                    android:textSize="12sp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="12dp" />
+                <TextView
+                    android:text="Default Value"
+                    android:textStyle="bold"
+                    android:textSize="12sp"
+                    android:paddingStart="8dp" />
+            </TableRow>
+
+            <!-- char_classes -->
+            <TableRow
+                android:id="@+id/row_char_classes"
+                android:gravity="center_vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+                <CheckBox
+                    android:id="@+id/check_char_classes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+                <TextView
+                    android:id="@+id/name_char_classes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="char_classes"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="12dp"
+                    android:textSize="13sp" />
+                <LinearLayout
+                    android:id="@+id/layout_char_classes"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp">
+
+                    <CheckBox
+                        android:id="@+id/check_char_lower"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Lower-case"
+                        android:textSize="13sp" />
+
+                    <CheckBox
+                        android:id="@+id/check_char_upper"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Upper-case"
+                        android:textSize="13sp" />
+
+                    <CheckBox
+                        android:id="@+id/check_char_digits"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Digits"
+                        android:textSize="13sp" />
+
+                    <CheckBox
+                        android:id="@+id/check_char_symbols"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Symbols"
+                        android:textSize="13sp" />
+
+                    <CheckBox
+                        android:id="@+id/check_char_custom"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Custom"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </TableRow>
+
+            <!-- custom_chars -->
+            <TableRow
+                android:id="@+id/row_custom_chars"
+                android:gravity="center_vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+                <CheckBox
+                    android:id="@+id/check_custom_chars"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+                <TextView
+                    android:id="@+id/name_custom_chars"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="custom_chars"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="12dp"
+                    android:textSize="13sp" />
+                <EditText
+                    android:id="@+id/edit_custom_chars"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:hint="e.g. !@#$%"
+                    android:minHeight="40dp"
+                    android:textSize="14sp" />
+            </TableRow>
+
+            <!-- Section 3: Passphrase Options -->
+            <TableRow android:paddingTop="12dp" android:paddingBottom="4dp">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_span="3"
+                    android:text="Passphrase Options"
+                    android:textStyle="bold"
+                    android:textSize="15sp"
+                    android:textColor="?attr/colorPrimary"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="4dp" />
+            </TableRow>
+
+            <TableRow
+                android:background="#20888888"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:gravity="center_vertical">
+                <TextView
+                    android:text="Enabled"
+                    android:textStyle="bold"
+                    android:textSize="12sp"
+                    android:gravity="center"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp" />
+                <TextView
+                    android:text="Variable Name"
+                    android:textStyle="bold"
+                    android:textSize="12sp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="12dp" />
+                <TextView
+                    android:text="Default Value"
+                    android:textStyle="bold"
+                    android:textSize="12sp"
+                    android:paddingStart="8dp" />
+            </TableRow>
+
+            <!-- separator -->
+            <TableRow
+                android:id="@+id/row_separator"
+                android:gravity="center_vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+                <CheckBox
+                    android:id="@+id/check_separator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+                <TextView
+                    android:id="@+id/name_separator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="separator"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="12dp"
+                    android:textSize="13sp" />
+                <Spinner
+                    android:id="@+id/spinner_separator"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:minHeight="40dp" />
+            </TableRow>
+
+            <!-- passphrase_pattern -->
+            <TableRow
+                android:id="@+id/row_passphrase_pattern"
+                android:gravity="center_vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+                <CheckBox
+                    android:id="@+id/check_passphrase_pattern"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+                <TextView
+                    android:id="@+id/name_passphrase_pattern"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="passphrase_pattern"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="12dp"
+                    android:textSize="13sp" />
+                <Spinner
+                    android:id="@+id/spinner_passphrase_pattern"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:minHeight="40dp" />
+            </TableRow>
+
+            <!-- digits -->
+            <TableRow
+                android:id="@+id/row_digits"
+                android:gravity="center_vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+                <CheckBox
+                    android:id="@+id/check_digits"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+                <TextView
+                    android:id="@+id/name_digits"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="digits"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="12dp"
+                    android:textSize="13sp" />
+                <Spinner
+                    android:id="@+id/spinner_digits"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:minHeight="40dp" />
+            </TableRow>
+
+            <!-- symbols -->
+            <TableRow
+                android:id="@+id/row_symbols"
+                android:gravity="center_vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+                <CheckBox
+                    android:id="@+id/check_symbols"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+                <TextView
+                    android:id="@+id/name_symbols"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="symbols"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="12dp"
+                    android:textSize="13sp" />
+                <Spinner
+                    android:id="@+id/spinner_symbols"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:minHeight="40dp" />
+            </TableRow>
+
+            <!-- substitutions -->
+            <TableRow
+                android:id="@+id/row_substitutions"
+                android:gravity="center_vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+                <CheckBox
+                    android:id="@+id/check_substitutions"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+                <TextView
+                    android:id="@+id/name_substitutions"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="substitutions"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="12dp"
+                    android:textSize="13sp" />
+                <Spinner
+                    android:id="@+id/spinner_substitutions"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:minHeight="40dp" />
+            </TableRow>
+
+            <!-- capitalize -->
+            <TableRow
+                android:id="@+id/row_capitalize"
+                android:gravity="center_vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+                <CheckBox
+                    android:id="@+id/check_capitalize"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+                <TextView
+                    android:id="@+id/name_capitalize"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="capitalize"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="12dp"
+                    android:textSize="13sp" />
+                <Spinner
+                    android:id="@+id/spinner_capitalize"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:minHeight="40dp" />
+            </TableRow>
+
+        </TableLayout>
+    </ScrollView>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="?android:attr/listDivider" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:gravity="center_vertical">
+
+        <Button
+            android:id="@+id/btnRestoreDefaults"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Restore Defaults"
+            android:textColor="?attr/colorPrimary"
+            android:textSize="13sp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/btnCancel"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            android:textColor="?attr/colorPrimary"
+            app:strokeColor="?attr/colorPrimary"
+            android:layout_marginEnd="8dp"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btnSave"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Save"
+            android:textColor="?attr/colorOnPrimary"
+            app:backgroundTint="?attr/colorPrimary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

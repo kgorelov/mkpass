@@ -28,6 +28,7 @@ import android.widget.ListView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -70,13 +71,25 @@ public class MainActivity extends AppCompatActivity {
     private Button generateButton;
     private AlertDialog progressDialog;
 
-    private static final String[] ALGORITHMS = {
-        "Password (Argon2)",
-        "Password (SHA512 HMAC)",
-        "OldPassword",
-        "Passphrase Diceware (Argon2)",
-        "Passphrase Wordnet Pattern (Argon2)"
-    };
+    public static class AlgorithmItem {
+        public final int id;
+        public final String canonicalName;
+        public final String displayName;
+
+        public AlgorithmItem(int id, String canonicalName, String displayName) {
+            this.id = id;
+            this.canonicalName = canonicalName;
+            this.displayName = displayName;
+        }
+
+        @Override
+        public String toString() {
+            return displayName;
+        }
+    }
+
+    private final List<AlgorithmItem> algorithmList = new ArrayList<>();
+    private ArrayAdapter<AlgorithmItem> algorithmAdapter;
 
     private static final String[] SEPARATORS = {
         "None",
@@ -101,6 +114,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         init(getDatabasePath("mkpass.db").getAbsolutePath());
+        File configFile = new File(getFilesDir(), "mkpass.conf");
+        initConfig(configFile.getAbsolutePath());
 
         androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -130,9 +145,10 @@ public class MainActivity extends AppCompatActivity {
         generateButton = findViewById(R.id.generateButton);
 
         // Setup Algorithm Spinner
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, ALGORITHMS);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        algorithmSpinner.setAdapter(adapter);
+        algorithmAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, algorithmList);
+        algorithmAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        algorithmSpinner.setAdapter(algorithmAdapter);
+        updateAlgorithmChoices(false);
 
         ArrayAdapter<String> sepAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, SEPARATORS);
         sepAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -174,17 +190,8 @@ public class MainActivity extends AppCompatActivity {
             public void onStopTrackingTouch(SeekBar seekBar) { }
         });
 
-        // Set default values
-        lengthSeekBar.setProgress(16);
-        lowerCaseCheckBox.setChecked(true);
-        upperCaseCheckBox.setChecked(true);
-        digitsCheckBox.setChecked(true);
-        symbolsCheckBox.setChecked(true);
-        customCheckBox.setChecked(false);
-        customChars.setText("");
-        capitalizeWordsCheckBox.setChecked(true);
-        allowSubstitutionsCheckBox.setChecked(false);
-
+        // Set default values from config
+        applyDefaultsFromConfig();
         updateAlgorithmSpecificUI();
 
         // Setup Service AutoComplete
@@ -231,6 +238,9 @@ public class MainActivity extends AppCompatActivity {
         int id = item.getItemId();
         if (id == R.id.menu_db_management) {
             showDbManagementDialog();
+            return true;
+        } else if (id == R.id.menu_settings) {
+            showSettingsDialog();
             return true;
         } else if (id == R.id.menu_manual) {
             showManualDialog();
@@ -321,6 +331,11 @@ public class MainActivity extends AppCompatActivity {
                                 android.widget.EditText searchEditText = ((View)listView.getParent()).findViewById(R.id.searchEditText);
                                 updateDbManagementList(listView, searchEditText.getText().toString());
                                 updateServiceSuggestions();
+                                String currentService = service.getText().toString().replaceAll("\\s+$", "");
+                                if (currentService.equals(serviceName)) {
+                                    updateAlgorithmChoices(false);
+                                    loadServiceEntry(currentService);
+                                }
                             })
                             .setNegativeButton("No", null)
                             .show();
@@ -332,9 +347,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private String getAlgorithmName(int algorithm) {
-        if (algorithm >= 1 && algorithm <= ALGORITHMS.length) {
-            return ALGORITHMS[algorithm - 1];
+        for (AlgorithmItem item : algorithmList) {
+            if (item.id == algorithm) {
+                return item.displayName;
+            }
         }
+        if (algorithm == 1) return "Password (Argon2)";
+        if (algorithm == 2) return "Password (SHA512 HMAC)";
+        if (algorithm == 3) return "OldPassword";
+        if (algorithm == 4) return "Passphrase Diceware (Argon2)";
+        if (algorithm == 5) return "Passphrase Wordnet Pattern (Argon2)";
         return "Unknown";
     }
 
@@ -438,11 +460,174 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
+    private void showSettingsDialog() {
+        SettingsDialog dialog = new SettingsDialog(this);
+        dialog.setOnDismissListener(d -> {
+            if (dialog.isSaved()) {
+                String currentService = service.getText().toString().replaceAll("\\s+$", "");
+                ServiceEntry entry = getServiceEntry(currentService);
+                boolean isOldRecord = (entry != null && entry.algorithm == 3);
+                updateAlgorithmChoices(isOldRecord);
+                loadServiceEntry(currentService);
+            }
+        });
+        dialog.show();
+    }
+
+    public int getSelectedAlgorithmId() {
+        AlgorithmItem item = (AlgorithmItem) algorithmSpinner.getSelectedItem();
+        return item != null ? item.id : 1;
+    }
+
+    public void selectAlgorithmById(int id) {
+        for (int i = 0; i < algorithmList.size(); i++) {
+            if (algorithmList.get(i).id == id) {
+                algorithmSpinner.setSelection(i);
+                return;
+            }
+        }
+        if (id == 3) {
+            updateAlgorithmChoices(true);
+            for (int i = 0; i < algorithmList.size(); i++) {
+                if (algorithmList.get(i).id == 3) {
+                    algorithmSpinner.setSelection(i);
+                    return;
+                }
+            }
+        }
+    }
+
+    public void updateAlgorithmChoices(boolean forceIncludeOld) {
+        boolean oldEnabled = isOldAlgorithmEnabledNative() || forceIncludeOld;
+        int currentId = getSelectedAlgorithmId();
+
+        algorithmList.clear();
+        algorithmList.add(new AlgorithmItem(1, "password/argon2", "Password (Argon2)"));
+        algorithmList.add(new AlgorithmItem(2, "password/sha512", "Password (SHA512 HMAC)"));
+        if (oldEnabled) {
+            algorithmList.add(new AlgorithmItem(3, "password/old", "OldPassword"));
+        }
+        algorithmList.add(new AlgorithmItem(4, "passphrase/diceware", "Passphrase Diceware (Argon2)"));
+        algorithmList.add(new AlgorithmItem(5, "passphrase/wordnet", "Passphrase Wordnet Pattern (Argon2)"));
+
+        if (algorithmAdapter != null) {
+            algorithmAdapter.notifyDataSetChanged();
+            boolean found = false;
+            for (int i = 0; i < algorithmList.size(); i++) {
+                if (algorithmList.get(i).id == currentId) {
+                    algorithmSpinner.setSelection(i);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                algorithmSpinner.setSelection(0);
+            }
+        }
+    }
+
+    private void setSeparatorSelection(String sep) {
+        for (int i = 0; i < SEPARATOR_VALUES.length; i++) {
+            if (SEPARATOR_VALUES[i].equals(sep)) {
+                separatorSpinner.setSelection(i);
+                return;
+            }
+        }
+        separatorSpinner.setSelection(0);
+    }
+
+    private void setPatternSelection(String pat) {
+        for (int i = 0; i < patternValuesList.size(); i++) {
+            if (patternValuesList.get(i).equals(pat)) {
+                patternSpinner.setSelection(i);
+                return;
+            }
+        }
+        patternSpinner.setSelection(0);
+    }
+
+    private void applyDefaultsFromConfig() {
+        String algoVal = getConfigValue("algorithm");
+        int defaultAlgo = 1;
+        if (algoVal != null) {
+            if ("password/argon2".equalsIgnoreCase(algoVal) || "argon2".equalsIgnoreCase(algoVal) || "1".equals(algoVal)) defaultAlgo = 1;
+            else if ("password/sha512".equalsIgnoreCase(algoVal) || "sha512".equalsIgnoreCase(algoVal) || "2".equals(algoVal)) defaultAlgo = 2;
+            else if ("password/old".equalsIgnoreCase(algoVal) || "old".equalsIgnoreCase(algoVal) || "3".equals(algoVal)) defaultAlgo = isOldAlgorithmEnabledNative() ? 3 : 1;
+            else if ("passphrase/diceware".equalsIgnoreCase(algoVal) || "diceware".equalsIgnoreCase(algoVal) || "4".equals(algoVal)) defaultAlgo = 4;
+            else if ("passphrase/wordnet".equalsIgnoreCase(algoVal) || "wordnet".equalsIgnoreCase(algoVal) || "5".equals(algoVal)) defaultAlgo = 5;
+        }
+        selectAlgorithmById(defaultAlgo);
+
+        String lenVal = getConfigValue("length");
+        int dfltLen;
+        if (lenVal != null) {
+            try {
+                dfltLen = Integer.parseInt(lenVal);
+            } catch (NumberFormatException e) {
+                dfltLen = (defaultAlgo == 4 || defaultAlgo == 5) ? 3 : (defaultAlgo == 3 ? 8 : 16);
+            }
+        } else {
+            dfltLen = (defaultAlgo == 4 || defaultAlgo == 5) ? 3 : (defaultAlgo == 3 ? 8 : 16);
+        }
+        lengthSeekBar.setProgress(dfltLen);
+
+        String ccVal = getConfigValue("char_classes");
+        if (ccVal != null) {
+            lowerCaseCheckBox.setChecked(false);
+            upperCaseCheckBox.setChecked(false);
+            digitsCheckBox.setChecked(false);
+            symbolsCheckBox.setChecked(false);
+            customCheckBox.setChecked(false);
+            for (String token : ccVal.split(",")) {
+                token = token.trim().toLowerCase();
+                if (token.equals("lowercase") || token.equals("lower") || token.equals("1")) lowerCaseCheckBox.setChecked(true);
+                else if (token.equals("uppercase") || token.equals("upper") || token.equals("2")) upperCaseCheckBox.setChecked(true);
+                else if (token.equals("digits") || token.equals("digit") || token.equals("3")) digitsCheckBox.setChecked(true);
+                else if (token.equals("symbols") || token.equals("symbol") || token.equals("4")) symbolsCheckBox.setChecked(true);
+                else if (token.equals("custom") || token.equals("5")) customCheckBox.setChecked(true);
+            }
+        } else {
+            lowerCaseCheckBox.setChecked(true);
+            upperCaseCheckBox.setChecked(true);
+            digitsCheckBox.setChecked(true);
+            symbolsCheckBox.setChecked(true);
+            customCheckBox.setChecked(false);
+        }
+
+        String customVal = getConfigValue("custom_chars");
+        customChars.setText(customVal != null ? customVal : "");
+
+        String sepVal = getConfigValue("separator");
+        setSeparatorSelection(sepVal != null ? sepVal : "");
+
+        String patVal = getConfigValue("passphrase_pattern");
+        updatePatternsList();
+        if (patVal != null && !patVal.isEmpty()) {
+            setPatternSelection(patVal);
+        } else {
+            patternSpinner.setSelection(0);
+        }
+
+        String digVal = getConfigValue("digits");
+        if (defaultAlgo == 4 || defaultAlgo == 5) {
+            digitsCheckBox.setChecked("true".equalsIgnoreCase(digVal));
+        }
+        String symVal = getConfigValue("symbols");
+        if (defaultAlgo == 4 || defaultAlgo == 5) {
+            symbolsCheckBox.setChecked("true".equalsIgnoreCase(symVal));
+        }
+        String subVal = getConfigValue("substitutions");
+        allowSubstitutionsCheckBox.setChecked("true".equalsIgnoreCase(subVal));
+
+        String capVal = getConfigValue("capitalize");
+        capitalizeWordsCheckBox.setChecked(capVal == null || "true".equalsIgnoreCase(capVal));
+    }
+
     private int lastAlgorithm = -1;
     private int lastLength = -1;
 
     private void updateAlgorithmSpecificUI() {
-        int algorithm = algorithmSpinner.getSelectedItemPosition() + 1;
+        int algorithm = getSelectedAlgorithmId();
 
         boolean showCharClasses = (algorithm == 1 || algorithm == 2 || algorithm == 4 || algorithm == 5);
         boolean showLength = (algorithm != 3); // Diceware, Password or Pattern
@@ -461,27 +646,82 @@ public class MainActivity extends AppCompatActivity {
         separatorContainer.setVisibility(showSeparator ? View.VISIBLE : View.GONE);
         passphrasePatternContainer.setVisibility(showPattern ? View.VISIBLE : View.GONE);
 
-        // Defaults
+        // Defaults from config when switching algorithm
         if (lastAlgorithm != algorithm) {
             if (algorithm == 4 || algorithm == 5) {
-                digitsCheckBox.setChecked(false);
-                symbolsCheckBox.setChecked(false);
-                capitalizeWordsCheckBox.setChecked(true);
-                allowSubstitutionsCheckBox.setChecked(false);
-                if (algorithm == 4 || algorithm == 5) {
-                    lengthSeekBar.setProgress(3);
+                String digVal = getConfigValue("digits");
+                digitsCheckBox.setChecked("true".equalsIgnoreCase(digVal));
+                String symVal = getConfigValue("symbols");
+                symbolsCheckBox.setChecked("true".equalsIgnoreCase(symVal));
+                String capVal = getConfigValue("capitalize");
+                capitalizeWordsCheckBox.setChecked(capVal == null || "true".equalsIgnoreCase(capVal));
+                String subVal = getConfigValue("substitutions");
+                allowSubstitutionsCheckBox.setChecked("true".equalsIgnoreCase(subVal));
+
+                String sepVal = getConfigValue("separator");
+                setSeparatorSelection(sepVal != null ? sepVal : "");
+
+                String lenVal = getConfigValue("length");
+                int len = 3;
+                if (lenVal != null) {
+                    try {
+                        int parsed = Integer.parseInt(lenVal);
+                        if (parsed >= 1 && parsed <= 20) len = parsed;
+                    } catch (Exception ignored) {}
                 }
-                separatorSpinner.setSelection(0);
-                if (algorithm == 5) {
-                    updatePatternsList();
-                    patternSpinner.setSelection(0); // Default to Random
+                lengthSeekBar.setProgress(len);
+
+                updatePatternsList();
+                String patVal = getConfigValue("passphrase_pattern");
+                if (patVal != null && !patVal.isEmpty()) {
+                    setPatternSelection(patVal);
+                } else {
+                    patternSpinner.setSelection(0);
                 }
             } else if (algorithm == 1 || algorithm == 2) {
-                digitsCheckBox.setChecked(true);
-                symbolsCheckBox.setChecked(true);
-                lowerCaseCheckBox.setChecked(true);
-                upperCaseCheckBox.setChecked(true);
-                lengthSeekBar.setProgress(16);
+                String ccVal = getConfigValue("char_classes");
+                if (ccVal != null) {
+                    lowerCaseCheckBox.setChecked(false);
+                    upperCaseCheckBox.setChecked(false);
+                    digitsCheckBox.setChecked(false);
+                    symbolsCheckBox.setChecked(false);
+                    customCheckBox.setChecked(false);
+                    for (String token : ccVal.split(",")) {
+                        token = token.trim().toLowerCase();
+                        if (token.equals("lowercase") || token.equals("lower") || token.equals("1")) lowerCaseCheckBox.setChecked(true);
+                        else if (token.equals("uppercase") || token.equals("upper") || token.equals("2")) upperCaseCheckBox.setChecked(true);
+                        else if (token.equals("digits") || token.equals("digit") || token.equals("3")) digitsCheckBox.setChecked(true);
+                        else if (token.equals("symbols") || token.equals("symbol") || token.equals("4")) symbolsCheckBox.setChecked(true);
+                        else if (token.equals("custom") || token.equals("5")) customCheckBox.setChecked(true);
+                    }
+                } else {
+                    digitsCheckBox.setChecked(true);
+                    symbolsCheckBox.setChecked(true);
+                    lowerCaseCheckBox.setChecked(true);
+                    upperCaseCheckBox.setChecked(true);
+                }
+                String customVal = getConfigValue("custom_chars");
+                customChars.setText(customVal != null ? customVal : "");
+
+                String lenVal = getConfigValue("length");
+                int len = 16;
+                if (lenVal != null) {
+                    try {
+                        int parsed = Integer.parseInt(lenVal);
+                        if (parsed >= 1 && parsed <= 128) len = parsed;
+                    } catch (Exception ignored) {}
+                }
+                lengthSeekBar.setProgress(len);
+            } else if (algorithm == 3) {
+                String lenVal = getConfigValue("length");
+                int len = 8;
+                if (lenVal != null) {
+                    try {
+                        int parsed = Integer.parseInt(lenVal);
+                        if (parsed >= 1 && parsed <= 128) len = parsed;
+                    } catch (Exception ignored) {}
+                }
+                lengthSeekBar.setProgress(len);
             }
         }
         lastAlgorithm = algorithm;
@@ -490,7 +730,6 @@ public class MainActivity extends AppCompatActivity {
             if (algorithm == 4) { // Diceware
                 lengthTitle.setText("Passphrase words count");
                 lengthSeekBar.setMax(20);
-                // Ensure valid range
                 if (lengthSeekBar.getProgress() < 3) lengthSeekBar.setProgress(3);
             } else if (algorithm == 5) { // Pattern
                 lengthTitle.setText("Passphrase words count");
@@ -507,7 +746,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updatePatternsList() {
-        int algorithm = algorithmSpinner.getSelectedItemPosition() + 1;
+        int algorithm = getSelectedAlgorithmId();
         if (algorithm != 5) return;
 
         int length = lengthSeekBar.getProgress();
@@ -525,10 +764,11 @@ public class MainActivity extends AppCompatActivity {
         patternsList.add("Random");
         patternValuesList.add("");
 
-        String[] patterns = getPassphrasePatternsNative(length);
+        String[] patterns = getPassphrasePatternsWithDescriptionsNative(length);
         for (String p : patterns) {
-            patternsList.add(p);
-            patternValuesList.add(p);
+            String[] parts = p.split("\t");
+            patternValuesList.add(parts[0]);
+            patternsList.add(parts.length > 1 ? parts[1] : parts[0]);
         }
 
         patternAdapter.notifyDataSetChanged();
@@ -545,7 +785,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateSubstitutionsState() {
-        int algorithm = algorithmSpinner.getSelectedItemPosition() + 1;
+        int algorithm = getSelectedAlgorithmId();
         boolean isPassphrase = (algorithm == 4 || algorithm == 5);
         if (isPassphrase) {
             boolean enabled = digitsCheckBox.isChecked() || symbolsCheckBox.isChecked();
@@ -566,11 +806,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void loadServiceEntry(String serviceName) {
         ServiceEntry entry = getServiceEntry(serviceName);
-        int newAlgo = entry != null ? entry.algorithm : 1;
-
-        algorithmSpinner.setSelection(newAlgo - 1);
+        boolean isOldRecord = (entry != null && entry.algorithm == 3);
+        updateAlgorithmChoices(isOldRecord);
 
         if (entry != null) {
+            selectAlgorithmById(entry.algorithm);
             lengthSeekBar.setProgress(entry.length);
 
             lowerCaseCheckBox.setChecked(false);
@@ -589,54 +829,25 @@ public class MainActivity extends AppCompatActivity {
 
             if (entry.customChars != null) {
                 customChars.setText(entry.customChars);
+            } else {
+                customChars.setText("");
             }
 
             if (entry.separator != null) {
-                for (int i = 0; i < SEPARATOR_VALUES.length; i++) {
-                    if (SEPARATOR_VALUES[i].equals(entry.separator)) {
-                        separatorSpinner.setSelection(i);
-                        break;
-                    }
-                }
+                setSeparatorSelection(entry.separator);
             }
             capitalizeWordsCheckBox.setChecked(entry.capitalizeWords);
 
             if (entry.pattern != null) {
                 updatePatternsList();
-                for (int i = 0; i < patternValuesList.size(); i++) {
-                    if (patternValuesList.get(i).equals(entry.pattern)) {
-                        patternSpinner.setSelection(i);
-                        break;
-                    }
-                }
+                setPatternSelection(entry.pattern);
             } else {
                 patternSpinner.setSelection(0); // Random
             }
             allowSubstitutionsCheckBox.setChecked(entry.allowSubstitutions);
         } else {
-            // Reset to defaults based on algo
-            separatorSpinner.setSelection(0); // Default to None
-            capitalizeWordsCheckBox.setChecked(true);
-            updatePatternsList();
-            patternSpinner.setSelection(0); // Random
-            allowSubstitutionsCheckBox.setChecked(false);
-            if (newAlgo == 1 || newAlgo == 2) {
-                lowerCaseCheckBox.setChecked(true);
-                upperCaseCheckBox.setChecked(true);
-                digitsCheckBox.setChecked(true);
-                symbolsCheckBox.setChecked(true);
-                customCheckBox.setChecked(false);
-                customChars.setText("");
-                capitalizeWordsCheckBox.setChecked(true);
-            } else if (newAlgo == 4 || newAlgo == 5) {
-                digitsCheckBox.setChecked(false);
-                symbolsCheckBox.setChecked(false);
-                if (newAlgo == 4) {
-                    lengthSeekBar.setProgress(3);
-                }
-            } else if (newAlgo == 3) {
-                lengthSeekBar.setProgress(8);
-            }
+            // Reset to defaults based on config
+            applyDefaultsFromConfig();
         }
         updateAlgorithmSpecificUI();
     }
@@ -670,7 +881,7 @@ public class MainActivity extends AppCompatActivity {
 
         executor.execute(() -> {
             // Background work
-            int algorithm = algorithmSpinner.getSelectedItemPosition() + 1;
+            int algorithm = getSelectedAlgorithmId();
             int length = lengthSeekBar.getProgress();
             String separator = SEPARATOR_VALUES[separatorSpinner.getSelectedItemPosition()];
             String pattern = (algorithm == 5) ? patternValuesList.get(patternSpinner.getSelectedItemPosition()) : "";
@@ -775,6 +986,15 @@ public class MainActivity extends AppCompatActivity {
 
     // Native methods
     public native void init(String dbPath);
+    public native void initConfig(String configPath);
+    public native void reloadConfig();
+    public native String getConfigValue(String key);
+    public native String setConfigValue(String key, String value);
+    public native boolean unsetConfigValue(String key);
+    public native boolean isConfigKeySet(String key);
+    public native boolean isOldAlgorithmEnabledNative();
+    public native boolean saveConfig();
+    public native String getConfigBuiltInDefault(String key);
     public native String[] getAllServiceNames();
     public native ServiceEntry getServiceEntry(String serviceName);
     public native void saveServiceEntry(String serviceName, int algorithm, int length, int[] charClasses, String customChars, String separator, boolean capitalizeWords, String pattern, boolean allowSubstitutions);
@@ -783,6 +1003,8 @@ public class MainActivity extends AppCompatActivity {
     public native android.graphics.Bitmap generateQrCode(String text);
     public native int getMaxPassphrasePatternLengthNative();
     public native String[] getPassphrasePatternsNative(int length);
+    public native String[] getPassphrasePatternsWithDescriptionsNative(int length);
+    public native String[] getAllPassphrasePatternsWithDescriptionsNative();
 }
 
 // Helper class for passing data from C++ to Java
