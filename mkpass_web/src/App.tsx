@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import { MkPassModule, QrCodeData } from './wasm';
+import { PreferencesModal, BUILTIN_DEFAULTS, parseCharClassesTokens } from './PreferencesModal';
 
 const EyeIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor">
@@ -169,17 +170,77 @@ function App() {
   const [customChars, setCustomChars] = useState('');
   const [saveService, setSaveService] = useState(true);
   const [savedServices, setSavedServices] = useState<Record<string, SavedService>>({});
+  const [userConfig, setUserConfig] = useState<Record<string, string>>({});
 
   const [wasmModule, setWasmModule] = useState<MkPassModule | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isManagementOpen, setIsManagementOpen] = useState(false);
+  const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
   const [isManualOpen, setIsManualOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [managementFilter, setManagementFilter] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isQrCodeVisible, setIsQrCodeVisible] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<QrCodeData | null>(null);
+
+  const applyConfigDefaults = (cfg: Record<string, string>, currentAlgo?: number) => {
+    const oldEnabled = cfg.enable_old_algorithm === 'true';
+    const algoVal = cfg.algorithm || BUILTIN_DEFAULTS.algorithm;
+    let targetAlgo = 1;
+    if (algoVal === 'password/argon2' || algoVal === 'argon2' || algoVal === '1') targetAlgo = 1;
+    else if (algoVal === 'password/sha512' || algoVal === 'sha512' || algoVal === '2') targetAlgo = 2;
+    else if (algoVal === 'password/old' || algoVal === 'old' || algoVal === '3') targetAlgo = oldEnabled ? 3 : 1;
+    else if (algoVal === 'passphrase/diceware' || algoVal === 'diceware' || algoVal === '4') targetAlgo = 4;
+    else if (algoVal === 'passphrase/wordnet' || algoVal === 'wordnet' || algoVal === '5') targetAlgo = 5;
+
+    const effAlgo = currentAlgo !== undefined ? currentAlgo : targetAlgo;
+    setAlgorithm(effAlgo);
+
+    const isPassphrase = effAlgo === 4 || effAlgo === 5;
+    const isOld = effAlgo === 3;
+
+    if (cfg.length) {
+      const parsedLen = parseInt(cfg.length, 10);
+      if (!isNaN(parsedLen)) setPasswordLength(parsedLen);
+      else setPasswordLength(isPassphrase ? 3 : (isOld ? 8 : 16));
+    } else {
+      setPasswordLength(isPassphrase ? 3 : (isOld ? 8 : 16));
+    }
+
+    if (cfg.char_classes) {
+      const parsedCC = parseCharClassesTokens(cfg.char_classes);
+      if (isPassphrase) {
+        setCharClassesState({
+          lowercase: false,
+          uppercase: false,
+          digits: cfg.digits !== undefined ? cfg.digits === 'true' : false,
+          symbols: cfg.symbols !== undefined ? cfg.symbols === 'true' : false,
+          custom: false,
+        });
+      } else {
+        setCharClassesState(parsedCC);
+      }
+    } else {
+      if (isPassphrase) {
+        setCharClassesState({
+          lowercase: false,
+          uppercase: false,
+          digits: cfg.digits !== undefined ? cfg.digits === 'true' : false,
+          symbols: cfg.symbols !== undefined ? cfg.symbols === 'true' : false,
+          custom: false,
+        });
+      } else {
+        setCharClassesState(parseCharClassesTokens(BUILTIN_DEFAULTS.char_classes));
+      }
+    }
+
+    setCustomChars(cfg.custom_chars !== undefined ? cfg.custom_chars : BUILTIN_DEFAULTS.custom_chars);
+    setSeparator(cfg.separator !== undefined ? cfg.separator : BUILTIN_DEFAULTS.separator);
+    setPattern(cfg.passphrase_pattern !== undefined ? cfg.passphrase_pattern : BUILTIN_DEFAULTS.passphrase_pattern);
+    setAllowSubstitutions(cfg.substitutions !== undefined ? cfg.substitutions === 'true' : false);
+    setCapitalizeWords(cfg.capitalize !== undefined ? cfg.capitalize === 'true' : true);
+  };
 
   const [passwordMatchStatus, setPasswordMatchStatus] = useState({
     isValid: true,
@@ -200,7 +261,7 @@ function App() {
     }
   }, [wasmModule, algorithm, passwordLength]);
 
-  // Load saved services on mount
+  // Load saved services and config on mount
   useEffect(() => {
     const stored = localStorage.getItem('mkpass_services');
     if (stored) {
@@ -210,6 +271,18 @@ function App() {
         console.error("Failed to parse saved services", e);
       }
     }
+
+    const storedConfig = localStorage.getItem('mkpass_config');
+    let loadedConfig: Record<string, string> = {};
+    if (storedConfig) {
+      try {
+        loadedConfig = JSON.parse(storedConfig);
+        setUserConfig(loadedConfig);
+      } catch (e) {
+        console.error("Failed to parse saved config", e);
+      }
+    }
+    applyConfigDefaults(loadedConfig);
   }, []);
 
   useEffect(() => {
@@ -251,9 +324,14 @@ function App() {
         (window as any).mkpass_wasm().then((module: MkPassModule) => {
           console.log("WASM Module Loaded.");
           setWasmModule(module);
-          setAlgorithm(module.Algorithm.Argon2.value);
-          setSeparator('');
-          setCapitalizeWords(true);
+          const storedConfig = localStorage.getItem('mkpass_config');
+          let cfg: Record<string, string> = {};
+          if (storedConfig) {
+            try {
+              cfg = JSON.parse(storedConfig);
+            } catch (e) {}
+          }
+          applyConfigDefaults(cfg);
         });
       }
     };
@@ -283,6 +361,10 @@ function App() {
       if (s.allowSubstitutions !== undefined) {
         setAllowSubstitutions(s.allowSubstitutions);
       }
+    } else {
+      if (value === '') {
+        applyConfigDefaults(userConfig);
+      }
     }
   };
 
@@ -290,23 +372,55 @@ function App() {
     setAlgorithm(newAlgo);
     if (wasmModule) {
       if (newAlgo === wasmModule.Algorithm.Passphrase_Diceware_EFF_Large.value) {
-        setPasswordLength(3);
-        setAllowSubstitutions(false);
-        setSeparator('');
-        setCapitalizeWords(true);
+        setPasswordLength(userConfig.length ? parseInt(userConfig.length, 10) : 3);
+        setAllowSubstitutions(userConfig.substitutions === 'true');
+        setSeparator(userConfig.separator !== undefined ? userConfig.separator : '');
+        setCapitalizeWords(userConfig.capitalize !== undefined ? userConfig.capitalize === 'true' : true);
+        setCharClassesState(prev => ({
+          ...prev,
+          digits: userConfig.digits !== undefined ? userConfig.digits === 'true' : false,
+          symbols: userConfig.symbols !== undefined ? userConfig.symbols === 'true' : false,
+        }));
       } else if (newAlgo === wasmModule.Algorithm.Passphrase_Wordnet_Pattern.value) {
-        setPattern(''); // Random
-        setPasswordLength(3);
-        setAllowSubstitutions(false);
-        setSeparator('');
-        setCapitalizeWords(true);
+        setPattern(userConfig.passphrase_pattern !== undefined ? userConfig.passphrase_pattern : '');
+        setPasswordLength(userConfig.length ? parseInt(userConfig.length, 10) : 3);
+        setAllowSubstitutions(userConfig.substitutions === 'true');
+        setSeparator(userConfig.separator !== undefined ? userConfig.separator : '');
+        setCapitalizeWords(userConfig.capitalize !== undefined ? userConfig.capitalize === 'true' : true);
+        setCharClassesState(prev => ({
+          ...prev,
+          digits: userConfig.digits !== undefined ? userConfig.digits === 'true' : false,
+          symbols: userConfig.symbols !== undefined ? userConfig.symbols === 'true' : false,
+        }));
       } else if (newAlgo === wasmModule.Algorithm.Old.value) {
-        setPasswordLength(8);
+        setPasswordLength(userConfig.length ? parseInt(userConfig.length, 10) : 8);
       } else if (newAlgo === wasmModule.Algorithm.Argon2.value || newAlgo === wasmModule.Algorithm.SlowSha512.value) {
-        setPasswordLength(16);
+        setPasswordLength(userConfig.length ? parseInt(userConfig.length, 10) : 16);
+        if (userConfig.char_classes) {
+          setCharClassesState(parseCharClassesTokens(userConfig.char_classes));
+        } else {
+          setCharClassesState(parseCharClassesTokens(BUILTIN_DEFAULTS.char_classes));
+        }
       }
     }
   };
+
+  const handleSaveConfig = (newConfig: Record<string, string>) => {
+    setUserConfig(newConfig);
+    localStorage.setItem('mkpass_config', JSON.stringify(newConfig));
+
+    if (!savedServices[service]) {
+      applyConfigDefaults(newConfig);
+    } else {
+      const isOldSaved = savedServices[service]?.algorithm === (wasmModule?.Algorithm.Old.value || 3);
+      if (!isOldSaved && newConfig.enable_old_algorithm !== 'true' && algorithm === (wasmModule?.Algorithm.Old.value || 3)) {
+        setAlgorithm(wasmModule?.Algorithm.Argon2.value || 1);
+      }
+    }
+  };
+
+  const isOldAlgoAllowed = userConfig.enable_old_algorithm === 'true' ||
+    (service && savedServices[service]?.algorithm === (wasmModule?.Algorithm.Old.value || 3));
 
   const isPassphraseAlgo = () => {
     if (!wasmModule) return false;
@@ -413,6 +527,7 @@ function App() {
     <div className="App">
       <header className="App-header">
         <div className="header-menu">
+          <button className="menu-btn" onClick={() => setIsPreferencesOpen(true)}>Preferences</button>
           <button className="menu-btn" onClick={() => setIsManagementOpen(true)}>Database</button>
           <button className="menu-btn" onClick={() => setIsManualOpen(true)}>Manual</button>
           <button className="menu-btn" onClick={() => setIsAboutOpen(true)}>About</button>
@@ -480,7 +595,9 @@ function App() {
                 <>
                   <option value={wasmModule.Algorithm.Argon2.value}>Password (Argon2)</option>
                   <option value={wasmModule.Algorithm.SlowSha512.value}>Password (SHA512 HMAC)</option>
-                  <option value={wasmModule.Algorithm.Old.value}>OldPassword</option>
+                  {isOldAlgoAllowed && (
+                    <option value={wasmModule.Algorithm.Old.value}>OldPassword</option>
+                  )}
                   <option value={wasmModule.Algorithm.Passphrase_Diceware_EFF_Large.value}>Passphrase Diceware EFF Large (Argon2)</option>
                   <option value={wasmModule.Algorithm.Passphrase_Wordnet_Pattern.value}>Passphrase Wordnet Pattern (Argon2)</option>
                 </>
@@ -767,6 +884,14 @@ function App() {
           </div>
         </div>
       )}
+
+      <PreferencesModal
+        isOpen={isPreferencesOpen}
+        onClose={() => setIsPreferencesOpen(false)}
+        onSave={handleSaveConfig}
+        wasmModule={wasmModule}
+        savedConfig={userConfig}
+      />
     </div>
   );
 }
