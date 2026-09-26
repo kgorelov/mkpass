@@ -7,22 +7,378 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <array>
 #include <cctype>
+#include <optional>
 #include <stdexcept>
+#include <string>
+#include <string_view>
+#include <vector>
 
 namespace mkpass {
 
 namespace {
 
-std::optional<bool> ParseBool(const std::string& str) {
-    std::string s = str;
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) { return !std::isspace(ch); }));
-    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) { return !std::isspace(ch); }).base(), s.end());
-    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return std::tolower(c); });
+std::string_view Trim(std::string_view str) {
+    auto start = std::find_if_not(str.begin(), str.end(), [](unsigned char ch) { return std::isspace(ch); });
+    auto end = std::find_if_not(str.rbegin(), str.rend(), [](unsigned char ch) { return std::isspace(ch); }).base();
+    return (start < end) ? std::string_view(&*start, static_cast<size_t>(end - start)) : std::string_view{};
+}
 
+std::string ToLower(std::string_view str) {
+    std::string s(str);
+    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return std::tolower(c); });
+    return s;
+}
+
+std::optional<bool> ParseBool(std::string_view str) {
+    std::string s = ToLower(Trim(str));
     if (s == "true" || s == "1" || s == "yes" || s == "y") return true;
     if (s == "false" || s == "0" || s == "no" || s == "n") return false;
     return std::nullopt;
+}
+
+std::optional<size_t> ParseLength(std::string_view val) {
+    std::string_view v = Trim(val);
+    if (v.empty() || v[0] == '-' || !std::all_of(v.begin(), v.end(), [](unsigned char c) { return std::isdigit(c); })) {
+        return std::nullopt;
+    }
+    try {
+        size_t pos = 0;
+        unsigned long len = std::stoul(std::string(v), &pos);
+        if (pos != v.size() || len == 0) {
+            return std::nullopt;
+        }
+        return static_cast<size_t>(len);
+    } catch (...) {
+        return std::nullopt;
+    }
+}
+
+std::optional<std::vector<WordClasses>> ParsePassphrasePattern(std::string_view val) {
+    std::string v = ToLower(Trim(val));
+    if (v.empty() || v == "random" || v == "1") {
+        return std::vector<WordClasses>{};
+    }
+    for (char c : v) {
+        if (c != 'n' && c != 'v' && c != 'a' && c != 'r') {
+            return std::nullopt;
+        }
+    }
+    return StringToPattern(v);
+}
+
+struct Property {
+    std::string_view name;
+    std::string_view alias = "";
+    std::string_view default_str;
+
+    constexpr bool matches(std::string_view key) const {
+        return key == name || (!alias.empty() && key == alias);
+    }
+
+    std::optional<std::string> (*get_raw)(const ConfigOptions& opts);
+    void (*set_raw)(ConfigOptions& opts, std::string_view key, const std::string& val);
+    bool (*unset_raw)(ConfigOptions& opts);
+    bool (*has_value)(const ConfigOptions& opts);
+    void (*load)(const Property& prop, ConfigOptions& opts, const toml::table& tbl);
+    void (*save)(const Property& prop, const ConfigOptions& opts, toml::table& tbl);
+    void (*save_default)(const Property& prop, toml::table& tbl);
+};
+
+template <auto Member>
+bool UnsetField(ConfigOptions& opts) {
+    bool was_set = (opts.*Member).has_value();
+    opts.*Member = std::nullopt;
+    return was_set;
+}
+
+template <auto Member>
+bool HasField(const ConfigOptions& opts) {
+    return (opts.*Member).has_value();
+}
+
+template <std::optional<bool> ConfigOptions::*Member>
+std::optional<std::string> GetBool(const ConfigOptions& opts) {
+    const auto& val = opts.*Member;
+    return val ? std::optional<std::string>(*val ? "true" : "false") : std::nullopt;
+}
+
+template <std::optional<bool> ConfigOptions::*Member>
+void SetBool(ConfigOptions& opts, std::string_view key, const std::string& val) {
+    auto b = ParseBool(val);
+    if (!b) {
+        throw std::invalid_argument("Invalid boolean for " + std::string(key) + ": " + val);
+    }
+    opts.*Member = *b;
+}
+
+template <std::optional<bool> ConfigOptions::*Member>
+void LoadBool(const Property& prop, ConfigOptions& opts, const toml::table& tbl) {
+    if (auto val = tbl[prop.name].value<bool>()) {
+        opts.*Member = *val;
+    }
+}
+
+template <std::optional<bool> ConfigOptions::*Member>
+void SaveBool(const Property& prop, const ConfigOptions& opts, toml::table& tbl) {
+    if (auto val = opts.*Member) {
+        tbl.insert_or_assign(prop.name, *val);
+    }
+}
+
+template <bool DefaultVal>
+void SaveDefaultBool(const Property& prop, toml::table& tbl) {
+    tbl.insert_or_assign(prop.name, DefaultVal);
+}
+
+template <std::optional<bool> ConfigOptions::*Member, bool DefaultVal>
+constexpr Property MakeBoolProp(std::string_view name) {
+    return Property{
+        .name = name,
+        .alias = "",
+        .default_str = DefaultVal ? "true" : "false",
+        .get_raw = GetBool<Member>,
+        .set_raw = SetBool<Member>,
+        .unset_raw = UnsetField<Member>,
+        .has_value = HasField<Member>,
+        .load = LoadBool<Member>,
+        .save = SaveBool<Member>,
+        .save_default = SaveDefaultBool<DefaultVal>,
+    };
+}
+
+template <std::optional<std::string> ConfigOptions::*Member>
+std::optional<std::string> GetString(const ConfigOptions& opts) {
+    return opts.*Member;
+}
+
+template <std::optional<std::string> ConfigOptions::*Member>
+void SetString(ConfigOptions& opts, std::string_view, const std::string& val) {
+    opts.*Member = val;
+}
+
+template <std::optional<std::string> ConfigOptions::*Member>
+void LoadString(const Property& prop, ConfigOptions& opts, const toml::table& tbl) {
+    if (auto val = tbl[prop.name].value<std::string>()) {
+        opts.*Member = *val;
+    }
+}
+
+template <std::optional<std::string> ConfigOptions::*Member>
+void SaveString(const Property& prop, const ConfigOptions& opts, toml::table& tbl) {
+    if (auto val = opts.*Member) {
+        tbl.insert_or_assign(prop.name, *val);
+    }
+}
+
+inline void SaveDefaultString(const Property& prop, toml::table& tbl) {
+    tbl.insert_or_assign(prop.name, "");
+}
+
+template <std::optional<std::string> ConfigOptions::*Member>
+constexpr Property MakeStringProp(std::string_view name) {
+    return Property{
+        .name = name,
+        .alias = "",
+        .default_str = "",
+        .get_raw = GetString<Member>,
+        .set_raw = SetString<Member>,
+        .unset_raw = UnsetField<Member>,
+        .has_value = HasField<Member>,
+        .load = LoadString<Member>,
+        .save = SaveString<Member>,
+        .save_default = SaveDefaultString,
+    };
+}
+
+std::optional<std::string> GetAlgorithm(const ConfigOptions& opts) {
+    return opts.algorithm ? std::optional<std::string>(AlgorithmToIdentifier(*opts.algorithm)) : std::nullopt;
+}
+
+void SetAlgorithm(ConfigOptions& opts, std::string_view, const std::string& val) {
+    auto algo = ParseAlgorithm(val);
+    if (!algo) {
+        throw std::invalid_argument("Invalid algorithm: " + val + ". Valid values: password/argon2, password/sha512, passphrase/diceware, passphrase/wordnet, password/old");
+    }
+    opts.algorithm = algo;
+}
+
+void LoadAlgorithm(const Property& prop, ConfigOptions& opts, const toml::table& tbl) {
+    if (auto val = tbl[prop.name].value<std::string>()) {
+        opts.algorithm = ParseAlgorithm(*val);
+    } else if (auto val_int = tbl[prop.name].value<int64_t>()) {
+        opts.algorithm = ParseAlgorithm(std::to_string(*val_int));
+    }
+}
+
+void SaveAlgorithm(const Property& prop, const ConfigOptions& opts, toml::table& tbl) {
+    if (opts.algorithm) {
+        tbl.insert_or_assign(prop.name, AlgorithmToIdentifier(*opts.algorithm));
+    }
+}
+
+void SaveDefaultAlgorithm(const Property& prop, toml::table& tbl) {
+    tbl.insert_or_assign(prop.name, AlgorithmToIdentifier(Algorithm::Argon2));
+}
+
+std::optional<std::string> GetCharClasses(const ConfigOptions& opts) {
+    return opts.char_classes ? std::optional<std::string>(CharacterClassesToIdentifierString(*opts.char_classes)) : std::nullopt;
+}
+
+void SetCharClasses(ConfigOptions& opts, std::string_view, const std::string& val) {
+    auto cc = ParseCharacterClasses(val);
+    if (cc.empty()) {
+        throw std::invalid_argument("Invalid char_classes: " + val + ". Valid tokens: lowercase, uppercase, digits, symbols, custom");
+    }
+    opts.char_classes = cc;
+}
+
+void LoadCharClasses(const Property& prop, ConfigOptions& opts, const toml::table& tbl) {
+    if (auto val = tbl[prop.name].value<std::string>()) {
+        opts.char_classes = ParseCharacterClasses(*val);
+    } else if (auto val_int = tbl[prop.name].value<int64_t>()) {
+        opts.char_classes = ParseCharacterClasses(std::to_string(*val_int));
+    }
+}
+
+void SaveCharClasses(const Property& prop, const ConfigOptions& opts, toml::table& tbl) {
+    if (opts.char_classes) {
+        tbl.insert_or_assign(prop.name, CharacterClassesToIdentifierString(*opts.char_classes));
+    }
+}
+
+void SaveDefaultCharClasses(const Property& prop, toml::table& tbl) {
+    tbl.insert_or_assign(prop.name, "lowercase,uppercase,digits,symbols");
+}
+
+std::optional<std::string> GetLength(const ConfigOptions& opts) {
+    return opts.length ? std::optional<std::string>(std::to_string(*opts.length)) : std::nullopt;
+}
+
+void SetLength(ConfigOptions& opts, std::string_view, const std::string& val) {
+    auto len = ParseLength(val);
+    if (!len) {
+        throw std::invalid_argument("Invalid length: " + val + ". Must be a positive integer.");
+    }
+    opts.length = len;
+}
+
+void LoadLength(const Property& prop, ConfigOptions& opts, const toml::table& tbl) {
+    if (auto val = tbl[prop.name].value<int64_t>()) {
+        if (*val > 0) {
+            opts.length = static_cast<size_t>(*val);
+        }
+    }
+}
+
+void SaveLength(const Property& prop, const ConfigOptions& opts, toml::table& tbl) {
+    if (opts.length) {
+        tbl.insert_or_assign(prop.name, static_cast<int64_t>(*opts.length));
+    }
+}
+
+void SaveDefaultLength(const Property& prop, toml::table& tbl) {
+    tbl.insert_or_assign(prop.name, static_cast<int64_t>(16));
+}
+
+std::optional<std::string> GetPassphrasePattern(const ConfigOptions& opts) {
+    return opts.passphrase_pattern ? std::optional<std::string>(PatternToString(*opts.passphrase_pattern)) : std::nullopt;
+}
+
+void SetPassphrasePattern(ConfigOptions& opts, std::string_view, const std::string& val) {
+    auto pat = ParsePassphrasePattern(val);
+    if (!pat) {
+        throw std::invalid_argument("Invalid passphrase pattern: " + val + ". Allowed characters: n (noun), v (verb), a (adj), r (adv).");
+    }
+    opts.passphrase_pattern = pat;
+}
+
+void LoadPassphrasePattern(const Property& prop, ConfigOptions& opts, const toml::table& tbl) {
+    if (auto val = tbl[prop.name].value<std::string>()) {
+        opts.passphrase_pattern = StringToPattern(*val);
+    } else if (!prop.alias.empty()) {
+        if (auto val2 = tbl[prop.alias].value<std::string>()) {
+            opts.passphrase_pattern = StringToPattern(*val2);
+        }
+    }
+}
+
+void SavePassphrasePattern(const Property& prop, const ConfigOptions& opts, toml::table& tbl) {
+    if (opts.passphrase_pattern) {
+        tbl.insert_or_assign(prop.name, PatternToString(*opts.passphrase_pattern));
+    }
+}
+
+void SaveDefaultPassphrasePattern(const Property& prop, toml::table& tbl) {
+    tbl.insert_or_assign(prop.name, "");
+}
+
+inline constexpr std::array kProperties = {
+    Property{
+        .name = "algorithm",
+        .alias = "",
+        .default_str = "password/argon2",
+        .get_raw = GetAlgorithm,
+        .set_raw = SetAlgorithm,
+        .unset_raw = UnsetField<&ConfigOptions::algorithm>,
+        .has_value = HasField<&ConfigOptions::algorithm>,
+        .load = LoadAlgorithm,
+        .save = SaveAlgorithm,
+        .save_default = SaveDefaultAlgorithm,
+    },
+    Property{
+        .name = "char_classes",
+        .alias = "",
+        .default_str = "lowercase,uppercase,digits,symbols",
+        .get_raw = GetCharClasses,
+        .set_raw = SetCharClasses,
+        .unset_raw = UnsetField<&ConfigOptions::char_classes>,
+        .has_value = HasField<&ConfigOptions::char_classes>,
+        .load = LoadCharClasses,
+        .save = SaveCharClasses,
+        .save_default = SaveDefaultCharClasses,
+    },
+    MakeStringProp<&ConfigOptions::custom_chars>("custom_chars"),
+    Property{
+        .name = "length",
+        .alias = "",
+        .default_str = "16",
+        .get_raw = GetLength,
+        .set_raw = SetLength,
+        .unset_raw = UnsetField<&ConfigOptions::length>,
+        .has_value = HasField<&ConfigOptions::length>,
+        .load = LoadLength,
+        .save = SaveLength,
+        .save_default = SaveDefaultLength,
+    },
+    MakeStringProp<&ConfigOptions::separator>("separator"),
+    Property{
+        .name = "passphrase_pattern",
+        .alias = "pattern",
+        .default_str = "",
+        .get_raw = GetPassphrasePattern,
+        .set_raw = SetPassphrasePattern,
+        .unset_raw = UnsetField<&ConfigOptions::passphrase_pattern>,
+        .has_value = HasField<&ConfigOptions::passphrase_pattern>,
+        .load = LoadPassphrasePattern,
+        .save = SavePassphrasePattern,
+        .save_default = SaveDefaultPassphrasePattern,
+    },
+    MakeBoolProp<&ConfigOptions::digits, false>("digits"),
+    MakeBoolProp<&ConfigOptions::symbols, false>("symbols"),
+    MakeBoolProp<&ConfigOptions::substitutions, false>("substitutions"),
+    MakeBoolProp<&ConfigOptions::capitalize, true>("capitalize"),
+    MakeBoolProp<&ConfigOptions::enable_old_algorithm, false>("enable_old_algorithm"),
+};
+
+const Property* FindProperty(std::string_view key) {
+    for (const auto& prop : kProperties) {
+        if (prop.matches(key)) {
+            return &prop;
+        }
+    }
+    return nullptr;
 }
 
 } // namespace
@@ -38,51 +394,22 @@ std::string Config::get_default_config_path() {
 }
 
 bool Config::is_valid_key(const std::string& key) {
-    static const std::vector<std::string> valid_keys = {
-        "algorithm",
-        "char_classes",
-        "custom_chars",
-        "length",
-        "separator",
-        "passphrase_pattern",
-        "pattern",
-        "digits",
-        "symbols",
-        "substitutions",
-        "capitalize",
-        "enable_old_algorithm"
-    };
-    return std::find(valid_keys.begin(), valid_keys.end(), key) != valid_keys.end();
+    return FindProperty(key) != nullptr;
 }
 
 std::vector<std::string> Config::get_all_keys() {
-    return {
-        "algorithm",
-        "char_classes",
-        "custom_chars",
-        "length",
-        "separator",
-        "passphrase_pattern",
-        "digits",
-        "symbols",
-        "substitutions",
-        "capitalize",
-        "enable_old_algorithm"
-    };
+    std::vector<std::string> keys;
+    keys.reserve(kProperties.size());
+    for (const auto& prop : kProperties) {
+        keys.emplace_back(prop.name);
+    }
+    return keys;
 }
 
 std::string Config::get_built_in_default(const std::string& key) {
-    if (key == "algorithm") return "password/argon2";
-    if (key == "char_classes") return "lowercase,uppercase,digits,symbols";
-    if (key == "custom_chars") return "";
-    if (key == "length") return "16";
-    if (key == "separator") return "";
-    if (key == "passphrase_pattern" || key == "pattern") return "";
-    if (key == "digits") return "false";
-    if (key == "symbols") return "false";
-    if (key == "substitutions") return "false";
-    if (key == "capitalize") return "true";
-    if (key == "enable_old_algorithm") return "false";
+    if (const auto* prop = FindProperty(key)) {
+        return std::string(prop->default_str);
+    }
     throw std::invalid_argument("Unknown configuration key: " + key);
 }
 
@@ -102,58 +429,9 @@ bool Config::load() {
 
     try {
         auto tbl = toml::parse_file(path_);
-        if (auto val = tbl["algorithm"].value<std::string>()) {
-            options_.algorithm = ParseAlgorithm(*val);
-        } else if (auto val_int = tbl["algorithm"].value<int64_t>()) {
-            options_.algorithm = ParseAlgorithm(std::to_string(*val_int));
+        for (const auto& prop : kProperties) {
+            prop.load(prop, options_, tbl);
         }
-
-        if (auto val = tbl["char_classes"].value<std::string>()) {
-            options_.char_classes = ParseCharacterClasses(*val);
-        } else if (auto val_int = tbl["char_classes"].value<int64_t>()) {
-            options_.char_classes = ParseCharacterClasses(std::to_string(*val_int));
-        }
-
-        if (auto val = tbl["custom_chars"].value<std::string>()) {
-            options_.custom_chars = *val;
-        }
-
-        if (auto val = tbl["length"].value<int64_t>()) {
-            if (*val > 0) {
-                options_.length = static_cast<size_t>(*val);
-            }
-        }
-
-        if (auto val = tbl["separator"].value<std::string>()) {
-            options_.separator = *val;
-        }
-
-        if (auto val = tbl["passphrase_pattern"].value<std::string>()) {
-            options_.passphrase_pattern = StringToPattern(*val);
-        } else if (auto val2 = tbl["pattern"].value<std::string>()) {
-            options_.passphrase_pattern = StringToPattern(*val2);
-        }
-
-        if (auto val = tbl["digits"].value<bool>()) {
-            options_.digits = *val;
-        }
-
-        if (auto val = tbl["symbols"].value<bool>()) {
-            options_.symbols = *val;
-        }
-
-        if (auto val = tbl["substitutions"].value<bool>()) {
-            options_.substitutions = *val;
-        }
-
-        if (auto val = tbl["capitalize"].value<bool>()) {
-            options_.capitalize = *val;
-        }
-
-        if (auto val = tbl["enable_old_algorithm"].value<bool>()) {
-            options_.enable_old_algorithm = *val;
-        }
-
         return true;
     } catch (...) {
         return false;
@@ -171,38 +449,8 @@ bool Config::save() {
         }
 
         toml::table tbl;
-        if (options_.algorithm) {
-            tbl.insert_or_assign("algorithm", AlgorithmToIdentifier(*options_.algorithm));
-        }
-        if (options_.char_classes) {
-            tbl.insert_or_assign("char_classes", CharacterClassesToIdentifierString(*options_.char_classes));
-        }
-        if (options_.custom_chars) {
-            tbl.insert_or_assign("custom_chars", *options_.custom_chars);
-        }
-        if (options_.length) {
-            tbl.insert_or_assign("length", static_cast<int64_t>(*options_.length));
-        }
-        if (options_.separator) {
-            tbl.insert_or_assign("separator", *options_.separator);
-        }
-        if (options_.passphrase_pattern) {
-            tbl.insert_or_assign("passphrase_pattern", PatternToString(*options_.passphrase_pattern));
-        }
-        if (options_.digits) {
-            tbl.insert_or_assign("digits", *options_.digits);
-        }
-        if (options_.symbols) {
-            tbl.insert_or_assign("symbols", *options_.symbols);
-        }
-        if (options_.substitutions) {
-            tbl.insert_or_assign("substitutions", *options_.substitutions);
-        }
-        if (options_.capitalize) {
-            tbl.insert_or_assign("capitalize", *options_.capitalize);
-        }
-        if (options_.enable_old_algorithm) {
-            tbl.insert_or_assign("enable_old_algorithm", *options_.enable_old_algorithm);
+        for (const auto& prop : kProperties) {
+            prop.save(prop, options_, tbl);
         }
 
         std::ofstream out(path_);
@@ -218,182 +466,23 @@ bool Config::save() {
 }
 
 std::optional<std::string> Config::get_raw(const std::string& key) const {
-    if (key == "algorithm") {
-        return options_.algorithm ? std::optional<std::string>(AlgorithmToIdentifier(*options_.algorithm)) : std::nullopt;
-    }
-    if (key == "char_classes") {
-        return options_.char_classes ? std::optional<std::string>(CharacterClassesToIdentifierString(*options_.char_classes)) : std::nullopt;
-    }
-    if (key == "custom_chars") {
-        return options_.custom_chars;
-    }
-    if (key == "length") {
-        return options_.length ? std::optional<std::string>(std::to_string(*options_.length)) : std::nullopt;
-    }
-    if (key == "separator") {
-        return options_.separator;
-    }
-    if (key == "passphrase_pattern" || key == "pattern") {
-        return options_.passphrase_pattern ? std::optional<std::string>(PatternToString(*options_.passphrase_pattern)) : std::nullopt;
-    }
-    if (key == "digits") {
-        return options_.digits ? std::optional<std::string>(*options_.digits ? "true" : "false") : std::nullopt;
-    }
-    if (key == "symbols") {
-        return options_.symbols ? std::optional<std::string>(*options_.symbols ? "true" : "false") : std::nullopt;
-    }
-    if (key == "substitutions") {
-        return options_.substitutions ? std::optional<std::string>(*options_.substitutions ? "true" : "false") : std::nullopt;
-    }
-    if (key == "capitalize") {
-        return options_.capitalize ? std::optional<std::string>(*options_.capitalize ? "true" : "false") : std::nullopt;
-    }
-    if (key == "enable_old_algorithm") {
-        return options_.enable_old_algorithm ? std::optional<std::string>(*options_.enable_old_algorithm ? "true" : "false") : std::nullopt;
+    if (const auto* prop = FindProperty(key)) {
+        return prop->get_raw(options_);
     }
     throw std::invalid_argument("Unknown configuration key: " + key);
 }
 
 void Config::set_raw(const std::string& key, const std::string& value) {
-    if (key == "algorithm") {
-        auto algo = ParseAlgorithm(value);
-        if (!algo) {
-            throw std::invalid_argument("Invalid algorithm: " + value + ". Valid values: password/argon2, password/sha512, passphrase/diceware, passphrase/wordnet, password/old");
-        }
-        options_.algorithm = algo;
-    } else if (key == "char_classes") {
-        auto cc = ParseCharacterClasses(value);
-        if (cc.empty()) {
-            throw std::invalid_argument("Invalid char_classes: " + value + ". Valid tokens: lowercase, uppercase, digits, symbols, custom");
-        }
-        options_.char_classes = cc;
-    } else if (key == "custom_chars") {
-        options_.custom_chars = value;
-    } else if (key == "length") {
-        try {
-            std::string v = value;
-            v.erase(v.begin(), std::find_if(v.begin(), v.end(), [](unsigned char ch) { return !std::isspace(ch); }));
-            v.erase(std::find_if(v.rbegin(), v.rend(), [](unsigned char ch) { return !std::isspace(ch); }).base(), v.end());
-            if (v.empty() || v[0] == '-' || !std::all_of(v.begin(), v.end(), [](unsigned char c) { return std::isdigit(c); })) {
-                throw std::exception();
-            }
-            size_t pos = 0;
-            unsigned long len = std::stoul(v, &pos);
-            if (pos != v.size() || len == 0) {
-                throw std::exception();
-            }
-            options_.length = len;
-        } catch (...) {
-            throw std::invalid_argument("Invalid length: " + value + ". Must be a positive integer.");
-        }
-    } else if (key == "separator") {
-        options_.separator = value;
-    } else if (key == "passphrase_pattern" || key == "pattern") {
-        std::string v = value;
-        v.erase(v.begin(), std::find_if(v.begin(), v.end(), [](unsigned char ch) { return !std::isspace(ch); }));
-        v.erase(std::find_if(v.rbegin(), v.rend(), [](unsigned char ch) { return !std::isspace(ch); }).base(), v.end());
-        std::transform(v.begin(), v.end(), v.begin(), [](unsigned char c) { return std::tolower(c); });
-
-        if (v.empty() || v == "random" || v == "1") {
-            options_.passphrase_pattern = std::vector<WordClasses>{};
-        } else {
-            for (char c : v) {
-                if (c != 'n' && c != 'v' && c != 'a' && c != 'r') {
-                    throw std::invalid_argument("Invalid passphrase pattern: " + value + ". Allowed characters: n (noun), v (verb), a (adj), r (adv).");
-                }
-            }
-            options_.passphrase_pattern = StringToPattern(v);
-        }
-    } else if (key == "digits") {
-        auto b = ParseBool(value);
-        if (!b) {
-            throw std::invalid_argument("Invalid boolean for digits: " + value);
-        }
-        options_.digits = b;
-    } else if (key == "symbols") {
-        auto b = ParseBool(value);
-        if (!b) {
-            throw std::invalid_argument("Invalid boolean for symbols: " + value);
-        }
-        options_.symbols = b;
-    } else if (key == "substitutions") {
-        auto b = ParseBool(value);
-        if (!b) {
-            throw std::invalid_argument("Invalid boolean for substitutions: " + value);
-        }
-        options_.substitutions = b;
-    } else if (key == "capitalize") {
-        auto b = ParseBool(value);
-        if (!b) {
-            throw std::invalid_argument("Invalid boolean for capitalize: " + value);
-        }
-        options_.capitalize = b;
-    } else if (key == "enable_old_algorithm") {
-        auto b = ParseBool(value);
-        if (!b) {
-            throw std::invalid_argument("Invalid boolean for enable_old_algorithm: " + value);
-        }
-        options_.enable_old_algorithm = b;
-    } else {
-        throw std::invalid_argument("Unknown configuration key: " + key);
+    if (const auto* prop = FindProperty(key)) {
+        prop->set_raw(options_, key, value);
+        return;
     }
+    throw std::invalid_argument("Unknown configuration key: " + key);
 }
 
 bool Config::unset_raw(const std::string& key) {
-    if (key == "algorithm") {
-        bool was_set = options_.algorithm.has_value();
-        options_.algorithm = std::nullopt;
-        return was_set;
-    }
-    if (key == "char_classes") {
-        bool was_set = options_.char_classes.has_value();
-        options_.char_classes = std::nullopt;
-        return was_set;
-    }
-    if (key == "custom_chars") {
-        bool was_set = options_.custom_chars.has_value();
-        options_.custom_chars = std::nullopt;
-        return was_set;
-    }
-    if (key == "length") {
-        bool was_set = options_.length.has_value();
-        options_.length = std::nullopt;
-        return was_set;
-    }
-    if (key == "separator") {
-        bool was_set = options_.separator.has_value();
-        options_.separator = std::nullopt;
-        return was_set;
-    }
-    if (key == "passphrase_pattern" || key == "pattern") {
-        bool was_set = options_.passphrase_pattern.has_value();
-        options_.passphrase_pattern = std::nullopt;
-        return was_set;
-    }
-    if (key == "digits") {
-        bool was_set = options_.digits.has_value();
-        options_.digits = std::nullopt;
-        return was_set;
-    }
-    if (key == "symbols") {
-        bool was_set = options_.symbols.has_value();
-        options_.symbols = std::nullopt;
-        return was_set;
-    }
-    if (key == "substitutions") {
-        bool was_set = options_.substitutions.has_value();
-        options_.substitutions = std::nullopt;
-        return was_set;
-    }
-    if (key == "capitalize") {
-        bool was_set = options_.capitalize.has_value();
-        options_.capitalize = std::nullopt;
-        return was_set;
-    }
-    if (key == "enable_old_algorithm") {
-        bool was_set = options_.enable_old_algorithm.has_value();
-        options_.enable_old_algorithm = std::nullopt;
-        return was_set;
+    if (const auto* prop = FindProperty(key)) {
+        return prop->unset_raw(options_);
     }
     throw std::invalid_argument("Unknown configuration key: " + key);
 }
@@ -414,40 +503,9 @@ std::string Config::print(bool all) const {
 
     if (!all) {
         toml::table tbl;
-        if (options_.algorithm) {
-            tbl.insert_or_assign("algorithm", AlgorithmToIdentifier(*options_.algorithm));
+        for (const auto& prop : kProperties) {
+            prop.save(prop, options_, tbl);
         }
-        if (options_.char_classes) {
-            tbl.insert_or_assign("char_classes", CharacterClassesToIdentifierString(*options_.char_classes));
-        }
-        if (options_.custom_chars) {
-            tbl.insert_or_assign("custom_chars", *options_.custom_chars);
-        }
-        if (options_.length) {
-            tbl.insert_or_assign("length", static_cast<int64_t>(*options_.length));
-        }
-        if (options_.separator) {
-            tbl.insert_or_assign("separator", *options_.separator);
-        }
-        if (options_.passphrase_pattern) {
-            tbl.insert_or_assign("passphrase_pattern", PatternToString(*options_.passphrase_pattern));
-        }
-        if (options_.digits) {
-            tbl.insert_or_assign("digits", *options_.digits);
-        }
-        if (options_.symbols) {
-            tbl.insert_or_assign("symbols", *options_.symbols);
-        }
-        if (options_.substitutions) {
-            tbl.insert_or_assign("substitutions", *options_.substitutions);
-        }
-        if (options_.capitalize) {
-            tbl.insert_or_assign("capitalize", *options_.capitalize);
-        }
-        if (options_.enable_old_algorithm) {
-            tbl.insert_or_assign("enable_old_algorithm", *options_.enable_old_algorithm);
-        }
-
         std::stringstream ss;
         ss << tbl << "\n";
         return ss.str();
@@ -456,70 +514,12 @@ std::string Config::print(bool all) const {
     toml::table explicit_tbl;
     toml::table default_tbl;
 
-    if (options_.algorithm) {
-        explicit_tbl.insert_or_assign("algorithm", AlgorithmToIdentifier(*options_.algorithm));
-    } else {
-        default_tbl.insert_or_assign("algorithm", AlgorithmToIdentifier(Algorithm::Argon2));
-    }
-
-    if (options_.char_classes) {
-        explicit_tbl.insert_or_assign("char_classes", CharacterClassesToIdentifierString(*options_.char_classes));
-    } else {
-        default_tbl.insert_or_assign("char_classes", get_built_in_default("char_classes"));
-    }
-
-    if (options_.custom_chars) {
-        explicit_tbl.insert_or_assign("custom_chars", *options_.custom_chars);
-    } else {
-        default_tbl.insert_or_assign("custom_chars", "");
-    }
-
-    if (options_.length) {
-        explicit_tbl.insert_or_assign("length", static_cast<int64_t>(*options_.length));
-    } else {
-        default_tbl.insert_or_assign("length", static_cast<int64_t>(16));
-    }
-
-    if (options_.separator) {
-        explicit_tbl.insert_or_assign("separator", *options_.separator);
-    } else {
-        default_tbl.insert_or_assign("separator", "");
-    }
-
-    if (options_.passphrase_pattern) {
-        explicit_tbl.insert_or_assign("passphrase_pattern", PatternToString(*options_.passphrase_pattern));
-    } else {
-        default_tbl.insert_or_assign("passphrase_pattern", "");
-    }
-
-    if (options_.digits) {
-        explicit_tbl.insert_or_assign("digits", *options_.digits);
-    } else {
-        default_tbl.insert_or_assign("digits", false);
-    }
-
-    if (options_.symbols) {
-        explicit_tbl.insert_or_assign("symbols", *options_.symbols);
-    } else {
-        default_tbl.insert_or_assign("symbols", false);
-    }
-
-    if (options_.substitutions) {
-        explicit_tbl.insert_or_assign("substitutions", *options_.substitutions);
-    } else {
-        default_tbl.insert_or_assign("substitutions", false);
-    }
-
-    if (options_.capitalize) {
-        explicit_tbl.insert_or_assign("capitalize", *options_.capitalize);
-    } else {
-        default_tbl.insert_or_assign("capitalize", true);
-    }
-
-    if (options_.enable_old_algorithm) {
-        explicit_tbl.insert_or_assign("enable_old_algorithm", *options_.enable_old_algorithm);
-    } else {
-        default_tbl.insert_or_assign("enable_old_algorithm", false);
+    for (const auto& prop : kProperties) {
+        if (prop.has_value(options_)) {
+            prop.save(prop, options_, explicit_tbl);
+        } else {
+            prop.save_default(prop, default_tbl);
+        }
     }
 
     std::stringstream ss;
