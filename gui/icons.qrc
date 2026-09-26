@@ -3,6 +3,8 @@
     <file>icons/eye.svg</file>
     <file>icons/eye-off.svg</file>
     <file>icons/qr.svg</file>
+    <file>icons/comment.svg</file>
+    <file>icons/comment-active.svg</file>
     <file alias="app_icon">../icons/mkpass_256.png</file>
     <file alias="help.html">help/help.html</file>
     <file alias="img/gui_main_window.png">help/img/gui_main_window.png</file>

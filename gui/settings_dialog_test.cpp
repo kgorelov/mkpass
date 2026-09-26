@@ -250,6 +250,7 @@ protected:
         if (!QApplication::instance()) {
             new QApplication(argc, argv);
         }
+        Q_INIT_RESOURCE(icons);
     }
 
     static QComboBox* algorithmComboBox(MainWindow& win) { return win.algorithmComboBox; }
@@ -297,16 +298,21 @@ TEST_F(MainWindowTest, CommentButtonState) {
     MainWindow win;
     auto btn = commentButton(win);
     ASSERT_NE(btn, nullptr);
-    EXPECT_EQ(btn->text(), "Comment...");
+    EXPECT_TRUE(btn->text().isEmpty());
+    EXPECT_FALSE(btn->icon().isNull());
+    EXPECT_EQ(btn->toolTip(), "Add comment for this service");
 
     // Change to service with comment
     serviceLineEdit(win)->setText("with_comment.com");
-    EXPECT_EQ(btn->text(), "Comment *");
+    EXPECT_TRUE(btn->text().isEmpty());
+    EXPECT_FALSE(btn->icon().isNull());
     EXPECT_TRUE(btn->toolTip().contains("Important bank note"));
 
     // Change to service without comment
     serviceLineEdit(win)->setText("new_service.com");
-    EXPECT_EQ(btn->text(), "Comment...");
+    EXPECT_TRUE(btn->text().isEmpty());
+    EXPECT_FALSE(btn->icon().isNull());
+    EXPECT_EQ(btn->toolTip(), "Add comment for this service");
 
     unsetenv("MKPASS_DB_PATH");
     remove(db_path.c_str());

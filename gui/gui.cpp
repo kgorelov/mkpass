@@ -93,7 +93,8 @@ void MainWindow::setupUI() {
     serviceLayout->setContentsMargins(0, 0, 0, 0);
 
     serviceLineEdit = new QLineEdit;
-    serviceCommentButton = new QPushButton("Comment...", this);
+    serviceCommentButton = new QPushButton(this);
+    serviceCommentButton->setIcon(QIcon(":/icons/comment.svg"));
     serviceCommentButton->setToolTip("Add comment for this service");
     connect(serviceCommentButton, &QPushButton::clicked, this, &MainWindow::editServiceComment);
 
@@ -505,10 +506,10 @@ void MainWindow::editServiceComment() {
 
 void MainWindow::updateCommentButtonState() {
     if (currentComment && !currentComment->empty()) {
-        serviceCommentButton->setText("Comment *");
+        serviceCommentButton->setIcon(QIcon(":/icons/comment-active.svg"));
         serviceCommentButton->setToolTip(QString("Comment: %1").arg(QString::fromStdString(*currentComment)));
     } else {
-        serviceCommentButton->setText("Comment...");
+        serviceCommentButton->setIcon(QIcon(":/icons/comment.svg"));
         serviceCommentButton->setToolTip("Add comment for this service");
     }
 }
