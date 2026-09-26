@@ -163,15 +163,16 @@ DbManagementDialog::DbManagementDialog(QWidget *parent)
     mainLayout->addWidget(filterLineEdit);
 
     servicesTableWidget = new QTableWidget;
-    servicesTableWidget->setColumnCount(3);
-    servicesTableWidget->setHorizontalHeaderLabels({"Service Name", "Algorithm", "Length"});
+    servicesTableWidget->setColumnCount(4);
+    servicesTableWidget->setHorizontalHeaderLabels({"Service Name", "Comment", "Algorithm", "Length"});
     servicesTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
     servicesTableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
     servicesTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
     servicesTableWidget->verticalHeader()->setVisible(false);
     servicesTableWidget->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
-    servicesTableWidget->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    servicesTableWidget->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
     servicesTableWidget->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    servicesTableWidget->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
 
     servicesTableWidget->setItemDelegateForColumn(0, new RichTextDelegate(servicesTableWidget));
 
@@ -215,24 +216,31 @@ void DbManagementDialog::updateFilter() {
     QString filterText = filterLineEdit->text();
     mkpass::ConfigDB db(GetConfigDBPath());
     for (const auto& service : allServices) {
-        if (service.contains(filterText, Qt::CaseInsensitive)) {
-            auto entry = db.get_service_entry(service.toStdString());
-            if (entry) {
-                int row = servicesTableWidget->rowCount();
-                servicesTableWidget->insertRow(row);
+        auto entry = db.get_service_entry(service.toStdString());
+        QString commentStr = (entry && entry->comment && !entry->comment->empty()) ? QString::fromStdString(*entry->comment) : QString();
+        bool matchesFilter = filterText.isEmpty() ||
+                             service.contains(filterText, Qt::CaseInsensitive) ||
+                             commentStr.contains(filterText, Qt::CaseInsensitive);
 
-                QTableWidgetItem *item0 = new QTableWidgetItem(service);
-                item0->setData(Qt::UserRole, service);
-                item0->setData(Qt::UserRole + 1, highlightServiceName(service.toStdString()));
-                servicesTableWidget->setItem(row, 0, item0);
+        if (matchesFilter && entry) {
+            int row = servicesTableWidget->rowCount();
+            servicesTableWidget->insertRow(row);
 
-                QTableWidgetItem *item1 = new QTableWidgetItem(getAlgorithmName(entry->algorithm));
-                servicesTableWidget->setItem(row, 1, item1);
+            QTableWidgetItem *item0 = new QTableWidgetItem(service);
+            item0->setData(Qt::UserRole, service);
+            item0->setData(Qt::UserRole + 1, highlightServiceName(service.toStdString()));
+            servicesTableWidget->setItem(row, 0, item0);
 
-                QTableWidgetItem *item2 = new QTableWidgetItem(QString::number(entry->length));
-                item2->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
-                servicesTableWidget->setItem(row, 2, item2);
-            }
+            QTableWidgetItem *itemComment = new QTableWidgetItem(commentStr);
+            itemComment->setToolTip(commentStr);
+            servicesTableWidget->setItem(row, 1, itemComment);
+
+            QTableWidgetItem *item1 = new QTableWidgetItem(getAlgorithmName(entry->algorithm));
+            servicesTableWidget->setItem(row, 2, item1);
+
+            QTableWidgetItem *item2 = new QTableWidgetItem(QString::number(entry->length));
+            item2->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
+            servicesTableWidget->setItem(row, 3, item2);
         }
     }
 }

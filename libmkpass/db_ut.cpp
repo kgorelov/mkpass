@@ -177,6 +177,47 @@ TEST_F(ConfigDBTest, AllowSubstitutions) {
     EXPECT_FALSE(rec2->allow_substitutions);
 }
 
+TEST_F(ConfigDBTest, Comment) {
+    mkpass::ConfigDB db(db_path);
+
+    // 1. Test saving with comment
+    mkpass::ServiceEntry entry;
+    entry.service_name = "commented.com";
+    entry.algorithm = Algorithm::Argon2;
+    entry.length = 16;
+    entry.char_classes = {CharacterClass::LOWERCASE};
+    entry.comment = "Work VPN login";
+
+    db.save_service_entry(entry);
+
+    auto rec = db.get_service_entry("commented.com");
+    ASSERT_TRUE(rec.has_value());
+    ASSERT_TRUE(rec->comment.has_value());
+    EXPECT_EQ(*rec->comment, "Work VPN login");
+
+    // 2. Test updating comment
+    entry.comment = "Updated VPN note";
+    db.save_service_entry(entry);
+
+    auto rec_updated = db.get_service_entry("commented.com");
+    ASSERT_TRUE(rec_updated.has_value());
+    ASSERT_TRUE(rec_updated->comment.has_value());
+    EXPECT_EQ(*rec_updated->comment, "Updated VPN note");
+
+    // 3. Test clearing comment (nullopt)
+    entry.comment = std::nullopt;
+    db.save_service_entry(entry);
+
+    auto rec_cleared = db.get_service_entry("commented.com");
+    ASSERT_TRUE(rec_cleared.has_value());
+    EXPECT_FALSE(rec_cleared->comment.has_value());
+
+    // 4. Test existing service without comment returns nullopt
+    auto rec_old = db.get_service_entry("user@github.com");
+    ASSERT_TRUE(rec_old.has_value());
+    EXPECT_FALSE(rec_old->comment.has_value());
+}
+
 TEST(ConfigDB, NonExistentDB) {
     mkpass::ConfigDB db("non-existent-db.db");
     auto names = db.get_all_service_names();
@@ -340,4 +381,21 @@ TEST(ServiceDetailsTest, GetServiceEntryDetails) {
     EXPECT_EQ(details4[6], std::make_pair(std::string("Include digits"), std::string("No")));
     EXPECT_EQ(details4[7], std::make_pair(std::string("Include symbols"), std::string("No")));
     EXPECT_EQ(details4[8], std::make_pair(std::string("Allow substitutions"), std::string("No")));
+}
+
+TEST(ServiceDetailsTest, GetServiceEntryDetailsWithComment) {
+    mkpass::ServiceEntry entry;
+    entry.service_name = "test.org";
+    entry.comment = "Personal email account";
+    entry.algorithm = Algorithm::Argon2;
+    entry.length = 20;
+    entry.char_classes = {CharacterClass::LOWERCASE};
+
+    auto details = mkpass::GetServiceEntryDetails(entry);
+    ASSERT_EQ(details.size(), 5);
+    EXPECT_EQ(details[0], std::make_pair(std::string("Service name"), std::string("test.org")));
+    EXPECT_EQ(details[1], std::make_pair(std::string("Comment"), std::string("Personal email account")));
+    EXPECT_EQ(details[2], std::make_pair(std::string("Algorithm"), std::string("Password (Argon2)")));
+    EXPECT_EQ(details[3], std::make_pair(std::string("Password length"), std::string("20")));
+    EXPECT_EQ(details[4], std::make_pair(std::string("Character classes"), std::string("Lowercase Letters")));
 }

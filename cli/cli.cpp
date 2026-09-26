@@ -32,6 +32,7 @@ namespace {
 struct CliOptions {
     std::optional<std::string> password;
     std::optional<std::string> service;
+    std::optional<std::string> comment;
     std::optional<std::string> algorithm;
     std::optional<std::string> char_classes;
     std::optional<std::string> custom_chars;
@@ -194,6 +195,48 @@ std::string AskForService(const std::string& default_service = "") {
         return default_service;
     }
     return service;
+}
+
+std::optional<std::string> AskForComment(const std::optional<std::string>& default_comment, bool known) {
+    if (global_options.comment) {
+        if (global_options.comment->empty()) {
+            return std::nullopt;
+        }
+        return global_options.comment;
+    }
+
+    if (global_options.defaults_level >= 2 || (global_options.defaults_level >= 1 && known)) {
+        return default_comment;
+    }
+
+    std::string prompt = "Comment";
+    if (default_comment && !default_comment->empty()) {
+        prompt += " [" + *default_comment + "]";
+    }
+    prompt += ": ";
+
+    char *comment_c_str = linenoise(prompt.c_str());
+    if (comment_c_str == nullptr) {
+        if (!IsTerminal()) {
+            return default_comment;
+        }
+        throw std::exception(); // Handle Ctrl+C
+    }
+    std::string comment_str(comment_c_str);
+    free(comment_c_str);
+
+    comment_str.erase(std::find_if(comment_str.rbegin(), comment_str.rend(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }).base(), comment_str.end());
+
+    if (comment_str == "-") {
+        return std::nullopt;
+    }
+
+    if (comment_str.empty()) {
+        return default_comment;
+    }
+    return comment_str;
 }
 
 Algorithm AskForAlgorithm(Algorithm default_algorithm, bool known, bool is_old_allowed) {
@@ -743,6 +786,7 @@ int run_cli(int argc, char *argv[]) {
 
     app.add_option("-p,--password", global_options.password, "Master password")->envname("MKPASS_PASSWORD");
     app.add_option("-s,--service", global_options.service, "Service name")->envname("MKPASS_SERVICE");
+    app.add_option("-m,--comment", global_options.comment, "Service comment/description")->envname("MKPASS_COMMENT");
     app.add_option("-a,--algorithm", global_options.algorithm, "Algorithm (e.g. password/argon2, password/sha512, passphrase/diceware, passphrase/wordnet, 1-5)")->envname("MKPASS_ALGORITHM");
     app.add_option("-c,--char-classes", global_options.char_classes, "Character classes (e.g. lowercase,uppercase,digits,symbols, or 1234)")->envname("MKPASS_CHAR_CLASSES");
     app.add_option("--custom-chars", global_options.custom_chars, "Custom characters")->envname("MKPASS_CUSTOM_CHARS");
@@ -959,6 +1003,9 @@ int run_cli(int argc, char *argv[]) {
                 break;
         }
 
+        std::optional<std::string> default_comment = (known && db_entry->comment) ? db_entry->comment : std::nullopt;
+        std::optional<std::string> comment = AskForComment(default_comment, known);
+
         std::string password = MkPass(ctx);
         if (global_options.qr_code) {
             PrintQrCode(password);
@@ -966,7 +1013,7 @@ int run_cli(int argc, char *argv[]) {
             std::cout << password << std::endl;
         }
 
-        db.save_service_entry({service, ctx.algorithm, ctx.length, ctx.char_classes, ctx.custom_chars, ctx.separator, ctx.passphrase_pattern, ctx.allow_substitutions, ctx.capitalize_words});
+        db.save_service_entry({service, ctx.algorithm, ctx.length, ctx.char_classes, ctx.custom_chars, ctx.separator, ctx.passphrase_pattern, ctx.allow_substitutions, ctx.capitalize_words, comment});
         service_names = db.get_all_service_names();
 
         if (global_options.infinite) {

@@ -12,6 +12,7 @@ if(WITH_GUI)
     service_details_dialog.cpp
     manual_dialog.cpp
     settings_dialog.cpp
+    comment_dialog.cpp
   )
 
   if (MKPASS_QT_VERSION EQUAL 6)

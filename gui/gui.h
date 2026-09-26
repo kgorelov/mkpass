@@ -3,6 +3,8 @@
 #include <QMainWindow>
 #include <QFutureWatcher>
 #include <QCloseEvent>
+#include <optional>
+#include <string>
 
 class QLineEdit;
 class QCheckBox;
@@ -31,6 +33,7 @@ private slots:
     void generatePassword();
     void generationFinished();
     void serviceChanged(const QString &service);
+    void editServiceComment();
     void validateInputs();
     void updateAlgorithmSpecificUI();
     void updateCustomCharsState();
@@ -45,10 +48,13 @@ private:
     void setupUI();
     void refreshCompleter();
     void updateAlgorithmComboBox(bool force_include_old = false);
+    void updateCommentButtonState();
 
     QLineEdit *masterPasswordLineEdit;
     QLineEdit *repeatPasswordLineEdit;
     QLineEdit *serviceLineEdit;
+    QPushButton *serviceCommentButton;
+    std::optional<std::string> currentComment;
     QComboBox *algorithmComboBox;
     QGroupBox *characterClassesGroupBox;
     QCheckBox *upperCaseCheckBox;

@@ -1061,3 +1061,54 @@ TEST(E2EOldAlgorithmGatingTest, GatingAndEnforcement) {
     remove(config_path.c_str());
     remove(db_path.c_str());
 }
+
+TEST(E2ECommentTest, CommandLineOptionAndInfoMode) {
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-comment.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
+    remove(db_path.c_str());
+
+    // 1. Generate with -m / --comment
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p master -s comment_service -m \"Personal email account\" -dd";
+    ProcessOutput output = exec_with_input(cmd, "");
+    EXPECT_EQ(output.exit_code, 0);
+
+    // 2. Verify in info mode
+    cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -I -s comment_service";
+    output = exec_with_input(cmd, "");
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_TRUE(output.std_out.find("Comment: Personal email account") != std::string::npos);
+
+    unsetenv("MKPASS_DB_PATH");
+    remove(db_path.c_str());
+}
+
+TEST(E2ECommentTest, InteractivePrompt) {
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-comment-interactive.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
+    remove(db_path.c_str());
+
+    // 1. Interactive generation with comment
+    std::string input = "master\nmaster\ninteractive_comment\n1\n1234\n16\nWork VPN access\n";
+    ProcessOutput output = exec_with_input(MKPASS_EXECUTABLE_PATH, input);
+    EXPECT_EQ(output.exit_code, 0);
+
+    // 2. Verify via Info mode
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -I -s interactive_comment";
+    output = exec_with_input(cmd, "");
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_TRUE(output.std_out.find("Comment: Work VPN access") != std::string::npos);
+
+    // 3. Run again on existing service, update comment
+    input = "master\nmaster\ninteractive_comment\n1\n1234\n16\nUpdated VPN note\n";
+    output = exec_with_input(MKPASS_EXECUTABLE_PATH, input);
+    EXPECT_EQ(output.exit_code, 0);
+
+    output = exec_with_input(cmd, "");
+    EXPECT_TRUE(output.std_out.find("Comment: Updated VPN note") != std::string::npos);
+
+    unsetenv("MKPASS_DB_PATH");
+    remove(db_path.c_str());
+}

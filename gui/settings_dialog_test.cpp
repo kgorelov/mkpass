@@ -4,6 +4,8 @@
 #include <fstream>
 
 #include "settings_dialog.h"
+#include "comment_dialog.h"
+#include "db.h"
 #include "gui.h"
 #include "platform_utils.h"
 #include "passphrase_patterns.h"
@@ -253,6 +255,8 @@ protected:
     static QComboBox* algorithmComboBox(MainWindow& win) { return win.algorithmComboBox; }
     static QSpinBox* lengthSpinBox(MainWindow& win) { return win.lengthSpinBox; }
     static QComboBox* patternComboBox(MainWindow& win) { return win.patternComboBox; }
+    static QPushButton* commentButton(MainWindow& win) { return win.serviceCommentButton; }
+    static QLineEdit* serviceLineEdit(MainWindow& win) { return win.serviceLineEdit; }
 };
 
 TEST_F(MainWindowTest, PassphrasePatternDropdownExplanation) {
@@ -275,4 +279,40 @@ TEST_F(MainWindowTest, PassphrasePatternDropdownExplanation) {
 
     EXPECT_EQ(combo->itemText(2), "vnr (Verb, Noun, Adv)");
     EXPECT_EQ(combo->itemData(2).toString().toStdString(), "vnr");
+}
+
+TEST_F(MainWindowTest, CommentButtonState) {
+    std::string db_path = GetTmpDir() + "/mkpass-gui-comment-test.db";
+    setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
+    remove(db_path.c_str());
+
+    mkpass::ConfigDB db(db_path);
+    mkpass::ServiceEntry entry;
+    entry.service_name = "with_comment.com";
+    entry.algorithm = Algorithm::Argon2;
+    entry.length = 16;
+    entry.comment = "Important bank note";
+    db.save_service_entry(entry);
+
+    MainWindow win;
+    auto btn = commentButton(win);
+    ASSERT_NE(btn, nullptr);
+    EXPECT_EQ(btn->text(), "Comment...");
+
+    // Change to service with comment
+    serviceLineEdit(win)->setText("with_comment.com");
+    EXPECT_EQ(btn->text(), "Comment *");
+    EXPECT_TRUE(btn->toolTip().contains("Important bank note"));
+
+    // Change to service without comment
+    serviceLineEdit(win)->setText("new_service.com");
+    EXPECT_EQ(btn->text(), "Comment...");
+
+    unsetenv("MKPASS_DB_PATH");
+    remove(db_path.c_str());
+}
+
+TEST_F(MainWindowTest, CommentDialogInitialAndEditedComment) {
+    CommentDialog dlg("test.com", "Initial note");
+    EXPECT_EQ(dlg.getComment(), "Initial note");
 }

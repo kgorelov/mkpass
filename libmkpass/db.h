@@ -24,6 +24,7 @@ struct ServiceEntry {
     std::vector<WordClasses> passphrase_pattern;
     bool allow_substitutions;
     bool capitalize_words;
+    std::optional<std::string> comment;
 };
 
 

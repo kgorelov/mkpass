@@ -11,6 +11,7 @@
 #include "passphrase_patterns.h"
 #include "word_classes.h"
 #include "settings_dialog.h"
+#include "comment_dialog.h"
 #include "config.h"
 
 #include <QVBoxLayout>
@@ -87,8 +88,19 @@ void MainWindow::setupUI() {
     repeatPasswordLineEdit->setEchoMode(QLineEdit::Password);
     formLayout->addRow("Repeat Password:", repeatPasswordLineEdit);
 
+    QWidget *serviceWidget = new QWidget;
+    QHBoxLayout *serviceLayout = new QHBoxLayout(serviceWidget);
+    serviceLayout->setContentsMargins(0, 0, 0, 0);
+
     serviceLineEdit = new QLineEdit;
-    formLayout->addRow("Service:", serviceLineEdit);
+    serviceCommentButton = new QPushButton("Comment...", this);
+    serviceCommentButton->setToolTip("Add comment for this service");
+    connect(serviceCommentButton, &QPushButton::clicked, this, &MainWindow::editServiceComment);
+
+    serviceLayout->addWidget(serviceLineEdit);
+    serviceLayout->addWidget(serviceCommentButton);
+
+    formLayout->addRow("Service:", serviceWidget);
 
     algorithmComboBox = new QComboBox;
     updateAlgorithmComboBox(false);
@@ -314,7 +326,8 @@ void MainWindow::generationFinished() {
         separator,
         pattern,
         allowSubstitutionsCheckBox->isChecked(),
-        capitalize_words
+        capitalize_words,
+        currentComment
     });
 
     refreshCompleter();
@@ -372,7 +385,9 @@ void MainWindow::serviceChanged(const QString &service) {
         }
 
         allowSubstitutionsCheckBox->setChecked(entry->allow_substitutions);
+        currentComment = entry->comment;
     } else {
+        currentComment = std::nullopt;
         mkpass::Config cfg(GetConfigFilePath());
         cfg.load();
         const auto& opts = cfg.options();
@@ -461,7 +476,41 @@ void MainWindow::serviceChanged(const QString &service) {
             patternComboBox->setCurrentIndex(0);
         }
     }
+    updateCommentButtonState();
     updateAlgorithmSpecificUI();
+}
+
+void MainWindow::editServiceComment() {
+    QString current = currentComment ? QString::fromStdString(*currentComment) : QString();
+    CommentDialog dialog(serviceLineEdit->text(), current, this);
+    if (dialog.exec() == QDialog::Accepted) {
+        QString text = dialog.getComment();
+        if (text.isEmpty()) {
+            currentComment = std::nullopt;
+        } else {
+            currentComment = text.toStdString();
+        }
+        updateCommentButtonState();
+
+        std::string sname = serviceLineEdit->text().toStdString();
+        if (!sname.empty()) {
+            mkpass::ConfigDB db(GetConfigDBPath());
+            if (auto entry = db.get_service_entry(sname)) {
+                entry->comment = currentComment;
+                db.save_service_entry(*entry);
+            }
+        }
+    }
+}
+
+void MainWindow::updateCommentButtonState() {
+    if (currentComment && !currentComment->empty()) {
+        serviceCommentButton->setText("Comment *");
+        serviceCommentButton->setToolTip(QString("Comment: %1").arg(QString::fromStdString(*currentComment)));
+    } else {
+        serviceCommentButton->setText("Comment...");
+        serviceCommentButton->setToolTip("Add comment for this service");
+    }
 }
 
 void MainWindow::validateInputs() {

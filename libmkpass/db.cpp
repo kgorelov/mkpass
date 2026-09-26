@@ -155,6 +155,14 @@ void ConfigDB::create_tables() {
             sqlite3_free(err_msg);
         }
     }
+
+    if (!column_exists(db, "service_entries", "comment")) {
+        const char *alter_sql = "ALTER TABLE service_entries ADD COLUMN comment TEXT;";
+        if (sqlite3_exec(db, alter_sql, 0, 0, &err_msg) != SQLITE_OK) {
+            std::cerr << "Failed to alter table: " << err_msg << std::endl;
+            sqlite3_free(err_msg);
+        }
+    }
 }
 
 ConfigDB::ConfigDB(const std::string &db_path) : db(nullptr) {
@@ -228,7 +236,7 @@ std::optional<ServiceEntry> ConfigDB::get_new_service_entry(const std::string& s
     }
 
     sqlite3_stmt *stmt;
-    const char *sql = "SELECT algorithm, length, char_classes, custom_chars, separator, passphrase_pattern, allow_substitutions, capitalize_words FROM service_entries WHERE name = ?";
+    const char *sql = "SELECT algorithm, length, char_classes, custom_chars, separator, passphrase_pattern, allow_substitutions, capitalize_words, comment FROM service_entries WHERE name = ?";
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
         return std::nullopt;
     }
@@ -269,6 +277,10 @@ std::optional<ServiceEntry> ConfigDB::get_new_service_entry(const std::string& s
             entry.passphrase_pattern = StringToPattern(reinterpret_cast<const char*>(pattern));
         }
         entry.allow_substitutions = sqlite3_column_int(stmt, 6) != 0;
+        const unsigned char *comment = sqlite3_column_text(stmt, 8);
+        if (comment) {
+            entry.comment = reinterpret_cast<const char*>(comment);
+        }
         sqlite3_finalize(stmt);
         return entry;
     }
@@ -292,7 +304,7 @@ void ConfigDB::save_service_entry(const ServiceEntry& entry) {
     }
 
     sqlite3_stmt *stmt;
-    const char *sql = "INSERT OR REPLACE INTO service_entries (name, algorithm, length, char_classes, custom_chars, separator, passphrase_pattern, allow_substitutions, capitalize_words) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    const char *sql = "INSERT OR REPLACE INTO service_entries (name, algorithm, length, char_classes, custom_chars, separator, passphrase_pattern, allow_substitutions, capitalize_words, comment) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
         return;
     }
@@ -315,6 +327,11 @@ void ConfigDB::save_service_entry(const ServiceEntry& entry) {
     }
     sqlite3_bind_int(stmt, 8, entry.allow_substitutions ? 1 : 0);
     sqlite3_bind_int(stmt, 9, entry.capitalize_words ? 1 : 0);
+    if (entry.comment && !entry.comment->empty()) {
+        sqlite3_bind_text(stmt, 10, entry.comment->c_str(), -1, SQLITE_TRANSIENT);
+    } else {
+        sqlite3_bind_null(stmt, 10);
+    }
 
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
@@ -419,6 +436,9 @@ std::string GetCharacterClassesString(const std::vector<CharacterClass>& char_cl
 std::vector<std::pair<std::string, std::string>> GetServiceEntryDetails(const ServiceEntry& entry) {
     std::vector<std::pair<std::string, std::string>> details;
     details.emplace_back("Service name", entry.service_name);
+    if (entry.comment && !entry.comment->empty()) {
+        details.emplace_back("Comment", *entry.comment);
+    }
     details.emplace_back("Algorithm", GetAlgorithmName(entry.algorithm));
 
     if (entry.algorithm == Algorithm::Argon2 || entry.algorithm == Algorithm::SlowSha512) {
