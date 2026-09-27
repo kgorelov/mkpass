@@ -9,6 +9,8 @@
 #include "gui.h"
 #include "platform_utils.h"
 #include "passphrase_patterns.h"
+#include "icon_utils.h"
+#include "password_dialog.h"
 
 class SettingsDialogTest : public ::testing::Test {
 protected:
@@ -321,4 +323,114 @@ TEST_F(MainWindowTest, CommentButtonState) {
 TEST_F(MainWindowTest, CommentDialogInitialAndEditedComment) {
     CommentDialog dlg("test.com", "Initial note");
     EXPECT_EQ(dlg.getComment(), "Initial note");
+}
+
+class ThemedIconTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() {
+        qputenv("QT_QPA_PLATFORM", "offscreen");
+        int argc = 0;
+        char *argv[] = {nullptr};
+        if (!QApplication::instance()) {
+            new QApplication(argc, argv);
+        }
+        Q_INIT_RESOURCE(icons);
+    }
+};
+
+TEST_F(ThemedIconTest, DetectDarkTheme) {
+    QPalette darkPalette;
+    darkPalette.setColor(QPalette::Window, QColor(31, 31, 31));
+    darkPalette.setColor(QPalette::WindowText, QColor(255, 255, 255));
+    darkPalette.setColor(QPalette::Button, QColor(31, 31, 31));
+    darkPalette.setColor(QPalette::ButtonText, QColor(247, 247, 247));
+    EXPECT_TRUE(isDarkTheme(darkPalette));
+
+    QPalette lightPalette;
+    lightPalette.setColor(QPalette::Window, QColor(240, 240, 240));
+    lightPalette.setColor(QPalette::WindowText, QColor(0, 0, 0));
+    lightPalette.setColor(QPalette::Button, QColor(224, 224, 224));
+    lightPalette.setColor(QPalette::ButtonText, QColor(20, 20, 20));
+    EXPECT_FALSE(isDarkTheme(lightPalette));
+}
+
+TEST_F(ThemedIconTest, ThemedIconsLoaded) {
+    EXPECT_FALSE(getThemedIcon(":/icons/comment.svg").isNull());
+    EXPECT_FALSE(getThemedIcon(":/icons/comment-active.svg").isNull());
+    EXPECT_FALSE(getThemedIcon(":/icons/eye.svg").isNull());
+    EXPECT_FALSE(getThemedIcon(":/icons/eye-off.svg").isNull());
+    EXPECT_FALSE(getThemedIcon(":/icons/qr.svg").isNull());
+    EXPECT_TRUE(getThemedIcon(":/icons/nonexistent.svg").isNull());
+}
+
+TEST_F(ThemedIconTest, DarkThemeIconRendersLight) {
+    QPalette origPalette = QApplication::palette();
+
+    QPalette darkPalette;
+    darkPalette.setColor(QPalette::Window, QColor(31, 31, 31));
+    darkPalette.setColor(QPalette::WindowText, QColor(255, 255, 255));
+    darkPalette.setColor(QPalette::Button, QColor(31, 31, 31));
+    darkPalette.setColor(QPalette::ButtonText, QColor(247, 247, 247));
+    QApplication::setPalette(darkPalette);
+
+    QIcon icon = getThemedIcon(":/icons/eye.svg");
+    QPixmap pm = icon.pixmap(QSize(24, 24));
+    EXPECT_FALSE(pm.isNull());
+    QImage img = pm.toImage();
+
+    bool hasLightPixel = false;
+    for (int y = 0; y < img.height(); ++y) {
+        for (int x = 0; x < img.width(); ++x) {
+            QRgb px = img.pixel(x, y);
+            if (qAlpha(px) > 200) {
+                EXPECT_GE(qGray(px), 180);
+                hasLightPixel = true;
+            }
+        }
+    }
+    EXPECT_TRUE(hasLightPixel);
+
+    QApplication::setPalette(origPalette);
+}
+
+TEST_F(ThemedIconTest, LightThemeIconRendersDark) {
+    QPalette origPalette = QApplication::palette();
+
+    QPalette lightPalette;
+    lightPalette.setColor(QPalette::Window, QColor(240, 240, 240));
+    lightPalette.setColor(QPalette::WindowText, QColor(0, 0, 0));
+    lightPalette.setColor(QPalette::Button, QColor(224, 224, 224));
+    lightPalette.setColor(QPalette::ButtonText, QColor(20, 20, 20));
+    QApplication::setPalette(lightPalette);
+
+    QIcon icon = getThemedIcon(":/icons/eye.svg");
+    QPixmap pm = icon.pixmap(QSize(24, 24));
+    EXPECT_FALSE(pm.isNull());
+    QImage img = pm.toImage();
+
+    bool hasDarkPixel = false;
+    for (int y = 0; y < img.height(); ++y) {
+        for (int x = 0; x < img.width(); ++x) {
+            QRgb px = img.pixel(x, y);
+            if (qAlpha(px) > 200) {
+                EXPECT_LT(qGray(px), 50);
+                hasDarkPixel = true;
+            }
+        }
+    }
+    EXPECT_TRUE(hasDarkPixel);
+
+    QApplication::setPalette(origPalette);
+}
+
+TEST_F(ThemedIconTest, PasswordDialogUsesThemedIcons) {
+    PasswordDialog dlg("secret-password");
+    auto buttons = dlg.findChildren<QPushButton *>();
+    int iconButtonCount = 0;
+    for (auto *btn : buttons) {
+        if (!btn->icon().isNull()) {
+            iconButtonCount++;
+        }
+    }
+    EXPECT_GE(iconButtonCount, 2);
 }

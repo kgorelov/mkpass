@@ -1,4 +1,5 @@
 #include "password_dialog.h"
+#include "icon_utils.h"
 #include "qrcode/qrcodegen.hpp"
 
 #include <QHBoxLayout>
@@ -31,12 +32,12 @@ void PasswordDialog::setupUI() {
     passwordLayout->addWidget(passwordLineEdit);
 
     showHideButton = new QPushButton;
-    showHideButton->setIcon(QIcon::fromTheme("view-reveal", QIcon(":/icons/eye.svg")));
+    showHideButton->setIcon(getThemedIcon(":/icons/eye.svg"));
     connect(showHideButton, &QPushButton::clicked, this, &PasswordDialog::togglePasswordVisibility);
     passwordLayout->addWidget(showHideButton);
 
     qrCodeButton = new QPushButton;
-    qrCodeButton->setIcon(QIcon::fromTheme("view-grid", QIcon(":/icons/qr.svg"))); // You need to add a qr.svg icon
+    qrCodeButton->setIcon(getThemedIcon(":/icons/qr.svg"));
     connect(qrCodeButton, &QPushButton::clicked, this, &PasswordDialog::toggleQrCode);
     passwordLayout->addWidget(qrCodeButton);
 
@@ -62,10 +63,10 @@ void PasswordDialog::setupUI() {
 void PasswordDialog::togglePasswordVisibility() {
     if (passwordLineEdit->echoMode() == QLineEdit::Password) {
         passwordLineEdit->setEchoMode(QLineEdit::Normal);
-        showHideButton->setIcon(QIcon::fromTheme("view-conceal", QIcon(":/icons/eye-off.svg")));
+        showHideButton->setIcon(getThemedIcon(":/icons/eye-off.svg"));
     } else {
         passwordLineEdit->setEchoMode(QLineEdit::Password);
-        showHideButton->setIcon(QIcon::fromTheme("view-reveal", QIcon(":/icons/eye.svg")));
+        showHideButton->setIcon(getThemedIcon(":/icons/eye.svg"));
     }
 }
 

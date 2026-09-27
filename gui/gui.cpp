@@ -12,6 +12,7 @@
 #include "word_classes.h"
 #include "settings_dialog.h"
 #include "comment_dialog.h"
+#include "icon_utils.h"
 #include "config.h"
 
 #include <QVBoxLayout>
@@ -94,7 +95,7 @@ void MainWindow::setupUI() {
 
     serviceLineEdit = new QLineEdit;
     serviceCommentButton = new QPushButton(this);
-    serviceCommentButton->setIcon(QIcon(":/icons/comment.svg"));
+    serviceCommentButton->setIcon(getThemedIcon(":/icons/comment.svg"));
     serviceCommentButton->setToolTip("Add comment for this service");
     connect(serviceCommentButton, &QPushButton::clicked, this, &MainWindow::editServiceComment);
 
@@ -506,10 +507,10 @@ void MainWindow::editServiceComment() {
 
 void MainWindow::updateCommentButtonState() {
     if (currentComment && !currentComment->empty()) {
-        serviceCommentButton->setIcon(QIcon(":/icons/comment-active.svg"));
+        serviceCommentButton->setIcon(getThemedIcon(":/icons/comment-active.svg"));
         serviceCommentButton->setToolTip(QString("Comment: %1").arg(QString::fromStdString(*currentComment)));
     } else {
-        serviceCommentButton->setIcon(QIcon(":/icons/comment.svg"));
+        serviceCommentButton->setIcon(getThemedIcon(":/icons/comment.svg"));
         serviceCommentButton->setToolTip("Add comment for this service");
     }
 }
