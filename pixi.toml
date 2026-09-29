@@ -16,6 +16,7 @@ cxx-compiler = "*"
 
 [target.linux-64.dependencies]
 wget = "*"
+libgl-devel = "*"
 
 [tasks]
 # Configure: Creates the build directory and generates build files
