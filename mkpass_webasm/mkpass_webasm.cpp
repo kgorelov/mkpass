@@ -1,6 +1,7 @@
 #include <emscripten/bind.h>
 #include <string>
 #include <vector>
+#include <cstdint>
 #include <cstdio>
 #include "mkpass.h"
 #include "context.h"
@@ -45,7 +46,7 @@ std::vector<std::string> GetPassphrasePatternsWasm(int length) {
 // ... QrCodeData ...
 struct QrCodeData {
     int size;
-    std::vector<bool> data;
+    std::vector<uint8_t> data;
 };
 
 QrCodeData GenerateQrCode(std::string text) {
@@ -54,7 +55,7 @@ QrCodeData GenerateQrCode(std::string text) {
     result.size = qr.getSize();
     for (int y = 0; y < result.size; y++) {
         for (int x = 0; x < result.size; x++) {
-            result.data.push_back(qr.getModule(x, y));
+            result.data.push_back(qr.getModule(x, y) ? 1 : 0);
         }
     }
     return result;
@@ -76,7 +77,7 @@ EMSCRIPTEN_BINDINGS(mkpass_module) {
         .value("CUSTOM", CharacterClass::CUSTOM);
 
     register_vector<CharacterClass>("VectorCharacterClass");
-    register_vector<bool>("VectorBool");
+    register_vector<uint8_t>("VectorBool");
     register_vector<std::string>("VectorString");
 
     value_object<QrCodeData>("QrCodeData")

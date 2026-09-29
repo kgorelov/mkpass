@@ -6,7 +6,7 @@ export interface QrCodeData {
     size: number;
     data: {
         size(): number;
-        get(index: number): boolean;
+        get(index: number): boolean | number;
     };
 }
 
@@ -32,7 +32,7 @@ export interface MkPassModule {
     };
     VectorBool: {
         size(): number;
-        get(index: number): boolean;
+        get(index: number): boolean | number;
     };
     VectorString: {
         size(): number;
