@@ -42,3 +42,4 @@ appimage = { cmd = "scripts/build_appimage.sh", depends-on = ["build-gui"] }
 configure = "cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_GUI=ON -DCMAKE_PREFIX_PATH=$CONDA_PREFIX"
 run = { cmd = "build/cli/mkpass.exe", depends-on = ["build"] }
 run-gui = { cmd = "build/gui/mkpass-gui.exe", depends-on = ["build"] }
+package = { cmd = "bash scripts/package_windows.sh", depends-on = ["build"] }

@@ -21,10 +21,38 @@ android {
         }
     }
 
+    signingConfigs {
+        release {
+            def keystoreBase64 = System.getenv("ANDROID_KEYSTORE_BASE64")
+            def keystoreFileEnv = System.getenv("KEYSTORE_FILE")
+            def keystorePassword = System.getenv("KEYSTORE_PASSWORD")
+            def keyAlias = System.getenv("KEY_ALIAS")
+            def keyPassword = System.getenv("KEY_PASSWORD")
+
+            if (keystoreBase64) {
+                def keystoreFile = file("${buildDir}/release.keystore")
+                keystoreFile.parentFile.mkdirs()
+                keystoreFile.bytes = keystoreBase64.decodeBase64()
+                storeFile keystoreFile
+                storePassword keystorePassword ?: ""
+                keyAlias keyAlias ?: ""
+                keyPassword keyPassword ?: ""
+            } else if (keystoreFileEnv && file(keystoreFileEnv).exists()) {
+                storeFile file(keystoreFileEnv)
+                storePassword keystorePassword ?: ""
+                keyAlias keyAlias ?: ""
+                keyPassword keyPassword ?: ""
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (System.getenv("ANDROID_KEYSTORE_BASE64") || (System.getenv("KEYSTORE_FILE") && file(System.getenv("KEYSTORE_FILE")).exists())) {
+                signingConfig signingConfigs.release
+            }
         }
     }
     compileOptions {

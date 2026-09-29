@@ -23,4 +23,7 @@ debian/*.log
 debian/*substvars
 debian/debhelper-build-stamp
 obj-x86_64-linux-gnu
+/dist
+/package
+/package_*
 

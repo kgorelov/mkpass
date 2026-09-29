@@ -1,0 +1,246 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - 'release/**'
+      - 'release-*'
+    tags:
+      - '*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-desktop:
+    name: Desktop (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x64
+          - os: windows-latest
+            platform: windows-x64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Pixi
+        uses: prefix-dev/setup-pixi@v0.10.2
+        with:
+          pixi-version: latest
+          cache: true
+
+      - name: Configure CMake
+        run: pixi run configure
+
+      - name: Build application
+        run: pixi run build
+
+      - name: Run test suite
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: pixi run test
+
+      - name: Package Linux
+        if: matrix.platform == 'linux-x64'
+        shell: bash
+        run: |
+          mkdir -p dist
+          TAG_NAME="${GITHUB_REF_NAME//\//-}"
+
+          # 1. Build AppImage via pixi task
+          pixi run appimage
+
+          # 2. Copy generated AppImage to dist
+          cp mkpass-x86_64.AppImage "dist/mkpass-${TAG_NAME}-linux-x86_64.AppImage"
+
+          # 3. Standalone bundle tarball (bundles all Qt libraries & plugins)
+          mkdir -p package_bundle/mkpass
+          cp -a AppDir/* package_bundle/mkpass/
+          cat << 'EOF' > package_bundle/mkpass/mkpass-gui
+          #!/bin/bash
+          HERE="$(dirname "$(readlink -f "$0")")"
+          export LD_LIBRARY_PATH="$HERE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          export QT_PLUGIN_PATH="$HERE/usr/plugins"
+          exec "$HERE/usr/bin/mkpass-gui" "$@"
+          EOF
+          chmod +x package_bundle/mkpass/mkpass-gui
+          tar -czvf "dist/mkpass-${TAG_NAME}-linux-x86_64-bundle.tar.gz" -C package_bundle mkpass
+
+          # 4. Standalone CLI tarball (mostly-static)
+          pixi run cli-mostly-static || true
+          mkdir -p package_cli/mkpass
+          if [ -f build-cli-mostly/cli/mkpass ]; then
+            cp build-cli-mostly/cli/mkpass package_cli/mkpass/
+          else
+            cp build/cli/mkpass package_cli/mkpass/
+          fi
+          tar -czvf "dist/mkpass-${TAG_NAME}-linux-x86_64-cli.tar.gz" -C package_cli mkpass
+
+      - name: Package Windows
+        if: matrix.platform == 'windows-x64'
+        shell: bash
+        run: |
+          mkdir -p dist package/mkpass
+          TAG_NAME="${GITHUB_REF_NAME//\//-}"
+
+          # Copy binaries
+          cp build/cli/mkpass.exe package/mkpass/
+          cp build/gui/mkpass-gui.exe package/mkpass/
+
+          # Copy Qt runtime DLLs and plugins from Conda prefix
+          if [ -d "$CONDA_PREFIX/Library/bin" ]; then
+            PREFIX_BIN="$CONDA_PREFIX/Library/bin"
+            PREFIX_PLUGINS="$CONDA_PREFIX/Library/plugins"
+          else
+            PREFIX_BIN="$CONDA_PREFIX/bin"
+            PREFIX_PLUGINS="$CONDA_PREFIX/plugins"
+          fi
+
+          cp "$PREFIX_BIN"/Qt5Core.dll "$PREFIX_BIN"/Qt5Gui.dll "$PREFIX_BIN"/Qt5Widgets.dll "$PREFIX_BIN"/Qt5Concurrent.dll "$PREFIX_BIN"/Qt5Svg.dll package/mkpass/ 2>/dev/null || true
+          cp "$PREFIX_BIN"/libpng16.dll "$PREFIX_BIN"/zlib.dll "$PREFIX_BIN"/pcre2-16.dll "$PREFIX_BIN"/zstd.dll "$PREFIX_BIN"/freetype.dll "$PREFIX_BIN"/harfbuzz.dll "$PREFIX_BIN"/libbz2.dll package/mkpass/ 2>/dev/null || true
+          cp build/gui/*.dll package/mkpass/ 2>/dev/null || true
+
+          # Platform plugins
+          mkdir -p package/mkpass/platforms
+          cp "$PREFIX_PLUGINS"/platforms/qwindows.dll package/mkpass/platforms/ 2>/dev/null || true
+
+          # Icon and image format plugins
+          if [ -d "$PREFIX_PLUGINS/iconengines" ]; then
+            mkdir -p package/mkpass/iconengines
+            cp "$PREFIX_PLUGINS"/iconengines/*.dll package/mkpass/iconengines/ 2>/dev/null || true
+          fi
+          if [ -d "$PREFIX_PLUGINS/imageformats" ]; then
+            mkdir -p package/mkpass/imageformats
+            cp "$PREFIX_PLUGINS"/imageformats/*.dll package/mkpass/imageformats/ 2>/dev/null || true
+          fi
+
+          # Compress portable zip
+          cmake -E chdir package cmake -E tar cfv "../dist/mkpass-${TAG_NAME}-windows-x64.zip" --format=zip mkpass
+
+      - name: Upload desktop artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mkpass-${{ matrix.platform }}
+          path: dist/*
+          if-no-files-found: error
+
+  build-android:
+    name: Android (APK)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build Android APK
+        working-directory: android
+        run: ./gradlew assembleRelease || ./gradlew assembleDebug
+
+      - name: Package Android Artifact
+        shell: bash
+        run: |
+          mkdir -p dist
+          TAG_NAME="${GITHUB_REF_NAME//\//-}"
+          APK_FILE=$(find android/app/build/outputs/apk/release -name "*.apk" 2>/dev/null | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            APK_FILE=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
+          fi
+          if [ -n "$APK_FILE" ]; then
+            cp "$APK_FILE" "dist/mkpass-${TAG_NAME}-android.apk"
+          else
+            echo "Error: No APK file generated" >&2
+            exit 1
+          fi
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mkpass-android
+          path: dist/*
+          if-no-files-found: error
+
+  build-web:
+    name: Web (WASM + React)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '3.1.56'
+
+      - name: Build WebAssembly Core
+        run: |
+          chmod +x build_wasm.sh
+          ./build_wasm.sh
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mkpass_web/package-lock.json
+
+      - name: Build React SPA
+        working-directory: mkpass_web
+        run: |
+          npm ci
+          CI=false npm run build
+          npm test -- --watchAll=false
+
+      - name: Package Web Distribution
+        shell: bash
+        run: |
+          mkdir -p dist
+          TAG_NAME="${GITHUB_REF_NAME//\//-}"
+          tar -czvf "dist/mkpass-${TAG_NAME}-web.tar.gz" -C mkpass_web/build .
+
+      - name: Upload Web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mkpass-web
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: [build-desktop, build-android, build-web]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: mkpass-*
+          path: dist
+          merge-multiple: true
+
+      - name: Inspect release assets
+        run: ls -la dist/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

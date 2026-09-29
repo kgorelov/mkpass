@@ -19,22 +19,70 @@ DOWNLOAD_DIR="build_tools"
 mkdir -p "$DOWNLOAD_DIR"
 cd "$DOWNLOAD_DIR"
 
-if [ ! -f linuxdeploy-x86_64.AppImage ]; then
-    wget -c https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-    chmod +x linuxdeploy-x86_64.AppImage
-fi
+download() {
+    local url="$1"
+    local output="$2"
+    if [ ! -f "$output" ]; then
+        if command -v wget >/dev/null 2>&1; then
+            wget --tries=3 -c "$url" -O "$output"
+        elif command -v curl >/dev/null 2>&1; then
+            curl --retry 3 -L -C - "$url" -o "$output"
+        else
+            echo "Error: Neither wget nor curl is available" >&2
+            exit 1
+        fi
+        chmod +x "$output"
+    fi
+}
 
-if [ ! -f linuxdeploy-plugin-qt-x86_64.AppImage ]; then
-    wget -c https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
-    chmod +x linuxdeploy-plugin-qt-x86_64.AppImage
-fi
+download "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage" "linuxdeploy-x86_64.AppImage"
+download "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage" "linuxdeploy-plugin-qt-x86_64.AppImage"
 
 cd ..
 
 # Set up environment for linuxdeploy
-export QMAKE="$CONDA_PREFIX/bin/qmake"
-export LD_LIBRARY_PATH="$CONDA_PREFIX/lib:$LD_LIBRARY_PATH"
-export EXTRA_QT_PLUGINS="svg" # If needed
+if [ -z "$CONDA_PREFIX" ] && [ -d ".pixi/envs/default" ]; then
+    CONDA_PREFIX="$(pwd)/.pixi/envs/default"
+fi
+
+if [ -n "$CONDA_PREFIX" ]; then
+    if [ -f "$CONDA_PREFIX/bin/qmake" ]; then
+        export QMAKE="$CONDA_PREFIX/bin/qmake"
+    elif [ -f "$CONDA_PREFIX/bin/qmake6" ]; then
+        export QMAKE="$CONDA_PREFIX/bin/qmake6"
+    fi
+    export LD_LIBRARY_PATH="$CONDA_PREFIX/lib:$LD_LIBRARY_PATH"
+fi
+
+export EXTRA_QT_PLUGINS="svg"
+
+# Pre-populate extra platform and SVG plugins if available
+mkdir -p AppDir/usr/plugins/platforms AppDir/usr/plugins/iconengines AppDir/usr/plugins/imageformats
+if [ -n "$CONDA_PREFIX" ]; then
+    QT_PLUGINS_DIR=""
+    if [ -d "$CONDA_PREFIX/plugins" ]; then
+        QT_PLUGINS_DIR="$CONDA_PREFIX/plugins"
+    elif [ -d "$CONDA_PREFIX/lib/qt5/plugins" ]; then
+        QT_PLUGINS_DIR="$CONDA_PREFIX/lib/qt5/plugins"
+    elif [ -d "$CONDA_PREFIX/lib/qt6/plugins" ]; then
+        QT_PLUGINS_DIR="$CONDA_PREFIX/lib/qt6/plugins"
+    fi
+
+    if [ -n "$QT_PLUGINS_DIR" ]; then
+        if [ -f "$QT_PLUGINS_DIR/platforms/libqoffscreen.so" ]; then
+            cp -f "$QT_PLUGINS_DIR/platforms/libqoffscreen.so" AppDir/usr/plugins/platforms/
+        fi
+        if [ -f "$QT_PLUGINS_DIR/platforms/libqwayland.so" ]; then
+            cp -f "$QT_PLUGINS_DIR/platforms/libqwayland.so" AppDir/usr/plugins/platforms/
+        fi
+        if [ -f "$QT_PLUGINS_DIR/iconengines/libqsvgicon.so" ]; then
+            cp -f "$QT_PLUGINS_DIR/iconengines/libqsvgicon.so" AppDir/usr/plugins/iconengines/
+        fi
+        if [ -f "$QT_PLUGINS_DIR/imageformats/libqsvg.so" ]; then
+            cp -f "$QT_PLUGINS_DIR/imageformats/libqsvg.so" AppDir/usr/plugins/imageformats/
+        fi
+    fi
+fi
 
 # Run linuxdeploy
 # --appimage-extract-and-run is used to avoid FUSE issues in some environments

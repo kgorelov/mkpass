@@ -20,6 +20,7 @@ echo "Building with emmake..."
 emmake make
 
 echo "Copying artifacts to $WEB_PUBLIC_DIR..."
+mkdir -p "$WEB_PUBLIC_DIR"
 cp mkpass_webasm.js mkpass_webasm.wasm "$WEB_PUBLIC_DIR/"
 
 echo "WASM module built and copied successfully!"
