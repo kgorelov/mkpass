@@ -111,6 +111,7 @@ if(WITH_GUI)
     # These are system libraries that Qt depends on but windeployqt doesn't copy
     if(DEFINED ENV{CONDA_PREFIX})
       set(CONDA_BIN_DIR "$ENV{CONDA_PREFIX}/Library/bin")
+      file(GLOB ICU_DLLS "${CONDA_BIN_DIR}/icu*.dll")
       add_custom_command(TARGET mkpass-gui POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
           "${CONDA_BIN_DIR}/libpng16.dll"
@@ -120,8 +121,15 @@ if(WITH_GUI)
           "${CONDA_BIN_DIR}/freetype.dll"
           "${CONDA_BIN_DIR}/harfbuzz.dll"
           "${CONDA_BIN_DIR}/libbz2.dll"
+          ${ICU_DLLS}
           "$<TARGET_FILE_DIR:mkpass-gui>/"
         COMMENT "Copying Qt runtime dependencies"
+      )
+      add_custom_command(TARGET mkpass-gui POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E echo "[Paths]" > "$<TARGET_FILE_DIR:mkpass-gui>/qt.conf"
+        COMMAND ${CMAKE_COMMAND} -E echo "Prefix = ." >> "$<TARGET_FILE_DIR:mkpass-gui>/qt.conf"
+        COMMAND ${CMAKE_COMMAND} -E echo "Plugins = ." >> "$<TARGET_FILE_DIR:mkpass-gui>/qt.conf"
+        COMMENT "Writing qt.conf"
       )
     endif()
   endif()

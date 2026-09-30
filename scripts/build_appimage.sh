@@ -84,13 +84,43 @@ if [ -n "$CONDA_PREFIX" ]; then
     fi
 fi
 
-# Run linuxdeploy
+# Pre-bundle libstdc++ and libgcc_s into AppDir/usr/lib before linuxdeploy runs
+if [ -n "$CONDA_PREFIX" ]; then
+    echo "Pre-copying libstdc++ and libgcc_s into AppDir/usr/lib..."
+    mkdir -p AppDir/usr/lib
+    cp -d "$CONDA_PREFIX"/lib/libstdc++.so* AppDir/usr/lib/ 2>/dev/null || true
+    cp -d "$CONDA_PREFIX"/lib/libgcc_s.so* AppDir/usr/lib/ 2>/dev/null || true
+fi
+
+# Run linuxdeploy to deploy dependencies, plugins, and metadata
 # --appimage-extract-and-run is used to avoid FUSE issues in some environments
 ./build_tools/linuxdeploy-x86_64.AppImage --appimage-extract-and-run \
     --appdir AppDir \
     --plugin qt \
-    --output appimage \
     --desktop-file AppDir/usr/share/applications/mkpass.desktop \
     --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/mkpass.png
+
+# Ensure libstdc++ and libgcc_s are present in AppDir/usr/lib
+if [ -n "$CONDA_PREFIX" ]; then
+    echo "Ensuring libstdc++ and libgcc_s are bundled into AppDir/usr/lib..."
+    cp -d "$CONDA_PREFIX"/lib/libstdc++.so* AppDir/usr/lib/ 2>/dev/null || true
+    cp -d "$CONDA_PREFIX"/lib/libgcc_s.so* AppDir/usr/lib/ 2>/dev/null || true
+fi
+
+# Ensure AppRun hook sets LD_LIBRARY_PATH so bundled libraries are prioritized
+if [ -f "AppDir/apprun-hooks/linuxdeploy-plugin-qt-hook.sh" ]; then
+    if ! grep -q "LD_LIBRARY_PATH" "AppDir/apprun-hooks/linuxdeploy-plugin-qt-hook.sh"; then
+        cat << 'EOF' >> "AppDir/apprun-hooks/linuxdeploy-plugin-qt-hook.sh"
+
+# Prioritize bundled libraries (including libstdc++ and libgcc_s)
+export LD_LIBRARY_PATH="$this_dir/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+EOF
+    fi
+fi
+
+# Generate the AppImage package
+./build_tools/linuxdeploy-x86_64.AppImage --appimage-extract-and-run \
+    --appdir AppDir \
+    --output appimage
 
 echo "AppImage created successfully!"

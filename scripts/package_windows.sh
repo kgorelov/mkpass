@@ -21,27 +21,54 @@ else
   PREFIX_PLUGINS="$CONDA_PREFIX/plugins"
 fi
 
-cp "$PREFIX_BIN"/Qt5Core.dll package/mkpass/ 2>/dev/null || true
-cp "$PREFIX_BIN"/Qt5Gui.dll package/mkpass/ 2>/dev/null || true
-cp "$PREFIX_BIN"/Qt5Widgets.dll package/mkpass/ 2>/dev/null || true
-cp "$PREFIX_BIN"/Qt5Concurrent.dll package/mkpass/ 2>/dev/null || true
-cp "$PREFIX_BIN"/Qt5Svg.dll package/mkpass/ 2>/dev/null || true
+# 1. Qt Core, GUI, Widgets, SVG, Concurrent libraries
+cp "$PREFIX_BIN"/Qt5*.dll package/mkpass/ 2>/dev/null || true
 
-# Copy any additional runtime DLLs copied during build
+# 2. ICU libraries (required by Qt5Core and platform plugins)
+cp "$PREFIX_BIN"/icu*.dll package/mkpass/ 2>/dev/null || true
+
+# 3. Image, font, and compression dependencies
+cp "$PREFIX_BIN"/libpng*.dll "$PREFIX_BIN"/zlib*.dll "$PREFIX_BIN"/pcre2*.dll "$PREFIX_BIN"/zstd*.dll "$PREFIX_BIN"/freetype*.dll "$PREFIX_BIN"/harfbuzz*.dll "$PREFIX_BIN"/libbz2*.dll "$PREFIX_BIN"/bzip2*.dll package/mkpass/ 2>/dev/null || true
+cp "$PREFIX_BIN"/libjpeg*.dll "$PREFIX_BIN"/jpeg*.dll "$PREFIX_BIN"/libtiff*.dll "$PREFIX_BIN"/liblzma*.dll package/mkpass/ 2>/dev/null || true
+cp "$PREFIX_BIN"/sqlite*.dll package/mkpass/ 2>/dev/null || true
+
+# 4. MSVC runtime libraries
+cp "$PREFIX_BIN"/vcruntime*.dll "$PREFIX_BIN"/msvcp*.dll "$PREFIX_BIN"/vcomp*.dll package/mkpass/ 2>/dev/null || true
+if [ -d "$CONDA_PREFIX/bin" ]; then
+  cp "$CONDA_PREFIX"/bin/vcruntime*.dll "$CONDA_PREFIX"/bin/msvcp*.dll package/mkpass/ 2>/dev/null || true
+fi
+cp /c/Windows/System32/vcruntime140*.dll /c/Windows/System32/msvcp140*.dll package/mkpass/ 2>/dev/null || true
+
+# 5. Copy any additional runtime DLLs copied during build
 cp build/gui/*.dll package/mkpass/ 2>/dev/null || true
 
-# Platform plugins
-mkdir -p package/mkpass/platforms
-cp "$PREFIX_PLUGINS"/platforms/qwindows.dll package/mkpass/platforms/ 2>/dev/null || true
+# 6. Create qt.conf so Qt discovers its plugins reliably
+cat << 'EOF' > package/mkpass/qt.conf
+[Paths]
+Prefix = .
+Plugins = plugins
+EOF
 
-# Icon and image format plugins
+# 7. Platform plugins (deploy to both plugins/platforms and platforms for compatibility)
+mkdir -p package/mkpass/plugins/platforms package/mkpass/platforms
+cp "$PREFIX_PLUGINS"/platforms/*.dll package/mkpass/plugins/platforms/ 2>/dev/null || true
+cp "$PREFIX_PLUGINS"/platforms/*.dll package/mkpass/platforms/ 2>/dev/null || true
+
+# 8. Icon and image format plugins
 if [ -d "$PREFIX_PLUGINS/iconengines" ]; then
-  mkdir -p package/mkpass/iconengines
+  mkdir -p package/mkpass/plugins/iconengines package/mkpass/iconengines
+  cp "$PREFIX_PLUGINS"/iconengines/*.dll package/mkpass/plugins/iconengines/ 2>/dev/null || true
   cp "$PREFIX_PLUGINS"/iconengines/*.dll package/mkpass/iconengines/ 2>/dev/null || true
 fi
 if [ -d "$PREFIX_PLUGINS/imageformats" ]; then
-  mkdir -p package/mkpass/imageformats
+  mkdir -p package/mkpass/plugins/imageformats package/mkpass/imageformats
+  cp "$PREFIX_PLUGINS"/imageformats/*.dll package/mkpass/plugins/imageformats/ 2>/dev/null || true
   cp "$PREFIX_PLUGINS"/imageformats/*.dll package/mkpass/imageformats/ 2>/dev/null || true
+fi
+if [ -d "$PREFIX_PLUGINS/styles" ]; then
+  mkdir -p package/mkpass/plugins/styles package/mkpass/styles
+  cp "$PREFIX_PLUGINS"/styles/*.dll package/mkpass/plugins/styles/ 2>/dev/null || true
+  cp "$PREFIX_PLUGINS"/styles/*.dll package/mkpass/styles/ 2>/dev/null || true
 fi
 
 # Compress portable zip
