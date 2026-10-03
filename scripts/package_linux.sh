@@ -97,7 +97,8 @@ if command -v rpmbuild >/dev/null 2>&1; then
 
     # Copy spec file and build RPM
     cp packaging/rpm/mkpass.spec "$RPMBUILD_DIR/SPECS/"
-    rpmbuild --define "_topdir $RPMBUILD_DIR" \
+    rpmbuild --nodeps \
+             --define "_topdir $RPMBUILD_DIR" \
              --define "version $VERSION" \
              -bb "$RPMBUILD_DIR/SPECS/mkpass.spec"
 

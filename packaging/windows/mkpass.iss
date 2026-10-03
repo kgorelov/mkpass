@@ -6,6 +6,9 @@
 #ifndef MyAppVersion
   #define MyAppVersion "0.1.0"
 #endif
+#ifndef OutputBaseFilename
+  #define OutputBaseFilename "mkpass-" + MyAppVersion + "-windows-x64-setup"
+#endif
 
 [Setup]
 AppId={{9B78D82C-13D9-4B5D-8F68-E9B0F1C865A1}
@@ -19,7 +22,7 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=..\..\dist
-OutputBaseFilename=mkpass-{#MyAppVersion}-windows-x64-setup
+OutputBaseFilename={#OutputBaseFilename}
 Compression=lzma2/ultra64
 SolidCompression=yes
 ArchitecturesAllowed=x64compatible

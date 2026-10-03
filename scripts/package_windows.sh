@@ -3,6 +3,7 @@ set -e
 
 # Ensure we are in the project root
 cd "$(dirname "$0")/.."
+PROJECT_ROOT="$(pwd)"
 
 mkdir -p dist package/mkpass
 TAG_NAME="${TAG_NAME:-${GITHUB_REF_NAME//\//-}}"
@@ -141,8 +142,8 @@ fi
 
 if [ -n "$ISCC_BIN" ]; then
   echo "Compiling Inno Setup installer using $ISCC_BIN..."
-  "$ISCC_BIN" "/DMyAppVersion=$VERSION" packaging/windows/mkpass.iss
-  echo "Windows setup installer created: dist/mkpass-${VERSION}-windows-x64-setup.exe"
+  "$ISCC_BIN" "/DMyAppVersion=$VERSION" "/DOutputBaseFilename=mkpass-${TAG_NAME}-windows-x64-setup" packaging/windows/mkpass.iss
+  echo "Windows setup installer created: dist/mkpass-${TAG_NAME}-windows-x64-setup.exe"
 else
   echo "Inno Setup (iscc) not found; skipping Windows EXE installer."
 fi
@@ -169,9 +170,20 @@ fi
 
 if [ -n "$WIX_CANDLE" ] && [ -n "$WIX_LIGHT" ] && [ -n "$WIX_HEAT" ]; then
   echo "Compiling WiX MSI installer..."
-  "$WIX_HEAT" dir package/mkpass -cg AppFiles -dr INSTALLFOLDER -sfrag -srd -var var.SourceDir -out packaging/windows/files.wxs
-  "$WIX_CANDLE" -dVersion="$VERSION" -dSourceDir="package/mkpass" -dProjectRoot="$(pwd)" -arch x64 packaging/windows/mkpass.wxs packaging/windows/files.wxs -out packaging/windows/
-  "$WIX_LIGHT" -ext WixUIExtension packaging/windows/mkpass.wixobj packaging/windows/files.wixobj -out "dist/mkpass-${TAG_NAME}-windows-x64.msi"
+
+  if command -v cygpath >/dev/null 2>&1; then
+    SOURCE_DIR_WIN="$(cygpath -w "$PROJECT_ROOT/package/mkpass")"
+    ICON_PATH_WIN="$(cygpath -w "$PROJECT_ROOT/icons/mkpass.ico")"
+    LICENSE_RTF_WIN="$(cygpath -w "$PROJECT_ROOT/packaging/windows/License.rtf")"
+  else
+    SOURCE_DIR_WIN="$PROJECT_ROOT\\package\\mkpass"
+    ICON_PATH_WIN="$PROJECT_ROOT\\icons\\mkpass.ico"
+    LICENSE_RTF_WIN="$PROJECT_ROOT\\packaging\\windows\\License.rtf"
+  fi
+
+  "$WIX_HEAT" dir "package/mkpass" -cg AppFiles -dr INSTALLFOLDER -sfrag -srd -var var.SourceDir -out packaging/windows/files.wxs
+  "$WIX_CANDLE" -dVersion="$VERSION" -dSourceDir="$SOURCE_DIR_WIN" -dIconPath="$ICON_PATH_WIN" -dLicenseRtf="$LICENSE_RTF_WIN" -arch x64 packaging/windows/mkpass.wxs packaging/windows/files.wxs -out packaging/windows/
+  "$WIX_LIGHT" -sval -ext WixUIExtension packaging/windows/mkpass.wixobj packaging/windows/files.wixobj -out "dist/mkpass-${TAG_NAME}-windows-x64.msi"
   rm -f packaging/windows/*.wixobj packaging/windows/files.wxs packaging/windows/*.wixpdb
   echo "Windows MSI installer created: dist/mkpass-${TAG_NAME}-windows-x64.msi"
 else
