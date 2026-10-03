@@ -63,10 +63,10 @@ EOF
     echo "Debian packaging complete."
 elif command -v cpack >/dev/null 2>&1; then
     echo "dpkg-buildpackage not found, falling back to CPack DEB generator..."
-    cmake -B build -DWITH_GUI=ON -DWITH_TESTS=OFF -DCMAKE_BUILD_TYPE=Release
-    cmake --build build
-    (cd build && cpack -G DEB)
-    find build -name "*.deb" -exec cp -f {} dist/ \;
+    cmake -B build-cpack -DWITH_GUI=ON -DWITH_TESTS=OFF -DCMAKE_BUILD_TYPE=Release
+    cmake --build build-cpack
+    (cd build-cpack && cpack -G DEB)
+    find build-cpack -name "*.deb" -exec cp -f {} dist/ \;
     echo "CPack DEB packaging complete."
 else
     echo "Warning: Neither dpkg-buildpackage nor cpack is available. Skipping .deb packaging."
@@ -107,10 +107,10 @@ if command -v rpmbuild >/dev/null 2>&1; then
 elif command -v cpack >/dev/null 2>&1; then
     echo "rpmbuild not found, checking CPack RPM generator..."
     if cpack --help 2>&1 | grep -q "RPM"; then
-        cmake -B build -DWITH_GUI=ON -DWITH_TESTS=OFF -DCMAKE_BUILD_TYPE=Release
-        cmake --build build
-        (cd build && cpack -G RPM) || echo "CPack RPM generation failed (requires rpmbuild on host)."
-        find build -name "*.rpm" -exec cp -f {} dist/ \;
+        cmake -B build-cpack -DWITH_GUI=ON -DWITH_TESTS=OFF -DCMAKE_BUILD_TYPE=Release
+        cmake --build build-cpack
+        (cd build-cpack && cpack -G RPM) || echo "CPack RPM generation failed (requires rpmbuild on host)."
+        find build-cpack -name "*.rpm" -exec cp -f {} dist/ \;
     fi
 else
     echo "Warning: rpmbuild is not available. Skipping .rpm packaging."

@@ -120,5 +120,66 @@ echo "Verification passed: qwindows.dll is present."
 
 # 11. Compress portable zip
 cmake -E chdir package cmake -E tar cfv "../dist/mkpass-${TAG_NAME}-windows-x64.zip" --format=zip mkpass
+echo "Windows portable zip created: dist/mkpass-${TAG_NAME}-windows-x64.zip"
 
-echo "Windows package created: dist/mkpass-${TAG_NAME}-windows-x64.zip"
+VERSION="${TAG_NAME#v}"
+VERSION="${VERSION:-0.1.0}"
+
+# 12. Compile Inno Setup EXE Installer
+echo ""
+echo ">>> Checking for Inno Setup compiler..."
+ISCC_BIN=""
+if command -v iscc >/dev/null 2>&1; then
+  ISCC_BIN="$(command -v iscc)"
+elif command -v iscc.exe >/dev/null 2>&1; then
+  ISCC_BIN="$(command -v iscc.exe)"
+elif [ -f "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" ]; then
+  ISCC_BIN="/c/Program Files (x86)/Inno Setup 6/ISCC.exe"
+elif [ -f "/c/Program Files/Inno Setup 6/ISCC.exe" ]; then
+  ISCC_BIN="/c/Program Files/Inno Setup 6/ISCC.exe"
+fi
+
+if [ -n "$ISCC_BIN" ]; then
+  echo "Compiling Inno Setup installer using $ISCC_BIN..."
+  "$ISCC_BIN" "/DMyAppVersion=$VERSION" packaging/windows/mkpass.iss
+  echo "Windows setup installer created: dist/mkpass-${VERSION}-windows-x64-setup.exe"
+else
+  echo "Inno Setup (iscc) not found; skipping Windows EXE installer."
+fi
+
+# 13. Compile WiX Toolset MSI Installer
+echo ""
+echo ">>> Checking for WiX Toolset..."
+WIX_HEAT=""
+WIX_CANDLE=""
+WIX_LIGHT=""
+if command -v heat >/dev/null 2>&1 && command -v candle >/dev/null 2>&1 && command -v light >/dev/null 2>&1; then
+  WIX_HEAT="heat"
+  WIX_CANDLE="candle"
+  WIX_LIGHT="light"
+elif [ -f "/c/Program Files (x86)/WiX Toolset v3.11/bin/candle.exe" ]; then
+  WIX_HEAT="/c/Program Files (x86)/WiX Toolset v3.11/bin/heat.exe"
+  WIX_CANDLE="/c/Program Files (x86)/WiX Toolset v3.11/bin/candle.exe"
+  WIX_LIGHT="/c/Program Files (x86)/WiX Toolset v3.11/bin/light.exe"
+elif [ -f "/c/Program Files (x86)/WiX Toolset v3.14/bin/candle.exe" ]; then
+  WIX_HEAT="/c/Program Files (x86)/WiX Toolset v3.14/bin/heat.exe"
+  WIX_CANDLE="/c/Program Files (x86)/WiX Toolset v3.14/bin/candle.exe"
+  WIX_LIGHT="/c/Program Files (x86)/WiX Toolset v3.14/bin/light.exe"
+fi
+
+if [ -n "$WIX_CANDLE" ] && [ -n "$WIX_LIGHT" ] && [ -n "$WIX_HEAT" ]; then
+  echo "Compiling WiX MSI installer..."
+  "$WIX_HEAT" dir package/mkpass -cg AppFiles -dr INSTALLFOLDER -sfrag -srd -var var.SourceDir -out packaging/windows/files.wxs
+  "$WIX_CANDLE" -dVersion="$VERSION" -dSourceDir="package/mkpass" -dProjectRoot="$(pwd)" -arch x64 packaging/windows/mkpass.wxs packaging/windows/files.wxs -out packaging/windows/
+  "$WIX_LIGHT" -ext WixUIExtension packaging/windows/mkpass.wixobj packaging/windows/files.wixobj -out "dist/mkpass-${TAG_NAME}-windows-x64.msi"
+  rm -f packaging/windows/*.wixobj packaging/windows/files.wxs packaging/windows/*.wixpdb
+  echo "Windows MSI installer created: dist/mkpass-${TAG_NAME}-windows-x64.msi"
+else
+  echo "WiX Toolset (candle/light/heat) not found; skipping Windows MSI installer."
+fi
+
+echo ""
+echo "=================================================="
+echo " Windows Packaging Completed"
+ls -lh dist/*.zip dist/*.exe dist/*.msi 2>/dev/null || true
+echo "=================================================="
