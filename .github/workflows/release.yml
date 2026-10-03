@@ -70,7 +70,7 @@ jobs:
             cp -d "$CONDA_PREFIX"/lib/libstdc++.so* package_bundle/mkpass/usr/lib/ 2>/dev/null || true
             cp -d "$CONDA_PREFIX"/lib/libgcc_s.so* package_bundle/mkpass/usr/lib/ 2>/dev/null || true
           fi
-          cat << 'EOF' > package_bundle/mkpass/mkpass-gui
+          cat << 'EOF' | sed 's/^[[:space:]]*//' > package_bundle/mkpass/mkpass-gui
           #!/bin/bash
           HERE="$(dirname "$(readlink -f "$0")")"
           export LD_LIBRARY_PATH="$HERE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"

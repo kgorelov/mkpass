@@ -5,12 +5,24 @@ set -e
 cd "$(dirname "$0")/.."
 PROJECT_ROOT="$(pwd)"
 
+# Resolve default version from CMakeLists.txt
+DEFAULT_VERSION=$(grep -m1 -E 'project\s*\([^)]*VERSION' "$PROJECT_ROOT/CMakeLists.txt" 2>/dev/null | sed -E 's/.*VERSION\s+([0-9.]+).*/\1/' || true)
+DEFAULT_VERSION="${DEFAULT_VERSION:-0.1.0}"
+
 # Resolve release tag and version
-TAG_NAME="${TAG_NAME:-${GITHUB_REF_NAME:-v0.1.0}}"
+TAG_NAME="${TAG_NAME:-${GITHUB_REF_NAME:-v$DEFAULT_VERSION}}"
 TAG_NAME="${TAG_NAME#refs/tags/}"
+TAG_NAME="${TAG_NAME#refs/heads/}"
 TAG_CLEAN="${TAG_NAME//\//-}"
-VERSION="${TAG_CLEAN#v}"
-VERSION="${VERSION:-0.1.0}"
+
+# Extract version starting with digit if available, else fallback to CMakeLists version
+EXTRACTED_VER=$(echo "$TAG_NAME" | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 || true)
+VERSION="${VERSION:-$EXTRACTED_VER}"
+VERSION="${VERSION:-$DEFAULT_VERSION}"
+if [[ ! "$VERSION" =~ ^[0-9] ]]; then
+  VERSION="$DEFAULT_VERSION"
+fi
+VERSION="${VERSION%%-*}"
 
 echo "=================================================="
 echo " Packaging Linux Deliverables for mkpass"
@@ -124,5 +136,12 @@ echo ""
 echo "=================================================="
 echo " Linux Packaging Completed"
 echo " Generated distribution assets in dist/:"
-ls -lh dist/*.deb dist/*.rpm 2>/dev/null || echo "No packages generated."
+shopt -s nullglob
+PACKAGES=(dist/*.deb dist/*.rpm)
+shopt -u nullglob
+if [ ${#PACKAGES[@]} -gt 0 ]; then
+    ls -lh "${PACKAGES[@]}"
+else
+    echo "No packages generated."
+fi
 echo "=================================================="

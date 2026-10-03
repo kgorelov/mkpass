@@ -6,8 +6,25 @@ cd "$(dirname "$0")/.."
 PROJECT_ROOT="$(pwd)"
 
 mkdir -p dist package/mkpass
-TAG_NAME="${TAG_NAME:-${GITHUB_REF_NAME//\//-}}"
-TAG_NAME="${TAG_NAME:-v0.1.0}"
+
+# Resolve default version from CMakeLists.txt
+DEFAULT_VERSION=$(grep -m1 -E 'project\s*\([^)]*VERSION' "$PROJECT_ROOT/CMakeLists.txt" 2>/dev/null | sed -E 's/.*VERSION\s+([0-9.]+).*/\1/' || true)
+DEFAULT_VERSION="${DEFAULT_VERSION:-0.1.0}"
+
+# Resolve release tag and version
+TAG_NAME="${TAG_NAME:-${GITHUB_REF_NAME:-v$DEFAULT_VERSION}}"
+TAG_NAME="${TAG_NAME#refs/tags/}"
+TAG_NAME="${TAG_NAME#refs/heads/}"
+TAG_NAME="${TAG_NAME//\//-}"
+
+# Extract version starting with digit if available, else fallback to CMakeLists version
+EXTRACTED_VER=$(echo "$TAG_NAME" | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 || true)
+VERSION="${VERSION:-$EXTRACTED_VER}"
+VERSION="${VERSION:-$DEFAULT_VERSION}"
+if [[ ! "$VERSION" =~ ^[0-9] ]]; then
+  VERSION="$DEFAULT_VERSION"
+fi
+VERSION="${VERSION%%-*}"
 
 # 1. Normalize and resolve CONDA_PREFIX
 if [ -n "$CONDA_PREFIX" ]; then
@@ -123,9 +140,6 @@ echo "Verification passed: qwindows.dll is present."
 cmake -E chdir package cmake -E tar cfv "../dist/mkpass-${TAG_NAME}-windows-x64.zip" --format=zip mkpass
 echo "Windows portable zip created: dist/mkpass-${TAG_NAME}-windows-x64.zip"
 
-VERSION="${TAG_NAME#v}"
-VERSION="${VERSION:-0.1.0}"
-
 # 12. Compile Inno Setup EXE Installer
 echo ""
 echo ">>> Checking for Inno Setup compiler..."
@@ -142,7 +156,18 @@ fi
 
 if [ -n "$ISCC_BIN" ]; then
   echo "Compiling Inno Setup installer using $ISCC_BIN..."
-  "$ISCC_BIN" "/DMyAppVersion=$VERSION" "/DOutputBaseFilename=mkpass-${TAG_NAME}-windows-x64-setup" packaging/windows/mkpass.iss
+
+  if command -v cygpath >/dev/null 2>&1; then
+    ISS_FILE_WIN="$(cygpath -w "$PROJECT_ROOT/packaging/windows/mkpass.iss")"
+  else
+    ISS_FILE_WIN="$PROJECT_ROOT\\packaging\\windows\\mkpass.iss"
+  fi
+
+  MSYS2_ARG_CONV_EXCL="*" MSYS_NO_PATHCONV=1 "$ISCC_BIN" \
+    -DMyAppVersion="$VERSION" \
+    -DOutputBaseFilename="mkpass-${TAG_NAME}-windows-x64-setup" \
+    "$ISS_FILE_WIN"
+
   echo "Windows setup installer created: dist/mkpass-${TAG_NAME}-windows-x64-setup.exe"
 else
   echo "Inno Setup (iscc) not found; skipping Windows EXE installer."
@@ -175,15 +200,27 @@ if [ -n "$WIX_CANDLE" ] && [ -n "$WIX_LIGHT" ] && [ -n "$WIX_HEAT" ]; then
     SOURCE_DIR_WIN="$(cygpath -w "$PROJECT_ROOT/package/mkpass")"
     ICON_PATH_WIN="$(cygpath -w "$PROJECT_ROOT/icons/mkpass.ico")"
     LICENSE_RTF_WIN="$(cygpath -w "$PROJECT_ROOT/packaging/windows/License.rtf")"
+    WXS_MKPASS_WIN="$(cygpath -w "$PROJECT_ROOT/packaging/windows/mkpass.wxs")"
+    WXS_FILES_WIN="$(cygpath -w "$PROJECT_ROOT/packaging/windows/files.wxs")"
+    OUT_DIR_WIN="$(cygpath -w "$PROJECT_ROOT/packaging/windows/")\\"
+    MSI_OUT_WIN="$(cygpath -w "$PROJECT_ROOT/dist/mkpass-${TAG_NAME}-windows-x64.msi")"
+    OBJ_MKPASS_WIN="$(cygpath -w "$PROJECT_ROOT/packaging/windows/mkpass.wixobj")"
+    OBJ_FILES_WIN="$(cygpath -w "$PROJECT_ROOT/packaging/windows/files.wixobj")"
   else
     SOURCE_DIR_WIN="$PROJECT_ROOT\\package\\mkpass"
     ICON_PATH_WIN="$PROJECT_ROOT\\icons\\mkpass.ico"
     LICENSE_RTF_WIN="$PROJECT_ROOT\\packaging\\windows\\License.rtf"
+    WXS_MKPASS_WIN="$PROJECT_ROOT\\packaging\\windows\\mkpass.wxs"
+    WXS_FILES_WIN="$PROJECT_ROOT\\packaging\\windows\\files.wxs"
+    OUT_DIR_WIN="$PROJECT_ROOT\\packaging\\windows\\"
+    MSI_OUT_WIN="$PROJECT_ROOT\\dist\\mkpass-${TAG_NAME}-windows-x64.msi"
+    OBJ_MKPASS_WIN="$PROJECT_ROOT\\packaging\\windows\\mkpass.wixobj"
+    OBJ_FILES_WIN="$PROJECT_ROOT\\packaging\\windows\\files.wixobj"
   fi
 
-  "$WIX_HEAT" dir "package/mkpass" -cg AppFiles -dr INSTALLFOLDER -sfrag -srd -var var.SourceDir -out packaging/windows/files.wxs
-  "$WIX_CANDLE" -dVersion="$VERSION" -dSourceDir="$SOURCE_DIR_WIN" -dIconPath="$ICON_PATH_WIN" -dLicenseRtf="$LICENSE_RTF_WIN" -arch x64 packaging/windows/mkpass.wxs packaging/windows/files.wxs -out packaging/windows/
-  "$WIX_LIGHT" -sval -ext WixUIExtension packaging/windows/mkpass.wixobj packaging/windows/files.wixobj -out "dist/mkpass-${TAG_NAME}-windows-x64.msi"
+  "$WIX_HEAT" dir "$SOURCE_DIR_WIN" -cg AppFiles -dr INSTALLFOLDER -sfrag -srd -var var.SourceDir -out "$WXS_FILES_WIN"
+  "$WIX_CANDLE" -dVersion="$VERSION" -dSourceDir="$SOURCE_DIR_WIN" -dIconPath="$ICON_PATH_WIN" -dLicenseRtf="$LICENSE_RTF_WIN" -arch x64 "$WXS_MKPASS_WIN" "$WXS_FILES_WIN" -out "$OUT_DIR_WIN"
+  "$WIX_LIGHT" -sval -ext WixUIExtension "$OBJ_MKPASS_WIN" "$OBJ_FILES_WIN" -out "$MSI_OUT_WIN"
   rm -f packaging/windows/*.wixobj packaging/windows/files.wxs packaging/windows/*.wixpdb
   echo "Windows MSI installer created: dist/mkpass-${TAG_NAME}-windows-x64.msi"
 else
@@ -193,5 +230,12 @@ fi
 echo ""
 echo "=================================================="
 echo " Windows Packaging Completed"
-ls -lh dist/*.zip dist/*.exe dist/*.msi 2>/dev/null || true
+shopt -s nullglob
+PACKAGES=(dist/*.zip dist/*.exe dist/*.msi)
+shopt -u nullglob
+if [ ${#PACKAGES[@]} -gt 0 ]; then
+  ls -lh "${PACKAGES[@]}"
+else
+  echo "No packages generated."
+fi
 echo "=================================================="
