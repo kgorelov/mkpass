@@ -1,8 +1,8 @@
 if(WITH_GUI)
   set(CMAKE_AUTOMOC ON)
 
-  set(MKPASS_QT_VERSION 5 CACHE STRING "Qt version to use (5 or 6)")
-  set_property(CACHE MKPASS_QT_VERSION PROPERTY STRINGS 5 6)
+  set(MKPASS_QT_VERSION "AUTO" CACHE STRING "Qt version to use (AUTO, 5, or 6)")
+  set_property(CACHE MKPASS_QT_VERSION PROPERTY STRINGS AUTO 5 6)
 
   set(GUI_SOURCES
     gui.cpp
@@ -16,16 +16,28 @@ if(WITH_GUI)
     icon_utils.cpp
   )
 
-  if (MKPASS_QT_VERSION EQUAL 6)
+  if (MKPASS_QT_VERSION STREQUAL "6")
     find_package(Qt6 REQUIRED COMPONENTS Widgets Concurrent)
+    set(USE_QT_VERSION 6)
+  elseif (MKPASS_QT_VERSION STREQUAL "5")
+    find_package(Qt5 REQUIRED COMPONENTS Widgets Concurrent)
+    set(USE_QT_VERSION 5)
+  else()
+    find_package(Qt6 COMPONENTS Widgets Concurrent QUIET)
+    if (Qt6_FOUND)
+      set(USE_QT_VERSION 6)
+    else()
+      find_package(Qt5 REQUIRED COMPONENTS Widgets Concurrent)
+      set(USE_QT_VERSION 5)
+    endif()
+  endif()
+
+  if (USE_QT_VERSION EQUAL 6)
     qt_add_resources(GUI_SOURCES icons.qrc)
     set(QT_LIBRARIES Qt6::Widgets Qt6::Concurrent)
-  elseif (MKPASS_QT_VERSION EQUAL 5)
-    find_package(Qt5 REQUIRED COMPONENTS Widgets Concurrent)
+  else()
     qt5_add_resources(GUI_SOURCES icons.qrc)
     set(QT_LIBRARIES Qt5::Widgets Qt5::Concurrent)
-  else()
-    message(FATAL_ERROR "Unsupported Qt version: ${MKPASS_QT_VERSION}. Please use 5 or 6.")
   endif()
 
   add_library(gui_part STATIC ${GUI_SOURCES})
@@ -69,7 +81,7 @@ if(WITH_GUI)
 
   # Deploy Qt dependencies on Windows
   if(WIN32)
-    if (MKPASS_QT_VERSION EQUAL 6)
+    if (USE_QT_VERSION EQUAL 6)
       find_program(WINDEPLOYQT_EXECUTABLE windeployqt6 HINTS "${Qt6_DIR}/../../../bin")
       set(QT_PLUGINS_DIR "${Qt6_DIR}/../../../plugins")
     else()
@@ -150,6 +162,10 @@ if(UNIX AND NOT APPLE)
     install(
         FILES mkpass.desktop
         DESTINATION ${CMAKE_INSTALL_DATADIR}/applications
+    )
+    install(
+        FILES ../docs/man/mkpass-gui.1
+        DESTINATION ${CMAKE_INSTALL_MANDIR}/man1
     )
 endif()
 

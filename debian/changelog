@@ -1,5 +1,5 @@
-mkpass (1.0.0-1) unstable; urgency=medium
+mkpass (0.1.0-1) unstable; urgency=medium
 
-  * Initial release.
+  * Release version 0.1.0.
 
- -- Kirill Gorelov <kgorelov@gmail.com>  Sun, 21 Jun 2026 23:55:00 +0100
+ -- Kirill Gorelov <kgorelov@gmail.com>  Sat, 03 Oct 2026 18:46:13 +0100

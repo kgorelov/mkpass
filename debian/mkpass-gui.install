@@ -1,3 +1,4 @@
 usr/bin/mkpass-gui
 usr/share/applications/mkpass.desktop
 usr/share/icons/hicolor/256x256/apps/mkpass.png
+usr/share/man/man1/mkpass-gui.1

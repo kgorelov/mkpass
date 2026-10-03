@@ -29,7 +29,7 @@ target_link_libraries(mkpass PRIVATE
   qrcodegen
 )
 
-if (NOT WIN32)
+if (WITH_TESTS AND NOT WIN32)
   find_package(GTest REQUIRED)
   add_executable(e2e_tests e2e_test.cpp)
 
@@ -50,16 +50,18 @@ if (NOT WIN32)
   )
   gtest_discover_tests(e2e_tests)
   target_compile_definitions(e2e_tests PRIVATE "MKPASS_EXECUTABLE_PATH=\"$<TARGET_FILE:mkpass>\"")
-
-
+endif()
 
 if(UNIX AND NOT APPLE)
-    include(GNUInstallDirs)
+  include(GNUInstallDirs)
 
-    install(
-        TARGETS mkpass
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    )
+  install(
+      TARGETS mkpass
+      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  )
+  install(
+      FILES ../docs/man/mkpass.1
+      DESTINATION ${CMAKE_INSTALL_MANDIR}/man1
+  )
 endif()
 
-endif()
