@@ -279,7 +279,8 @@ ReleaseAsset UpdateManager::SelectOptimalAsset(const QVector<ReleaseAsset>& asse
     }
 
     for (const auto& asset : assets) {
-        if (!asset.name.contains("SHA256SUMS", Qt::CaseInsensitive)) {
+        if (!asset.name.contains("SHA256SUMS", Qt::CaseInsensitive) &&
+            !asset.name.contains("SHA512SUMS", Qt::CaseInsensitive)) {
             return asset;
         }
     }
@@ -287,21 +288,10 @@ ReleaseAsset UpdateManager::SelectOptimalAsset(const QVector<ReleaseAsset>& asse
 }
 
 bool UpdateManager::VerifyChecksum(const QString& filePath, const QByteArray& checksumsData, const QString& fileName) {
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly)) {
-        return false;
-    }
-
-    QCryptographicHash hash(QCryptographicHash::Sha256);
-    if (!hash.addData(&file)) {
-        return false;
-    }
-    QByteArray computedHash = hash.result().toHex().toLower();
-    file.close();
-
     QString checksumsText = QString::fromUtf8(checksumsData);
     QStringList lines = checksumsText.split('\n', Qt::SkipEmptyParts);
 
+    QString matchedHash;
     for (const QString& line : lines) {
         QString trimmed = line.trimmed();
         if (trimmed.isEmpty() || trimmed.startsWith('#')) continue;
@@ -309,7 +299,7 @@ bool UpdateManager::VerifyChecksum(const QString& filePath, const QByteArray& ch
         int spaceIdx = trimmed.indexOf(' ');
         if (spaceIdx <= 0) continue;
 
-        QString expectedHash = trimmed.left(spaceIdx).trimmed().toLower();
+        QString hashVal = trimmed.left(spaceIdx).trimmed().toLower();
         QString recordedName = trimmed.mid(spaceIdx).trimmed();
         if (recordedName.startsWith('*')) {
             recordedName = recordedName.mid(1).trimmed();
@@ -318,11 +308,32 @@ bool UpdateManager::VerifyChecksum(const QString& filePath, const QByteArray& ch
         if (recordedName.compare(fileName, Qt::CaseInsensitive) == 0 ||
             recordedName.endsWith("/" + fileName, Qt::CaseInsensitive) ||
             recordedName.endsWith("\\" + fileName, Qt::CaseInsensitive)) {
-            return (expectedHash == computedHash);
+            matchedHash = hashVal;
+            break;
         }
     }
 
-    return false;
+    if (matchedHash.isEmpty()) {
+        return false;
+    }
+
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return false;
+    }
+
+    QCryptographicHash::Algorithm alg = (matchedHash.length() == 128)
+        ? QCryptographicHash::Sha512
+        : QCryptographicHash::Sha256;
+
+    QCryptographicHash hash(alg);
+    if (!hash.addData(&file)) {
+        return false;
+    }
+    QByteArray computedHash = hash.result().toHex().toLower();
+    file.close();
+
+    return (matchedHash == computedHash);
 }
 
 void UpdateManager::startDownload(const ReleaseAsset &asset, const QVector<ReleaseAsset>& allAssets) {
@@ -362,10 +373,19 @@ void UpdateManager::startDownload(const ReleaseAsset &asset, const QVector<Relea
 
     ReleaseAsset checksumAsset;
     for (const auto& a : allAssets) {
-        if (a.name.compare("SHA256SUMS.txt", Qt::CaseInsensitive) == 0 ||
-            a.name.contains("SHA256SUMS", Qt::CaseInsensitive)) {
+        if (a.name.compare("SHA512SUMS.txt", Qt::CaseInsensitive) == 0 ||
+            a.name.contains("SHA512SUMS", Qt::CaseInsensitive)) {
             checksumAsset = a;
             break;
+        }
+    }
+    if (checksumAsset.downloadUrl.isEmpty()) {
+        for (const auto& a : allAssets) {
+            if (a.name.compare("SHA256SUMS.txt", Qt::CaseInsensitive) == 0 ||
+                a.name.contains("SHA256SUMS", Qt::CaseInsensitive)) {
+                checksumAsset = a;
+                break;
+            }
         }
     }
 

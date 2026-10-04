@@ -4,7 +4,7 @@ target_include_directories(linenoise PUBLIC linenoise-ng)
 option(STATIC_CLI "Link CLI mostly statically (-static-libstdc++ -static-libgcc)" OFF)
 option(FULLY_STATIC_CLI "Link CLI fully statically (-static)" OFF)
 
-add_executable(mkpass main.cpp cli.cpp)
+add_executable(mkpass main.cpp cli.cpp update_cmd.cpp)
 
 if (FULLY_STATIC_CLI)
     set_target_properties(mkpass PROPERTIES LINK_FLAGS "-static")
@@ -31,7 +31,7 @@ target_link_libraries(mkpass PRIVATE
 
 if (WITH_TESTS AND NOT WIN32)
   find_package(GTest REQUIRED)
-  add_executable(e2e_tests e2e_test.cpp)
+  add_executable(e2e_tests e2e_test.cpp update_cmd.cpp)
 
   if(TARGET GTest::gtest)
     get_target_property(GTEST_INCLUDE_DIRS GTest::gtest INTERFACE_INCLUDE_DIRECTORIES)
@@ -44,6 +44,7 @@ if (WITH_TESTS AND NOT WIN32)
   target_include_directories(e2e_tests PRIVATE ../libmkpass)
   target_link_libraries(e2e_tests PRIVATE
     libmkpass
+    sha512
     qrcodegen
     GTest::gtest
     GTest::gtest_main

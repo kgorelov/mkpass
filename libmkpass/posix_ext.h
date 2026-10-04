@@ -13,6 +13,10 @@ inline bool IsTerminal() {
     return isatty(STDIN_FILENO);
 }
 
+inline bool IsStderrTerminal() {
+    return isatty(STDERR_FILENO);
+}
+
 inline std::string GetConfigDBPath() {
     if (const char* db_path_env = std::getenv("MKPASS_DB_PATH")) {
         return std::string(db_path_env);
