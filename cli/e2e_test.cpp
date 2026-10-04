@@ -140,7 +140,7 @@ TEST(E2ETest, DatabasePath) {
 }
 
 TEST(E2ETest, DatabasePathWithUsernames) {
-    std::string db_path = GetTmpDir() + "/mkpass-e2e-test.db";
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-test-usernames.db";
     setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
 
     // Create a dummy database for testing
