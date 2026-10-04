@@ -410,7 +410,7 @@ CliReleaseAsset SelectCliOptimalAsset(const std::vector<CliReleaseAsset>& assets
     }
 
     for (const auto& a : assets) {
-        if (!contains(a.name, "SHA512SUMS") && !contains(a.name, "SHA256SUMS")) {
+        if (!contains(a.name, "SHA512SUMS")) {
             return a;
         }
     }
@@ -511,21 +511,10 @@ int RunUpdateCommand(CLI::App* update_cmd) {
     }
 
     std::string sumsUrl;
-    std::string sumsName = "SHA512SUMS.txt";
     for (const auto& a : info.assets) {
         if (a.name == "SHA512SUMS.txt") {
             sumsUrl = a.download_url;
-            sumsName = a.name;
             break;
-        }
-    }
-    if (sumsUrl.empty()) {
-        for (const auto& a : info.assets) {
-            if (a.name == "SHA256SUMS.txt") {
-                sumsUrl = a.download_url;
-                sumsName = a.name;
-                break;
-            }
         }
     }
 
@@ -550,7 +539,7 @@ int RunUpdateCommand(CLI::App* update_cmd) {
 
     std::string tempDir = GetTmpDir();
     std::string tempAssetPath = tempDir + "/" + asset.name;
-    std::string tempSumsPath = tempDir + "/" + sumsName;
+    std::string tempSumsPath = tempDir + "/SHA512SUMS.txt";
 
     std::cout << "Downloading " << asset.name << "...\n";
     if (!DownloadUrlToFile(asset.download_url, tempAssetPath)) {
@@ -559,22 +548,20 @@ int RunUpdateCommand(CLI::App* update_cmd) {
     }
 
     if (!sumsUrl.empty()) {
-        std::cout << "Downloading integrity manifest (" << sumsName << ")...\n";
+        std::cout << "Downloading integrity manifest (SHA512SUMS.txt)...\n";
         if (DownloadUrlToFile(sumsUrl, tempSumsPath)) {
             std::ifstream sumsFile(tempSumsPath);
             std::stringstream sumsStream;
             sumsStream << sumsFile.rdbuf();
             std::string sumsContent = sumsStream.str();
 
-            if (sumsName == "SHA512SUMS.txt") {
-                if (!VerifyChecksumSha512(tempAssetPath, sumsContent, asset.name)) {
-                    std::remove(tempAssetPath.c_str());
-                    std::remove(tempSumsPath.c_str());
-                    std::cerr << "Error: Downloaded update failed integrity verification. Installation aborted for security.\n";
-                    return 1;
-                }
-                std::cout << "Integrity verified (SHA-512 matched).\n";
+            if (!VerifyChecksumSha512(tempAssetPath, sumsContent, asset.name)) {
+                std::remove(tempAssetPath.c_str());
+                std::remove(tempSumsPath.c_str());
+                std::cerr << "Error: Downloaded update failed integrity verification. Installation aborted for security.\n";
+                return 1;
             }
+            std::cout << "Integrity verified (SHA-512 matched).\n";
             std::remove(tempSumsPath.c_str());
         }
     }

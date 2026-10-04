@@ -22,7 +22,7 @@ protected:
 
 TEST_F(UpdateManagerTest, SelectOptimalAssetWindows) {
     QVector<mkpass::ReleaseAsset> assets = {
-        {"SHA256SUMS.txt", "https://example.com/SHA256SUMS.txt", 500},
+        {"SHA512SUMS.txt", "https://example.com/SHA512SUMS.txt", 500},
         {"mkpass-0.2.0-windows-x64.zip", "https://example.com/mkpass-0.2.0-windows-x64.zip", 10000000},
         {"mkpass-0.2.0-windows-x64.msi", "https://example.com/mkpass-0.2.0-windows-x64.msi", 12000000},
         {"mkpass-0.2.0-windows-x64-setup.exe", "https://example.com/mkpass-0.2.0-windows-x64-setup.exe", 15000000},
@@ -41,7 +41,7 @@ TEST_F(UpdateManagerTest, SelectOptimalAssetWindows) {
 
 TEST_F(UpdateManagerTest, SelectOptimalAssetLinux) {
     QVector<mkpass::ReleaseAsset> assets = {
-        {"SHA256SUMS.txt", "https://example.com/SHA256SUMS.txt", 500},
+        {"SHA512SUMS.txt", "https://example.com/SHA512SUMS.txt", 500},
         {"mkpass-0.2.0-linux-x86_64-bundle.tar.gz", "https://example.com/bundle.tar.gz", 15000000},
         {"mkpass-0.2.0-linux-x86_64.AppImage", "https://example.com/mkpass.AppImage", 25000000},
         {"mkpass-gui_0.2.0-1_amd64.deb", "https://example.com/mkpass-gui.deb", 8000000},
@@ -69,10 +69,10 @@ TEST_F(UpdateManagerTest, SelectOptimalAssetEmptyOrNoMatch) {
     EXPECT_TRUE(res.name.isEmpty());
 
     QVector<mkpass::ReleaseAsset> onlyChecksum = {
-        {"SHA256SUMS.txt", "https://example.com/SHA256SUMS.txt", 500}
+        {"SHA512SUMS.txt", "https://example.com/SHA512SUMS.txt", 500}
     };
     auto fallback = mkpass::UpdateManager::SelectOptimalAsset(onlyChecksum, mkpass::TargetPlatform::LinuxDeb);
-    EXPECT_EQ(fallback.name, "SHA256SUMS.txt");
+    EXPECT_EQ(fallback.name, "SHA512SUMS.txt");
 }
 
 TEST_F(UpdateManagerTest, ParseReleaseJsonSuccess) {
@@ -87,9 +87,9 @@ TEST_F(UpdateManagerTest, ParseReleaseJsonSuccess) {
                 "size": 12345678
             },
             {
-                "name": "SHA256SUMS.txt",
-                "browser_download_url": "https://github.com/kgorelov/mkpass/releases/download/v0.3.0/SHA256SUMS.txt",
-                "size": 256
+                "name": "SHA512SUMS.txt",
+                "browser_download_url": "https://github.com/kgorelov/mkpass/releases/download/v0.3.0/SHA512SUMS.txt",
+                "size": 512
             }
         ]
     })";
@@ -119,7 +119,7 @@ TEST_F(UpdateManagerTest, VerifyChecksumValidAndInvalid) {
     QString filePath = tempFile.fileName();
     QString fileName = QFileInfo(tempFile).fileName();
 
-    QByteArray expectedHash = QCryptographicHash::hash(payload, QCryptographicHash::Sha256).toHex();
+    QByteArray expectedHash = QCryptographicHash::hash(payload, QCryptographicHash::Sha512).toHex();
 
     // 1. Valid checksums file entry (<hash>  <filename>)
     QByteArray checksumsData = expectedHash + "  " + fileName.toUtf8() + "\n";
@@ -134,7 +134,7 @@ TEST_F(UpdateManagerTest, VerifyChecksumValidAndInvalid) {
     EXPECT_TRUE(mkpass::UpdateManager::VerifyChecksum(filePath, checksumsUpper, fileName));
 
     // 4. Invalid hash
-    QByteArray badHashData = "0000000000000000000000000000000000000000000000000000000000000000  " + fileName.toUtf8() + "\n";
+    QByteArray badHashData = QByteArray(128, '0') + "  " + fileName.toUtf8() + "\n";
     EXPECT_FALSE(mkpass::UpdateManager::VerifyChecksum(filePath, badHashData, fileName));
 
     // 5. Different file name in checksums

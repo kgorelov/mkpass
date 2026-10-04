@@ -279,8 +279,7 @@ ReleaseAsset UpdateManager::SelectOptimalAsset(const QVector<ReleaseAsset>& asse
     }
 
     for (const auto& asset : assets) {
-        if (!asset.name.contains("SHA256SUMS", Qt::CaseInsensitive) &&
-            !asset.name.contains("SHA512SUMS", Qt::CaseInsensitive)) {
+        if (!asset.name.contains("SHA512SUMS", Qt::CaseInsensitive)) {
             return asset;
         }
     }
@@ -322,11 +321,11 @@ bool UpdateManager::VerifyChecksum(const QString& filePath, const QByteArray& ch
         return false;
     }
 
-    QCryptographicHash::Algorithm alg = (matchedHash.length() == 128)
-        ? QCryptographicHash::Sha512
-        : QCryptographicHash::Sha256;
+    if (matchedHash.length() != 128) {
+        return false;
+    }
 
-    QCryptographicHash hash(alg);
+    QCryptographicHash hash(QCryptographicHash::Sha512);
     if (!hash.addData(&file)) {
         return false;
     }
@@ -377,15 +376,6 @@ void UpdateManager::startDownload(const ReleaseAsset &asset, const QVector<Relea
             a.name.contains("SHA512SUMS", Qt::CaseInsensitive)) {
             checksumAsset = a;
             break;
-        }
-    }
-    if (checksumAsset.downloadUrl.isEmpty()) {
-        for (const auto& a : allAssets) {
-            if (a.name.compare("SHA256SUMS.txt", Qt::CaseInsensitive) == 0 ||
-                a.name.contains("SHA256SUMS", Qt::CaseInsensitive)) {
-                checksumAsset = a;
-                break;
-            }
         }
     }
 
@@ -454,7 +444,7 @@ void UpdateManager::checkDownloadCompletion() {
             downloadFile_->remove();
             downloadFile_.reset();
         }
-        emit downloadFailed("Could not download or find SHA256SUMS.txt for integrity verification.");
+        emit downloadFailed("Could not download or find SHA512SUMS.txt for integrity verification.");
         return;
     }
 

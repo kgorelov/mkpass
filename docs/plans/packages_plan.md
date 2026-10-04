@@ -38,7 +38,7 @@ The extended release asset matrix adheres to consistent semantic naming:
 | `mkpass-${TAG}-windows-x64-setup.exe` | Windows 10/11 x64 | Setup Installer (`.exe`) | **Inno Setup** compiler (`iscc`) | `C:\Program Files\mkpass` (or per-user) | Start Menu shortcut, Desktop shortcut, optional PATH environment variable, Add/Remove Programs |
 | `mkpass-${TAG}-windows-x64.msi` | Windows 10/11 x64 | Windows Installer (`.msi`) | **WiX Toolset** v4 / CPack WIX | `C:\Program Files\mkpass` | Enterprise MSI database, Start Menu shortcut, silent deployment support (`msiexec /i ... /qn`) |
 | `mkpass-${TAG}-windows-x64.zip` | Windows 10/11 x64 | Portable Zip (`.zip`) | [`scripts/package_windows.sh`](file:///home/kgorelov/git/mkpass/scripts/package_windows.sh) | User directory | Portable folder containing `mkpass-gui.exe`, `mkpass.exe`, DLLs, `qt.conf` |
-| `SHA256SUMS.txt` | All platforms | Plain text checksums | `sha256sum *` | Release page | Cryptographic integrity validation for down loaders and self-updater |
+| `SHA512SUMS.txt` | All platforms | Plain text checksums | `sha512sum *` | Release page | Cryptographic integrity validation for downloaders and self-updater |
 
 ---
 
@@ -345,9 +345,9 @@ sequenceDiagram
                 alt User clicks [Remind Me Later]
                     User-->>App: Dismiss dialog
                 else User clicks [Download & Install]
-                    App->>CDN: Download asset + SHA256SUMS.txt (Streaming with Progress)
+                    App->>CDN: Download asset + SHA512SUMS.txt (Streaming with Progress)
                     CDN-->>App: Asset saved to Temp dir
-                    App->>App: Verify SHA-256 Checksum
+                    App->>App: Verify SHA-512 Checksum
                     alt Checksum Mismatch
                         App->>User: Show Error Dialog & Abort
                     else Checksum Verified
@@ -487,9 +487,9 @@ When an update is detected, an informative modal dialog is presented:
 #### 5.5.3 Download & Integrity Verification
 1. User clicks `[Download and Install]`.
 2. A download dialog with progress bar (`received / total bytes` and transfer speed) appears.
-3. Simultaneously downloads `SHA256SUMS.txt` from the release assets.
-4. Upon completion, calculates the SHA-256 hash of the downloaded file.
-5. If hash does not match `SHA256SUMS.txt`, aborts installation with a critical warning: *"Downloaded update failed integrity verification. Installation aborted for security."*
+3. Simultaneously downloads `SHA512SUMS.txt` from the release assets.
+4. Upon completion, calculates the SHA-512 hash of the downloaded file.
+5. If hash does not match `SHA512SUMS.txt`, aborts installation with a critical warning: *"Downloaded update failed integrity verification. Installation aborted for security."*
 
 #### 5.5.4 Execution & Handoff to Installer
 - **Windows (`.exe` Setup)**:
@@ -542,7 +542,7 @@ When running regular password derivation commands (e.g. `mkpass -s github`), if 
 | Risk / Threat | Mitigation Strategy |
 |---|---|
 | **Man-in-the-Middle (MitM) Tampering** | Enforce HTTPS (TLS 1.2 / 1.3) strictly for all API interactions and asset downloads (`api.github.com`, `github.com/releases/download/...`). |
-| **Corrupted or Tampered Binary Execution** | Automatically download `SHA256SUMS.txt` created in GitHub Actions release job. Calculate SHA-256 of the downloaded installer before running. If hash verification fails, delete the payload and abort. |
+| **Corrupted or Tampered Binary Execution** | Automatically download `SHA512SUMS.txt` created in GitHub Actions release job. Calculate SHA-512 of the downloaded installer before running. If hash verification fails, delete the payload and abort. |
 | **Process Locking on Windows** | Inno Setup `AppMutex=mkpass_gui_mutex` prevents installer from running concurrently with `mkpass-gui.exe`. Application calls `qApp->quit()` before spawning the installer. |
 | **Elevation of Privileges** | On Windows, installers invoke the native UAC consent prompt. On Linux, package installation delegates to system handlers (`xdg-open`, `pkexec`), never executing arbitrary shell commands as root. |
 | **API Rate Limiting (HTTP 403)** | Store HTTP `ETag` in `update_state.json`. Send `If-None-Match` on every query so GitHub responds with empty `304 Not Modified` without consuming rate limit counters. |
@@ -586,7 +586,7 @@ flowchart TD
 
     subgraph ReleaseJob ["Job: publish-release"]
         Collect["Download all dist/* artifacts"]
-        Checksums["Compute SHA256SUMS.txt"]
+        Checksums["Compute SHA512SUMS.txt"]
         Publish["softprops/action-gh-release@v2<br>Attach all binaries & checksums"]
     end
 
@@ -659,8 +659,8 @@ flowchart TD
       - name: Generate Checksums
         run: |
           cd dist
-          sha256sum * > SHA256SUMS.txt
-          cat SHA256SUMS.txt
+          sha512sum * > SHA512SUMS.txt
+          cat SHA512SUMS.txt
 ```
 
 ---
@@ -692,7 +692,7 @@ graph TD
 ### Phase 3: CI/CD Pipeline Automation
 - Update [`.github/workflows/release.yml`](file:///home/kgorelov/git/mkpass/.github/workflows/release.yml) to provision `debhelper`, `rpm`, `innosetup`, and `wixtoolset`.
 - Add package generation steps and staging into `dist/`.
-- Add `SHA256SUMS.txt` generation in the publication step.
+- Add `SHA512SUMS.txt` generation in the publication step.
 
 ### Phase 4: Core Update Engine & Configuration
 - Extend [`libmkpass/config.h`](file:///home/kgorelov/git/mkpass/libmkpass/config.h) and [`libmkpass/config.cpp`](file:///home/kgorelov/git/mkpass/libmkpass/config.cpp) with `check_updates`, `update_check_interval_days`, and `update_channel`.
@@ -705,7 +705,7 @@ graph TD
 - Implement `UpdateDialog` (`gui/update_dialog.h`, `gui/update_dialog.cpp`) with markdown changelog display.
 - Add `Help -> Check for Updates...` menu action in [`gui/gui.cpp`](file:///home/kgorelov/git/mkpass/gui/gui.cpp).
 - Connect startup timer (4-second delay) to check for updates if enabled in config.
-- Wire downloading, SHA-256 verification, and installer launching.
+- Wire downloading, SHA-512 verification, and installer launching.
 
 ### Phase 6: CLI Update Subcommand
 - Implement `mkpass update` in [`cli/cli.cpp`](file:///home/kgorelov/git/mkpass/cli/cli.cpp).
