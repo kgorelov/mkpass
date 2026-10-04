@@ -51,6 +51,7 @@ private:
     QComboBox *algorithmComboBox;
     QSpinBox *lengthSpinBox;
     QComboBox *enableOldAlgoComboBox;
+    QComboBox *checkUpdatesComboBox;
 
     // Password editors
     QWidget *charClassesWidget;

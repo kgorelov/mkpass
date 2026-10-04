@@ -663,4 +663,20 @@ bool IsUpdateCheckingEnabled(const Config& config) {
     return config.options().check_updates.value_or(true);
 }
 
+int GetUpdateCheckIntervalDays(const Config& config) {
+    if (const char* env1 = std::getenv("MKPASS_UPDATE_CHECK_INTERVAL_DAYS")) {
+        try {
+            int d = std::stoi(env1);
+            if (d >= 1 && d <= 365) return d;
+        } catch (...) {}
+    }
+    if (const char* env2 = std::getenv("update_check_interval_days")) {
+        try {
+            int d = std::stoi(env2);
+            if (d >= 1 && d <= 365) return d;
+        } catch (...) {}
+    }
+    return config.options().update_check_interval_days.value_or(7);
+}
+
 } // namespace mkpass

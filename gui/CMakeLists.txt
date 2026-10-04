@@ -14,30 +14,32 @@ if(WITH_GUI)
     settings_dialog.cpp
     comment_dialog.cpp
     icon_utils.cpp
+    update_manager.cpp
+    update_dialog.cpp
   )
 
   if (MKPASS_QT_VERSION STREQUAL "6")
-    find_package(Qt6 REQUIRED COMPONENTS Widgets Concurrent)
+    find_package(Qt6 REQUIRED COMPONENTS Widgets Concurrent Network)
     set(USE_QT_VERSION 6)
   elseif (MKPASS_QT_VERSION STREQUAL "5")
-    find_package(Qt5 REQUIRED COMPONENTS Widgets Concurrent)
+    find_package(Qt5 REQUIRED COMPONENTS Widgets Concurrent Network)
     set(USE_QT_VERSION 5)
   else()
-    find_package(Qt6 COMPONENTS Widgets Concurrent QUIET)
+    find_package(Qt6 COMPONENTS Widgets Concurrent Network QUIET)
     if (Qt6_FOUND)
       set(USE_QT_VERSION 6)
     else()
-      find_package(Qt5 REQUIRED COMPONENTS Widgets Concurrent)
+      find_package(Qt5 REQUIRED COMPONENTS Widgets Concurrent Network)
       set(USE_QT_VERSION 5)
     endif()
   endif()
 
   if (USE_QT_VERSION EQUAL 6)
     qt_add_resources(GUI_SOURCES icons.qrc)
-    set(QT_LIBRARIES Qt6::Widgets Qt6::Concurrent)
+    set(QT_LIBRARIES Qt6::Widgets Qt6::Concurrent Qt6::Network)
   else()
     qt5_add_resources(GUI_SOURCES icons.qrc)
-    set(QT_LIBRARIES Qt5::Widgets Qt5::Concurrent)
+    set(QT_LIBRARIES Qt5::Widgets Qt5::Concurrent Qt5::Network)
   endif()
 
   add_library(gui_part STATIC ${GUI_SOURCES})
@@ -66,7 +68,7 @@ if(WITH_GUI)
 
   if(WITH_TESTS AND NOT EMSCRIPTEN AND NOT WIN32)
     find_package(GTest REQUIRED)
-    add_executable(gui_tests settings_dialog_test.cpp)
+    add_executable(gui_tests settings_dialog_test.cpp update_manager_test.cpp)
     target_compile_definitions(gui_tests PRIVATE WITH_GUI)
     if (MSVC)
       target_compile_options(gui_tests PRIVATE /std:c++20)

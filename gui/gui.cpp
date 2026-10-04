@@ -14,10 +14,13 @@
 #include "comment_dialog.h"
 #include "icon_utils.h"
 #include "config.h"
+#include "update_manager.h"
+#include "update_dialog.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFormLayout>
+#include <QTimer>
 #include <QLineEdit>
 #include <QCheckBox>
 #include <QSpinBox>
@@ -49,6 +52,26 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(serviceLineEdit, &QLineEdit::textChanged, this, &MainWindow::serviceChanged);
     serviceChanged("");
+
+    updateManager_ = new mkpass::UpdateManager(this);
+    connect(updateManager_, &mkpass::UpdateManager::updateAvailable, this, [this](const mkpass::ReleaseInfo &info) {
+        mkpass::UpdateDialog dialog(info, updateManager_, this);
+        dialog.exec();
+    });
+    connect(updateManager_, &mkpass::UpdateManager::upToDate, this, [this]() {
+        QMessageBox::information(this, "Check for Updates",
+            QString("You are using the latest version of mkpass (v%1).").arg(MKPASS_VERSION));
+    });
+    connect(updateManager_, &mkpass::UpdateManager::checkFailed, this, [this](const QString &reason) {
+        QMessageBox::warning(this, "Update Check Failed",
+            QString("Failed to check for updates:\n%1").arg(reason));
+    });
+
+    QTimer::singleShot(4000, this, [this]() {
+        if (updateManager_) {
+            updateManager_->checkForUpdatesInBackground();
+        }
+    });
 }
 
 MainWindow::~MainWindow() {
@@ -71,6 +94,8 @@ void MainWindow::setupUI() {
     QMenu *helpMenu = menuBar->addMenu("Help");
     QAction *manualAction = helpMenu->addAction("Manual");
     connect(manualAction, &QAction::triggered, this, &MainWindow::showManual);
+    QAction *updateAction = helpMenu->addAction("Check for Updates...");
+    connect(updateAction, &QAction::triggered, this, &MainWindow::checkForUpdates);
     QAction *helpAction = helpMenu->addAction("About");
     connect(helpAction, &QAction::triggered, this, &MainWindow::showHelp);
 
@@ -746,6 +771,12 @@ void MainWindow::showHelp() {
     msgBox.setText("<b>mkpass</b><br><br>A secure password generator.");
     msgBox.setIconPixmap(QPixmap(":/app_icon").scaled(64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     msgBox.exec();
+}
+
+void MainWindow::checkForUpdates() {
+    if (updateManager_) {
+        updateManager_->checkForUpdatesInteractive();
+    }
 }
 
 void MainWindow::showSettings() {

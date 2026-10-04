@@ -59,5 +59,6 @@ private:
 
 bool IsOldAlgorithmEnabled(const Config& config);
 bool IsUpdateCheckingEnabled(const Config& config);
+int GetUpdateCheckIntervalDays(const Config& config);
 
 } // namespace mkpass

@@ -83,10 +83,11 @@ TEST_F(SettingsDialogTest, VisualGroupStructure) {
     ASSERT_NE(pwdTbl, nullptr);
     ASSERT_NE(passTbl, nullptr);
 
-    EXPECT_EQ(genTbl->rowCount(), 3);
+    EXPECT_EQ(genTbl->rowCount(), 4);
     EXPECT_EQ(genTbl->item(0, 1)->text(), "algorithm");
     EXPECT_EQ(genTbl->item(1, 1)->text(), "length");
     EXPECT_EQ(genTbl->item(2, 1)->text(), "enable_old_algorithm");
+    EXPECT_EQ(genTbl->item(3, 1)->text(), "check_updates");
 
     EXPECT_EQ(pwdTbl->rowCount(), 2);
     EXPECT_EQ(pwdTbl->item(0, 1)->text(), "char_classes");

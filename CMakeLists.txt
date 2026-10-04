@@ -1,5 +1,6 @@
 cmake_minimum_required (VERSION 3.10)
 project (mkpass VERSION 0.1.0 LANGUAGES C CXX)
+add_definitions(-DMKPASS_VERSION="${PROJECT_VERSION}")
 
 option(WITH_GUI "Build with Qt GUI" ON)
 option(WITH_WEBASSEMBLY "Build with WebAssembly" OFF)
