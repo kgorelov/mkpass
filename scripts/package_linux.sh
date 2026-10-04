@@ -51,8 +51,8 @@ mkpass (${VERSION}-1) unstable; urgency=medium
  -- Kirill Gorelov <kgorelov@gmail.com>  ${DATE_RFC2822}
 EOF
 
-    # Build binary packages without signing
-    dpkg-buildpackage -us -uc -b
+    # Build binary packages without signing (-d overrides unsatisfied build dependency check aborts)
+    dpkg-buildpackage -us -uc -b -d
 
     # dpkg-buildpackage deposits packages into parent directory
     PARENT_DIR="$(dirname "$PROJECT_ROOT")"

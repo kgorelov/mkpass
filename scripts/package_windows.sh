@@ -218,9 +218,25 @@ if [ -n "$WIX_CANDLE" ] && [ -n "$WIX_LIGHT" ] && [ -n "$WIX_HEAT" ]; then
     OBJ_FILES_WIN="$PROJECT_ROOT\\packaging\\windows\\files.wixobj"
   fi
 
-  "$WIX_HEAT" dir "$SOURCE_DIR_WIN" -cg AppFiles -dr INSTALLFOLDER -sfrag -srd -var var.SourceDir -out "$WXS_FILES_WIN"
-  "$WIX_CANDLE" -dVersion="$VERSION" -dSourceDir="$SOURCE_DIR_WIN" -dIconPath="$ICON_PATH_WIN" -dLicenseRtf="$LICENSE_RTF_WIN" -arch x64 "$WXS_MKPASS_WIN" "$WXS_FILES_WIN" -out "$OUT_DIR_WIN"
-  "$WIX_LIGHT" -sval -ext WixUIExtension "$OBJ_MKPASS_WIN" "$OBJ_FILES_WIN" -out "$MSI_OUT_WIN"
+  # Remove empty directories to avoid empty directory components
+  find package/mkpass -type d -empty -delete 2>/dev/null || true
+
+  MSYS2_ARG_CONV_EXCL="*" MSYS_NO_PATHCONV=1 "$WIX_HEAT" dir "$SOURCE_DIR_WIN" \
+    -cg AppFiles -dr INSTALLFOLDER -scom -sreg -sfrag -srd -ag -sw5150 \
+    -var var.SourceDir -out "$WXS_FILES_WIN"
+
+  # Replace any remaining PUT-GUID-HERE with valid GUIDs
+  python3 -c "import re, uuid, os; p='${PROJECT_ROOT}/packaging/windows/files.wxs'; f=open(p,'r',encoding='utf-8',errors='ignore'); c=f.read(); f.close(); open(p,'w',encoding='utf-8').write(re.sub(r'PUT-GUID-HERE', lambda m: str(uuid.uuid4()).upper(), c))" 2>/dev/null || \
+  python -c "import re, uuid, os; p='${PROJECT_ROOT}/packaging/windows/files.wxs'; f=open(p,'r',encoding='utf-8',errors='ignore'); c=f.read(); f.close(); open(p,'w',encoding='utf-8').write(re.sub(r'PUT-GUID-HERE', lambda m: str(uuid.uuid4()).upper(), c))" 2>/dev/null || \
+  sed -i 's/PUT-GUID-HERE/*/g' "$PROJECT_ROOT/packaging/windows/files.wxs" 2>/dev/null || true
+
+  MSYS2_ARG_CONV_EXCL="*" MSYS_NO_PATHCONV=1 "$WIX_CANDLE" \
+    -dVersion="$VERSION" -dSourceDir="$SOURCE_DIR_WIN" -dIconPath="$ICON_PATH_WIN" -dLicenseRtf="$LICENSE_RTF_WIN" \
+    -arch x64 "$WXS_MKPASS_WIN" "$WXS_FILES_WIN" -out "$OUT_DIR_WIN"
+
+  MSYS2_ARG_CONV_EXCL="*" MSYS_NO_PATHCONV=1 "$WIX_LIGHT" \
+    -sval -ext WixUIExtension "$OBJ_MKPASS_WIN" "$OBJ_FILES_WIN" -out "$MSI_OUT_WIN"
+
   rm -f packaging/windows/*.wixobj packaging/windows/files.wxs packaging/windows/*.wixpdb
   echo "Windows MSI installer created: dist/mkpass-${TAG_NAME}-windows-x64.msi"
 else

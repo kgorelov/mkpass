@@ -92,8 +92,8 @@ jobs:
 
           # 5. Native deb and rpm packages
           sudo apt-get update
-          sudo apt-get install -y debhelper fakeroot dpkg-dev rpm libsqlite3-dev libgtest-dev qtbase5-dev || \
-          sudo apt-get install -y debhelper fakeroot dpkg-dev rpm libsqlite3-dev libgtest-dev qt6-base-dev
+          sudo apt-get install -y debhelper fakeroot dpkg-dev rpm build-essential cmake libsqlite3-dev libgtest-dev qtbase5-dev || \
+          sudo apt-get install -y debhelper fakeroot dpkg-dev rpm build-essential cmake libsqlite3-dev libgtest-dev qt6-base-dev
           ./scripts/package_linux.sh
 
       - name: Install Windows packaging tools
