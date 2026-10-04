@@ -22,6 +22,9 @@ struct ConfigOptions {
     std::optional<bool> substitutions;
     std::optional<bool> capitalize;
     std::optional<bool> enable_old_algorithm;
+    std::optional<bool> check_updates;
+    std::optional<int> update_check_interval_days;
+    std::optional<std::string> update_channel;
 };
 
 class Config {
@@ -55,5 +58,6 @@ private:
 };
 
 bool IsOldAlgorithmEnabled(const Config& config);
+bool IsUpdateCheckingEnabled(const Config& config);
 
 } // namespace mkpass

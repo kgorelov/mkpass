@@ -28,6 +28,8 @@ protected:
         }
         unsetenv("MKPASS_ENABLE_OLD_ALGORITHM");
         unsetenv("enable_old_algorithm");
+        unsetenv("MKPASS_CHECK_UPDATES");
+        unsetenv("check_updates");
     }
 };
 
@@ -143,6 +145,9 @@ TEST_F(ConfigTest, SaveAndLoadRoundTrip) {
     cfg.set_raw("substitutions", "true");
     cfg.set_raw("capitalize", "false");
     cfg.set_raw("enable_old_algorithm", "true");
+    cfg.set_raw("check_updates", "false");
+    cfg.set_raw("update_check_interval_days", "14");
+    cfg.set_raw("update_channel", "prerelease");
 
     EXPECT_TRUE(cfg.save());
     EXPECT_TRUE(cfg.exists());
@@ -162,6 +167,9 @@ TEST_F(ConfigTest, SaveAndLoadRoundTrip) {
     EXPECT_EQ(loaded.get_raw("substitutions"), "true");
     EXPECT_EQ(loaded.get_raw("capitalize"), "false");
     EXPECT_EQ(loaded.get_raw("enable_old_algorithm"), "true");
+    EXPECT_EQ(loaded.get_raw("check_updates"), "false");
+    EXPECT_EQ(loaded.get_raw("update_check_interval_days"), "14");
+    EXPECT_EQ(loaded.get_raw("update_channel"), "prerelease");
 
     // Strongly typed options
     ASSERT_TRUE(loaded.options().algorithm.has_value());
@@ -178,6 +186,15 @@ TEST_F(ConfigTest, SaveAndLoadRoundTrip) {
 
     ASSERT_TRUE(loaded.options().enable_old_algorithm.has_value());
     EXPECT_TRUE(*loaded.options().enable_old_algorithm);
+
+    ASSERT_TRUE(loaded.options().check_updates.has_value());
+    EXPECT_FALSE(*loaded.options().check_updates);
+
+    ASSERT_TRUE(loaded.options().update_check_interval_days.has_value());
+    EXPECT_EQ(*loaded.options().update_check_interval_days, 14);
+
+    ASSERT_TRUE(loaded.options().update_channel.has_value());
+    EXPECT_EQ(*loaded.options().update_channel, "prerelease");
 }
 
 TEST_F(ConfigTest, GetSetUnsetAndValidation) {
@@ -196,6 +213,11 @@ TEST_F(ConfigTest, GetSetUnsetAndValidation) {
     EXPECT_THROW(cfg.set_raw("length", "not_a_number"), std::invalid_argument);
     EXPECT_THROW(cfg.set_raw("digits", "maybe"), std::invalid_argument);
     EXPECT_THROW(cfg.set_raw("passphrase_pattern", "xyz"), std::invalid_argument);
+    EXPECT_THROW(cfg.set_raw("update_check_interval_days", "0"), std::invalid_argument);
+    EXPECT_THROW(cfg.set_raw("update_check_interval_days", "366"), std::invalid_argument);
+    EXPECT_THROW(cfg.set_raw("update_check_interval_days", "not_a_number"), std::invalid_argument);
+    EXPECT_THROW(cfg.set_raw("update_channel", "nightly"), std::invalid_argument);
+    EXPECT_THROW(cfg.set_raw("check_updates", "maybe"), std::invalid_argument);
 
     // Unset
     cfg.set_raw("length", "32");
@@ -278,4 +300,38 @@ TEST_F(ConfigTest, OldAlgorithmEnforcementFlag) {
     // Overridden by enable_old_algorithm
     setenv("enable_old_algorithm", "1", 1);
     EXPECT_TRUE(mkpass::IsOldAlgorithmEnabled(cfg));
+}
+
+TEST_F(ConfigTest, UpdateOptionsAndEnforcement) {
+    mkpass::Config cfg(test_config_path);
+
+    // Default values
+    EXPECT_EQ(mkpass::Config::get_built_in_default("check_updates"), "true");
+    EXPECT_EQ(mkpass::Config::get_built_in_default("update_check_interval_days"), "7");
+    EXPECT_EQ(mkpass::Config::get_built_in_default("update_channel"), "stable");
+
+    // Initially true by default
+    EXPECT_TRUE(mkpass::IsUpdateCheckingEnabled(cfg));
+
+    // Disabled in config
+    cfg.set_raw("check_updates", "false");
+    EXPECT_FALSE(mkpass::IsUpdateCheckingEnabled(cfg));
+
+    cfg.set_raw("check_updates", "true");
+    EXPECT_TRUE(mkpass::IsUpdateCheckingEnabled(cfg));
+
+    // Overridden by MKPASS_CHECK_UPDATES
+    cfg.set_raw("check_updates", "true");
+    setenv("MKPASS_CHECK_UPDATES", "0", 1);
+    EXPECT_FALSE(mkpass::IsUpdateCheckingEnabled(cfg));
+
+    setenv("MKPASS_CHECK_UPDATES", "1", 1);
+    EXPECT_TRUE(mkpass::IsUpdateCheckingEnabled(cfg));
+    unsetenv("MKPASS_CHECK_UPDATES");
+
+    // Overridden by check_updates
+    cfg.set_raw("check_updates", "true");
+    setenv("check_updates", "false", 1);
+    EXPECT_FALSE(mkpass::IsUpdateCheckingEnabled(cfg));
+    unsetenv("check_updates");
 }

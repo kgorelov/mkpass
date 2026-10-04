@@ -55,6 +55,29 @@ inline std::string GetConfigFilePath() {
 #endif
 }
 
+inline std::string GetUpdateStateFilePath() {
+    if (const char* state_path_env = std::getenv("MKPASS_UPDATE_STATE_PATH")) {
+        return std::string(state_path_env);
+    }
+#ifdef __ANDROID__
+    return "/data/data/app.mkpass/cache/update_state.json";
+#else
+    if (const char* xdg_cache_home = std::getenv("XDG_CACHE_HOME")) {
+        if (*xdg_cache_home != '\0') {
+            return std::string(xdg_cache_home) + "/mkpass/update_state.json";
+        }
+    }
+
+    wordexp_t p;
+    if (wordexp("~/.cache/mkpass/update_state.json", &p, 0) != 0) {
+        return "/tmp/mkpass_update_state.json";
+    }
+    std::string state_path = p.we_wordv[0];
+    wordfree(&p);
+    return state_path;
+#endif
+}
+
 inline std::string GetTmpDir() {
     char *tmpdir = getenv("TMPDIR");
     if (tmpdir) {
