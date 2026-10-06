@@ -13,6 +13,10 @@ inline bool IsTerminal() {
     return _isatty(_fileno(stdin)) != 0;
 }
 
+inline bool IsStderrTerminal() {
+    return _isatty(_fileno(stderr)) != 0;
+}
+
 inline std::string GetConfigDBPath() {
     if (const char* db_path_env = std::getenv("MKPASS_DB_PATH")) {
         return std::string(db_path_env);
@@ -48,6 +52,27 @@ inline std::string GetConfigFilePath() {
     }
 
     throw std::runtime_error("Can't make config file path");
+}
+
+inline std::string GetUpdateStateFilePath() {
+    if (const char* state_path_env = std::getenv("MKPASS_UPDATE_STATE_PATH")) {
+        return std::string(state_path_env);
+    }
+
+    PWSTR path = NULL;
+    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, NULL, &path))) {
+        std::wstring wpath(path);
+        CoTaskMemFree(path);
+        std::string state_path(wpath.begin(), wpath.end());
+        state_path += "\\mkpass\\update_state.json";
+        return state_path;
+    }
+
+    if (const char* localappdata = std::getenv("LOCALAPPDATA")) {
+        return std::string(localappdata) + "\\mkpass\\update_state.json";
+    }
+
+    return "update_state.json";
 }
 
 inline std::string GetTmpDir() {

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*"
+           Name="mkpass"
+           Language="1033"
+           Version="$(var.Version)"
+           Manufacturer="Kirill Gorelov"
+           UpgradeCode="C8B92D10-53D2-487C-904A-48356984D2F1">
+
+    <Package InstallerVersion="500"
+             Compressed="yes"
+             InstallScope="perMachine"
+             Platform="x64"
+             Description="Secure Password and Passphrase Generator"
+             Comments="mkpass $(var.Version) installer" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="AppIcon" SourceFile="$(var.IconPath)" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/kgorelov/mkpass" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/kgorelov/mkpass" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="mkpass" />
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="mkpass" />
+      </Directory>
+    </Directory>
+
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="ApplicationShortcuts" Guid="7D1E8F6A-35B2-4A7C-8E2A-108A4D592C7F">
+        <Shortcut Id="AppStartMenuShortcut"
+                  Name="mkpass"
+                  Description="Secure Password Generator"
+                  Target="[INSTALLFOLDER]mkpass-gui.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="AppIcon" />
+        <RemoveFolder Id="CleanUpShortCut" Directory="ApplicationProgramsFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\mkpass" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <Feature Id="MainApplication" Title="mkpass" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="ApplicationShortcuts" />
+    </Feature>
+
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.LicenseRtf)" />
+    <UIRef Id="WixUI_Minimal" />
+  </Product>
+</Wix>

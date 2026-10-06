@@ -314,6 +314,84 @@ void SaveDefaultPassphrasePattern(const Property& prop, toml::table& tbl) {
     tbl.insert_or_assign(prop.name, "");
 }
 
+std::optional<int> ParseIntervalDays(std::string_view val) {
+    std::string_view v = Trim(val);
+    if (v.empty() || v[0] == '-' || !std::all_of(v.begin(), v.end(), [](unsigned char c) { return std::isdigit(c); })) {
+        return std::nullopt;
+    }
+    try {
+        size_t pos = 0;
+        int days = std::stoi(std::string(v), &pos);
+        if (pos != v.size() || days < 1 || days > 365) {
+            return std::nullopt;
+        }
+        return days;
+    } catch (...) {
+        return std::nullopt;
+    }
+}
+
+std::optional<std::string> GetUpdateCheckIntervalDays(const ConfigOptions& opts) {
+    return opts.update_check_interval_days ? std::optional<std::string>(std::to_string(*opts.update_check_interval_days)) : std::nullopt;
+}
+
+void SetUpdateCheckIntervalDays(ConfigOptions& opts, std::string_view, const std::string& val) {
+    auto days = ParseIntervalDays(val);
+    if (!days) {
+        throw std::invalid_argument("Invalid update_check_interval_days: " + val + ". Must be an integer between 1 and 365.");
+    }
+    opts.update_check_interval_days = days;
+}
+
+void LoadUpdateCheckIntervalDays(const Property& prop, ConfigOptions& opts, const toml::table& tbl) {
+    if (auto val = tbl[prop.name].value<int64_t>()) {
+        if (*val >= 1 && *val <= 365) {
+            opts.update_check_interval_days = static_cast<int>(*val);
+        }
+    }
+}
+
+void SaveUpdateCheckIntervalDays(const Property& prop, const ConfigOptions& opts, toml::table& tbl) {
+    if (opts.update_check_interval_days) {
+        tbl.insert_or_assign(prop.name, static_cast<int64_t>(*opts.update_check_interval_days));
+    }
+}
+
+void SaveDefaultUpdateCheckIntervalDays(const Property& prop, toml::table& tbl) {
+    tbl.insert_or_assign(prop.name, static_cast<int64_t>(7));
+}
+
+std::optional<std::string> GetUpdateChannel(const ConfigOptions& opts) {
+    return opts.update_channel;
+}
+
+void SetUpdateChannel(ConfigOptions& opts, std::string_view, const std::string& val) {
+    std::string s = ToLower(Trim(val));
+    if (s != "stable" && s != "prerelease") {
+        throw std::invalid_argument("Invalid update_channel: " + val + ". Valid values: stable, prerelease.");
+    }
+    opts.update_channel = s;
+}
+
+void LoadUpdateChannel(const Property& prop, ConfigOptions& opts, const toml::table& tbl) {
+    if (auto val = tbl[prop.name].value<std::string>()) {
+        std::string s = ToLower(Trim(*val));
+        if (s == "stable" || s == "prerelease") {
+            opts.update_channel = s;
+        }
+    }
+}
+
+void SaveUpdateChannel(const Property& prop, const ConfigOptions& opts, toml::table& tbl) {
+    if (opts.update_channel) {
+        tbl.insert_or_assign(prop.name, *opts.update_channel);
+    }
+}
+
+void SaveDefaultUpdateChannel(const Property& prop, toml::table& tbl) {
+    tbl.insert_or_assign(prop.name, "stable");
+}
+
 inline constexpr std::array kProperties = {
     Property{
         .name = "algorithm",
@@ -370,6 +448,31 @@ inline constexpr std::array kProperties = {
     MakeBoolProp<&ConfigOptions::substitutions, false>("substitutions"),
     MakeBoolProp<&ConfigOptions::capitalize, true>("capitalize"),
     MakeBoolProp<&ConfigOptions::enable_old_algorithm, false>("enable_old_algorithm"),
+    MakeBoolProp<&ConfigOptions::check_updates, true>("check_updates"),
+    Property{
+        .name = "update_check_interval_days",
+        .alias = "",
+        .default_str = "7",
+        .get_raw = GetUpdateCheckIntervalDays,
+        .set_raw = SetUpdateCheckIntervalDays,
+        .unset_raw = UnsetField<&ConfigOptions::update_check_interval_days>,
+        .has_value = HasField<&ConfigOptions::update_check_interval_days>,
+        .load = LoadUpdateCheckIntervalDays,
+        .save = SaveUpdateCheckIntervalDays,
+        .save_default = SaveDefaultUpdateCheckIntervalDays,
+    },
+    Property{
+        .name = "update_channel",
+        .alias = "",
+        .default_str = "stable",
+        .get_raw = GetUpdateChannel,
+        .set_raw = SetUpdateChannel,
+        .unset_raw = UnsetField<&ConfigOptions::update_channel>,
+        .has_value = HasField<&ConfigOptions::update_channel>,
+        .load = LoadUpdateChannel,
+        .save = SaveUpdateChannel,
+        .save_default = SaveDefaultUpdateChannel,
+    },
 };
 
 const Property* FindProperty(std::string_view key) {
@@ -546,6 +649,34 @@ bool IsOldAlgorithmEnabled(const Config& config) {
         if (b.has_value()) return *b;
     }
     return config.options().enable_old_algorithm.value_or(false);
+}
+
+bool IsUpdateCheckingEnabled(const Config& config) {
+    if (const char* env1 = std::getenv("MKPASS_CHECK_UPDATES")) {
+        auto b = ParseBool(env1);
+        if (b.has_value()) return *b;
+    }
+    if (const char* env2 = std::getenv("check_updates")) {
+        auto b = ParseBool(env2);
+        if (b.has_value()) return *b;
+    }
+    return config.options().check_updates.value_or(true);
+}
+
+int GetUpdateCheckIntervalDays(const Config& config) {
+    if (const char* env1 = std::getenv("MKPASS_UPDATE_CHECK_INTERVAL_DAYS")) {
+        try {
+            int d = std::stoi(env1);
+            if (d >= 1 && d <= 365) return d;
+        } catch (...) {}
+    }
+    if (const char* env2 = std::getenv("update_check_interval_days")) {
+        try {
+            int d = std::stoi(env2);
+            if (d >= 1 && d <= 365) return d;
+        } catch (...) {}
+    }
+    return config.options().update_check_interval_days.value_or(7);
 }
 
 } // namespace mkpass

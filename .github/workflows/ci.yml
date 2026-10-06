@@ -29,6 +29,10 @@ jobs:
       - name: Build
         run: pixi run build
 
+      - name: Initialize font cache
+        if: runner.os == 'Linux'
+        run: pixi run fc-cache -r || true
+
       - name: Test
         env:
           QT_QPA_PLATFORM: offscreen

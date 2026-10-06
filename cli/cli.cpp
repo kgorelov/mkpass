@@ -26,6 +26,7 @@
 #include "passphrase_patterns.h"
 #include "CLI11.hpp"
 #include "qrcode/qrcodegen.hpp"
+#include "update_cmd.h"
 
 namespace {
 
@@ -806,6 +807,8 @@ int run_cli(int argc, char *argv[]) {
     auto config_cmd = app.add_subcommand("config", "Manage user configuration");
     config_cmd->require_subcommand(1);
 
+    auto update_cmd = mkpass::RegisterUpdateCommand(app);
+
     std::string config_key;
     std::vector<std::string> config_values;
 
@@ -900,8 +903,13 @@ int run_cli(int argc, char *argv[]) {
         return 1;
     }
 
+    if (update_cmd->parsed()) {
+        return mkpass::RunUpdateCommand(update_cmd);
+    }
+
     mkpass::Config cfg(GetConfigFilePath());
     cfg.load();
+    mkpass::MaybePrintPassiveUpdateNotification(cfg);
 
     mkpass::ConfigDB db(GetConfigDBPath());
     service_names = db.get_all_service_names();

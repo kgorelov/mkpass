@@ -1,8 +1,8 @@
 if(WITH_GUI)
   set(CMAKE_AUTOMOC ON)
 
-  set(MKPASS_QT_VERSION 5 CACHE STRING "Qt version to use (5 or 6)")
-  set_property(CACHE MKPASS_QT_VERSION PROPERTY STRINGS 5 6)
+  set(MKPASS_QT_VERSION "AUTO" CACHE STRING "Qt version to use (AUTO, 5, or 6)")
+  set_property(CACHE MKPASS_QT_VERSION PROPERTY STRINGS AUTO 5 6)
 
   set(GUI_SOURCES
     gui.cpp
@@ -14,18 +14,32 @@ if(WITH_GUI)
     settings_dialog.cpp
     comment_dialog.cpp
     icon_utils.cpp
+    update_manager.cpp
+    update_dialog.cpp
   )
 
-  if (MKPASS_QT_VERSION EQUAL 6)
-    find_package(Qt6 REQUIRED COMPONENTS Widgets Concurrent)
-    qt_add_resources(GUI_SOURCES icons.qrc)
-    set(QT_LIBRARIES Qt6::Widgets Qt6::Concurrent)
-  elseif (MKPASS_QT_VERSION EQUAL 5)
-    find_package(Qt5 REQUIRED COMPONENTS Widgets Concurrent)
-    qt5_add_resources(GUI_SOURCES icons.qrc)
-    set(QT_LIBRARIES Qt5::Widgets Qt5::Concurrent)
+  if (MKPASS_QT_VERSION STREQUAL "6")
+    find_package(Qt6 REQUIRED COMPONENTS Widgets Concurrent Network)
+    set(USE_QT_VERSION 6)
+  elseif (MKPASS_QT_VERSION STREQUAL "5")
+    find_package(Qt5 REQUIRED COMPONENTS Widgets Concurrent Network)
+    set(USE_QT_VERSION 5)
   else()
-    message(FATAL_ERROR "Unsupported Qt version: ${MKPASS_QT_VERSION}. Please use 5 or 6.")
+    find_package(Qt6 COMPONENTS Widgets Concurrent Network QUIET)
+    if (Qt6_FOUND)
+      set(USE_QT_VERSION 6)
+    else()
+      find_package(Qt5 REQUIRED COMPONENTS Widgets Concurrent Network)
+      set(USE_QT_VERSION 5)
+    endif()
+  endif()
+
+  if (USE_QT_VERSION EQUAL 6)
+    qt_add_resources(GUI_SOURCES icons.qrc)
+    set(QT_LIBRARIES Qt6::Widgets Qt6::Concurrent Qt6::Network)
+  else()
+    qt5_add_resources(GUI_SOURCES icons.qrc)
+    set(QT_LIBRARIES Qt5::Widgets Qt5::Concurrent Qt5::Network)
   endif()
 
   add_library(gui_part STATIC ${GUI_SOURCES})
@@ -54,7 +68,7 @@ if(WITH_GUI)
 
   if(WITH_TESTS AND NOT EMSCRIPTEN AND NOT WIN32)
     find_package(GTest REQUIRED)
-    add_executable(gui_tests settings_dialog_test.cpp)
+    add_executable(gui_tests settings_dialog_test.cpp update_manager_test.cpp)
     target_compile_definitions(gui_tests PRIVATE WITH_GUI)
     if (MSVC)
       target_compile_options(gui_tests PRIVATE /std:c++20)
@@ -69,7 +83,7 @@ if(WITH_GUI)
 
   # Deploy Qt dependencies on Windows
   if(WIN32)
-    if (MKPASS_QT_VERSION EQUAL 6)
+    if (USE_QT_VERSION EQUAL 6)
       find_program(WINDEPLOYQT_EXECUTABLE windeployqt6 HINTS "${Qt6_DIR}/../../../bin")
       set(QT_PLUGINS_DIR "${Qt6_DIR}/../../../plugins")
     else()
@@ -150,6 +164,10 @@ if(UNIX AND NOT APPLE)
     install(
         FILES mkpass.desktop
         DESTINATION ${CMAKE_INSTALL_DATADIR}/applications
+    )
+    install(
+        FILES ../docs/man/mkpass-gui.1
+        DESTINATION ${CMAKE_INSTALL_MANDIR}/man1
     )
 endif()
 

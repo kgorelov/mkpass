@@ -15,6 +15,8 @@ set(SOURCES
   wordlists/wordnet_verbs.cpp
   wordlists/wordnet_adjs.cpp
   wordlists/wordnet_advs.cpp
+  semver.cpp
+  update_state.cpp
   )
 add_library(libmkpass STATIC ${SOURCES})
 target_include_directories(libmkpass PUBLIC .)
@@ -103,6 +105,7 @@ if(NOT EMSCRIPTEN AND NOT WIN32 AND WITH_TESTS)
     pattern_compose_ut.cpp
     hkdf_argon2_ut.cpp
     config_ut.cpp
+    update_ut.cpp
   )
   if (NOT WIN32)
     list(APPEND TEST_SOURCES db_ut.cpp)

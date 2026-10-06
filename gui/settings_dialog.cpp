@@ -72,6 +72,7 @@ SettingsDialog::SettingsDialog(QWidget *parent)
       algorithmComboBox(nullptr),
       lengthSpinBox(nullptr),
       enableOldAlgoComboBox(nullptr),
+      checkUpdatesComboBox(nullptr),
       charClassesWidget(nullptr),
       charLowerCheckBox(nullptr),
       charUpperCheckBox(nullptr),
@@ -117,7 +118,7 @@ void SettingsDialog::setupUI() {
     // 1. General Group
     QGroupBox *generalGroupBox = new QGroupBox("General", contentWidget);
     QVBoxLayout *genLayout = new QVBoxLayout(generalGroupBox);
-    generalTable = createSettingsTable(3, generalGroupBox);
+    generalTable = createSettingsTable(4, generalGroupBox);
     genLayout->addWidget(generalTable);
 
     algorithmComboBox = new QComboBox(generalTable);
@@ -125,6 +126,7 @@ void SettingsDialog::setupUI() {
     lengthSpinBox->setRange(1, 128);
     lengthSpinBox->setValue(16);
     enableOldAlgoComboBox = make_bool_combo(generalTable);
+    checkUpdatesComboBox = make_bool_combo(generalTable);
 
     connect(enableOldAlgoComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &SettingsDialog::updateAlgorithmChoices);
@@ -200,6 +202,7 @@ void SettingsDialog::setupUI() {
         {"algorithm", algorithmComboBox, generalTable, 0},
         {"length", lengthSpinBox, generalTable, 1},
         {"enable_old_algorithm", enableOldAlgoComboBox, generalTable, 2},
+        {"check_updates", checkUpdatesComboBox, generalTable, 3},
 
         // Password
         {"char_classes", charClassesWidget, passwordTable, 0},
@@ -380,6 +383,8 @@ std::string SettingsDialog::getEditorValue(const QString& key) const {
         return capitalizeComboBox->currentData().toString().toStdString();
     } else if (key == "enable_old_algorithm") {
         return enableOldAlgoComboBox->currentData().toString().toStdString();
+    } else if (key == "check_updates") {
+        return checkUpdatesComboBox->currentData().toString().toStdString();
     }
     return "";
 }
@@ -458,6 +463,9 @@ void SettingsDialog::setEditorValue(const QString& key, const std::string& value
     } else if (key == "enable_old_algorithm") {
         int idx = enableOldAlgoComboBox->findData(QString::fromStdString(value));
         if (idx != -1) enableOldAlgoComboBox->setCurrentIndex(idx);
+    } else if (key == "check_updates") {
+        int idx = checkUpdatesComboBox->findData(QString::fromStdString(value));
+        if (idx != -1) checkUpdatesComboBox->setCurrentIndex(idx);
     }
 }
 

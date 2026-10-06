@@ -10,6 +10,9 @@
 #include "character_classes.h"
 #include "algorithms.h"
 #include "platform_utils.h"
+#include "update_cmd.h"
+#include "update_state.h"
+#include "config.h"
 
 struct ProcessOutput {
     std::string std_out;
@@ -140,7 +143,7 @@ TEST(E2ETest, DatabasePath) {
 }
 
 TEST(E2ETest, DatabasePathWithUsernames) {
-    std::string db_path = GetTmpDir() + "/mkpass-e2e-test.db";
+    std::string db_path = GetTmpDir() + "/mkpass-e2e-test-usernames.db";
     setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
 
     // Create a dummy database for testing
@@ -1111,4 +1114,151 @@ TEST(E2ECommentTest, InteractivePrompt) {
 
     unsetenv("MKPASS_DB_PATH");
     remove(db_path.c_str());
+}
+
+TEST(E2EUpdateCommandTest, Sha512FileAndChecksumVerification) {
+    std::string test_file = GetTmpDir() + "/test_sha512_file.bin";
+    std::ofstream out(test_file, std::ios::binary);
+    out << "hello sha512 world\n";
+    out.close();
+
+    std::string hash = mkpass::ComputeFileSha512(test_file);
+    EXPECT_EQ(hash.length(), 128);
+
+    // Verify against matching entry
+    std::string sums = hash + "  test_sha512_file.bin\n";
+    EXPECT_TRUE(mkpass::VerifyChecksumSha512(test_file, sums, "test_sha512_file.bin"));
+
+    // Verify against matching entry with asterisk
+    std::string sums_ast = hash + " *test_sha512_file.bin\n";
+    EXPECT_TRUE(mkpass::VerifyChecksumSha512(test_file, sums_ast, "test_sha512_file.bin"));
+
+    // Mismatched hash
+    std::string bad_sums = "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000  test_sha512_file.bin\n";
+    EXPECT_FALSE(mkpass::VerifyChecksumSha512(test_file, bad_sums, "test_sha512_file.bin"));
+
+    // Non-existent file
+    EXPECT_FALSE(mkpass::VerifyChecksumSha512("/nonexistent/file.bin", sums, "test_sha512_file.bin"));
+
+    remove(test_file.c_str());
+}
+
+TEST(E2EUpdateCommandTest, ParseCliReleaseJson) {
+    std::string json = R"({
+        "tag_name": "v0.5.0",
+        "body": "CLI release notes",
+        "html_url": "https://example.com/v0.5.0",
+        "assets": [
+            {
+                "name": "mkpass_0.5.0-1_amd64.deb",
+                "browser_download_url": "https://example.com/mkpass.deb",
+                "size": 123456
+            },
+            {
+                "name": "SHA512SUMS.txt",
+                "browser_download_url": "https://example.com/SHA512SUMS.txt",
+                "size": 256
+            }
+        ]
+    })";
+
+    mkpass::CliReleaseInfo info;
+    EXPECT_TRUE(mkpass::ParseCliReleaseJson(json, info));
+    EXPECT_EQ(info.version, "0.5.0");
+    EXPECT_EQ(info.tag_name, "v0.5.0");
+    EXPECT_EQ(info.release_notes, "CLI release notes");
+    EXPECT_EQ(info.release_url, "https://example.com/v0.5.0");
+    ASSERT_EQ(info.assets.size(), 2);
+    EXPECT_EQ(info.assets[0].name, "mkpass_0.5.0-1_amd64.deb");
+    EXPECT_EQ(info.assets[0].size, 123456);
+}
+
+TEST(E2EUpdateCommandTest, SelectCliOptimalAsset) {
+    std::vector<mkpass::CliReleaseAsset> assets = {
+        {"SHA512SUMS.txt", "https://example.com/sums", 256},
+        {"mkpass-0.5.0-windows-x64-setup.exe", "https://example.com/setup.exe", 1000},
+        {"mkpass-gui_0.5.0-1_amd64.deb", "https://example.com/gui.deb", 2000},
+        {"mkpass_0.5.0-1_amd64.deb", "https://example.com/cli.deb", 1500}
+    };
+
+    auto asset = mkpass::SelectCliOptimalAsset(assets);
+    EXPECT_FALSE(asset.name.empty());
+    EXPECT_NE(asset.name, "SHA512SUMS.txt");
+}
+
+TEST(E2EUpdateCommandTest, CheckOnlySubcommand) {
+    std::string mock_json_path = GetTmpDir() + "/mock_update_release.json";
+    std::ofstream out(mock_json_path);
+    out << R"({
+        "tag_name": "v99.0.0",
+        "body": "Brand new CLI features",
+        "html_url": "https://github.com/kgorelov/mkpass/releases/tag/v99.0.0",
+        "assets": [
+            {
+                "name": "mkpass_99.0.0-1_amd64.deb",
+                "browser_download_url": "file:///dev/null",
+                "size": 1000
+            }
+        ]
+    })";
+    out.close();
+
+    std::string config_path = GetTmpDir() + "/mkpass-e2e-update.conf";
+    setenv("MKPASS_CONFIG_PATH", config_path.c_str(), 1);
+    setenv("MKPASS_UPDATE_CHECK_URL", ("file://" + mock_json_path).c_str(), 1);
+
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " update --check-only";
+    ProcessOutput output = exec_with_input(cmd, "");
+
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_TRUE(output.std_out.find("Update available: v99.0.0") != std::string::npos);
+    EXPECT_TRUE(output.std_out.find("Brand new CLI features") != std::string::npos);
+
+    // Test up to date case
+    std::ofstream out_same(mock_json_path);
+    out_same << R"({
+        "tag_name": "v0.1.0",
+        "body": "Current version",
+        "html_url": "https://github.com/kgorelov/mkpass/releases/tag/v0.1.0",
+        "assets": []
+    })";
+    out_same.close();
+
+    output = exec_with_input(cmd, "");
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_TRUE(output.std_out.find("mkpass is up to date") != std::string::npos);
+
+    unsetenv("MKPASS_CONFIG_PATH");
+    unsetenv("MKPASS_UPDATE_CHECK_URL");
+    remove(mock_json_path.c_str());
+    remove(config_path.c_str());
+}
+
+TEST(E2EPassiveNotificationTest, NotificationSuppressedForPipedStderr) {
+    std::string config_path = GetTmpDir() + "/mkpass-e2e-passive.conf";
+    std::string state_path = GetTmpDir() + "/mkpass-e2e-passive-state.json";
+
+    setenv("MKPASS_CONFIG_PATH", config_path.c_str(), 1);
+    setenv("MKPASS_UPDATE_STATE_PATH", state_path.c_str(), 1);
+
+    // Write state indicating newer version known
+    {
+        mkpass::UpdateState state(state_path);
+        state.latest_known_version = "99.0.0";
+        state.save();
+    }
+
+    // In exec_with_input, stderr is piped (non-TTY), so passive notification must be suppressed
+    std::string cmd = MKPASS_EXECUTABLE_PATH;
+    cmd += " -p master -s test -dd";
+    ProcessOutput output = exec_with_input(cmd, "");
+
+    EXPECT_EQ(output.exit_code, 0);
+    EXPECT_TRUE(output.std_err.find("[mkpass] Update available") == std::string::npos);
+
+    unsetenv("MKPASS_CONFIG_PATH");
+    unsetenv("MKPASS_UPDATE_STATE_PATH");
+    remove(config_path.c_str());
+    remove(state_path.c_str());
 }

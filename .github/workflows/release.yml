@@ -41,6 +41,10 @@ jobs:
       - name: Build application
         run: pixi run build
 
+      - name: Initialize font cache
+        if: matrix.platform == 'linux-x64'
+        run: pixi run fc-cache -r || true
+
       - name: Run test suite
         env:
           QT_QPA_PLATFORM: offscreen
@@ -66,7 +70,7 @@ jobs:
             cp -d "$CONDA_PREFIX"/lib/libstdc++.so* package_bundle/mkpass/usr/lib/ 2>/dev/null || true
             cp -d "$CONDA_PREFIX"/lib/libgcc_s.so* package_bundle/mkpass/usr/lib/ 2>/dev/null || true
           fi
-          cat << 'EOF' > package_bundle/mkpass/mkpass-gui
+          cat << 'EOF' | sed 's/^[[:space:]]*//' > package_bundle/mkpass/mkpass-gui
           #!/bin/bash
           HERE="$(dirname "$(readlink -f "$0")")"
           export LD_LIBRARY_PATH="$HERE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
@@ -85,6 +89,20 @@ jobs:
             cp build/cli/mkpass package_cli/mkpass/
           fi
           tar -czvf "dist/mkpass-${TAG_NAME}-linux-x86_64-cli.tar.gz" -C package_cli mkpass
+
+          # 5. Native deb and rpm packages
+          sudo apt-get update
+          sudo apt-get install -y debhelper fakeroot dpkg-dev rpm build-essential cmake libsqlite3-dev libgtest-dev qtbase5-dev || \
+          sudo apt-get install -y debhelper fakeroot dpkg-dev rpm build-essential cmake libsqlite3-dev libgtest-dev qt6-base-dev
+          ./scripts/package_linux.sh
+
+      - name: Install Windows packaging tools
+        if: matrix.platform == 'windows-x64'
+        shell: bash
+        run: |
+          choco install innosetup wixtoolset -y
+          echo "C:\Program Files (x86)\Inno Setup 6" >> "$GITHUB_PATH"
+          echo "C:\Program Files (x86)\WiX Toolset v3.11\bin" >> "$GITHUB_PATH"
 
       - name: Package Windows
         if: matrix.platform == 'windows-x64'
@@ -204,6 +222,13 @@ jobs:
           pattern: mkpass-*
           path: dist
           merge-multiple: true
+
+      - name: Generate Checksums
+        shell: bash
+        run: |
+          cd dist
+          sha512sum * > SHA512SUMS.txt
+          cat SHA512SUMS.txt
 
       - name: Inspect release assets
         run: ls -la dist/

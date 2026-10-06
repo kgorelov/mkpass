@@ -16,6 +16,7 @@ class QLabel;
 class ProgressDialog;
 class QCompleter;
 class ManualDialog;
+namespace mkpass { class UpdateManager; }
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -43,6 +44,7 @@ private slots:
     void showManual();
     void showHelp();
     void showSettings();
+    void checkForUpdates();
 
 private:
     void setupUI();
@@ -82,6 +84,7 @@ private:
     std::string generatedPassword;
     ProgressDialog *progressDialog;
     ManualDialog *manualDialog;
+    mkpass::UpdateManager *updateManager_ = nullptr;
 };
 
 int run_gui(int argc, char *argv[]);

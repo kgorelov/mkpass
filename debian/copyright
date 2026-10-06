@@ -1,6 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: mkpass
-Source: https://github.com/mkpass/mkpass
+Source: https://github.com/kgorelov/mkpass
 
 Files: *
 Copyright: 2026 Kirill Gorelov <kgorelov@gmail.com>

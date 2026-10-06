@@ -2,6 +2,13 @@
 #include <QApplication>
 #include <QTableWidgetItem>
 #include <fstream>
+#ifdef _WIN32
+#include <process.h>
+#define GETPID _getpid
+#else
+#include <unistd.h>
+#define GETPID getpid
+#endif
 
 #include "settings_dialog.h"
 #include "comment_dialog.h"
@@ -24,7 +31,10 @@ protected:
     }
 
     void SetUp() override {
-        test_config_path_ = GetTmpDir() + "/mkpass-gui-settings-test.conf";
+        const ::testing::TestInfo* const test_info =
+            ::testing::UnitTest::GetInstance()->current_test_info();
+        std::string test_name = test_info ? test_info->name() : "default";
+        test_config_path_ = GetTmpDir() + "/mkpass-gui-settings-" + test_name + "-" + std::to_string(GETPID()) + ".conf";
         setenv("MKPASS_CONFIG_PATH", test_config_path_.c_str(), 1);
         remove(test_config_path_.c_str());
     }
@@ -73,10 +83,11 @@ TEST_F(SettingsDialogTest, VisualGroupStructure) {
     ASSERT_NE(pwdTbl, nullptr);
     ASSERT_NE(passTbl, nullptr);
 
-    EXPECT_EQ(genTbl->rowCount(), 3);
+    EXPECT_EQ(genTbl->rowCount(), 4);
     EXPECT_EQ(genTbl->item(0, 1)->text(), "algorithm");
     EXPECT_EQ(genTbl->item(1, 1)->text(), "length");
     EXPECT_EQ(genTbl->item(2, 1)->text(), "enable_old_algorithm");
+    EXPECT_EQ(genTbl->item(3, 1)->text(), "check_updates");
 
     EXPECT_EQ(pwdTbl->rowCount(), 2);
     EXPECT_EQ(pwdTbl->item(0, 1)->text(), "char_classes");
@@ -285,7 +296,7 @@ TEST_F(MainWindowTest, PassphrasePatternDropdownExplanation) {
 }
 
 TEST_F(MainWindowTest, CommentButtonState) {
-    std::string db_path = GetTmpDir() + "/mkpass-gui-comment-test.db";
+    std::string db_path = GetTmpDir() + "/mkpass-gui-comment-" + std::to_string(GETPID()) + ".db";
     setenv("MKPASS_DB_PATH", db_path.c_str(), 1);
     remove(db_path.c_str());
 
