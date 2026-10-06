@@ -63,6 +63,13 @@
             margin: 16px 0;
             border-radius: 0 4px 4px 0;
         }
+        .info {
+            background-color: #e1f5fe;
+            border-left: 4px solid #0288d1;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 0 4px 4px 0;
+        }
     </style>
 </head>
 <body>
@@ -76,7 +83,8 @@
         <li><strong>No Secret Vault Needed</strong>: Your passwords are not saved anywhere. Instead, they are deterministically generated on-demand whenever you need them.</li>
         <li><strong>One Master Password</strong>: You only remember a single Master Password.</li>
         <li><strong>Service-Based Generation</strong>: By combining your Master Password with a Service Name (e.g. <code>github.com</code> or <code>my-email</code>) and non-secret generation rules, <code>mkpass</code> derives the exact same strong password every single time.</li>
-        <li><strong>Local Configuration History</strong>: Non-secret parameters (algorithm choice, password length, character sets) are stored locally in an SQLite database to provide convenient autocompletion and default settings.</li>
+        <li><strong>Local Configuration History</strong>: Non-secret parameters (algorithm choice, password length, character sets, comments) are stored locally in an SQLite database to provide convenient autocompletion and default settings.</li>
+        <li><strong>Global Preferences</strong>: Application defaults and self-updating preferences are stored in a human-readable configuration file (<code>~/.config/mkpass/mkpass.conf</code>).</li>
     </ul>
 
     <div class="screenshot-container">
@@ -89,6 +97,7 @@
     <ul>
         <li><strong>Master Password & Repeat Password</strong>: Enter your secret master password. The repeat field ensures you haven't made a typo.</li>
         <li><strong>Service</strong>: The name or URL of the service (e.g., <code>google.com</code>, <code>work-vpn</code>). Autocompletes known services from your database.</li>
+        <li><strong>Comment Button</strong>: Attach an optional descriptive comment or note (e.g., account username or purpose) to the service.</li>
         <li><strong>Algorithm Selector</strong>: Choose between cryptographic key derivation algorithms and passphrase modes:
             <ul>
                 <li><code>Password (Argon2)</code>: Modern memory-hard password generation (Recommended).</li>
@@ -101,7 +110,7 @@
         <li><strong>Length & Separator Controls</strong>: Adjust password length (characters) or passphrase length (words) and select word separators (Hyphen, Space, Slash).</li>
         <li><strong>Action Buttons</strong>:
             <ul>
-                <li><strong>Generate</strong>: Computes the password and displays it in a dialog.</li>
+                <li><strong>Generate</strong>: Computes the password and displays it in a dialog with reveal and QR code options.</li>
                 <li><strong>Copy to Clipboard</strong>: Directly copies the generated password to your system clipboard without revealing it on screen.</li>
             </ul>
         </li>
@@ -119,10 +128,11 @@
         <li>Launch <code>mkpass-gui</code>.</li>
         <li>Enter your <strong>Master Password</strong> in the <em>Master Password</em> and <em>Repeat Password</em> fields.</li>
         <li>Type the new service name in the <strong>Service</strong> field (e.g., <code>amazon.com</code>).</li>
+        <li>Optionally click the comment button to add a note or account username.</li>
         <li>Select your desired <strong>Algorithm</strong> (default is <code>Password (Argon2)</code>).</li>
         <li>Select the required character sets and length (e.g., 20 characters with digits and symbols).</li>
         <li>Click <strong>Generate Password</strong> or <strong>Copy to Clipboard</strong>.</li>
-        <li>The service parameters are automatically saved in your local database for future use.</li>
+        <li>The service parameters and comment are automatically saved in your local database for future use.</li>
     </ol>
 
     <div class="screenshot-container">
@@ -138,7 +148,7 @@
     <h3>3.2 Regenerating a Password for an Existing Service</h3>
     <ol>
         <li>Start typing the service name in the <strong>Service</strong> field.</li>
-        <li>Select the service from the autocompletion dropdown. All previously saved non-secret parameters (algorithm, length, character sets) will automatically load.</li>
+        <li>Select the service from the autocompletion dropdown. All previously saved non-secret parameters (algorithm, length, character sets, comment) will automatically load.</li>
         <li>Enter your <strong>Master Password</strong>.</li>
         <li>Click <strong>Copy to Clipboard</strong> or <strong>Generate Password</strong>.</li>
     </ol>
@@ -152,7 +162,7 @@
     <p>To inspect or clean up your saved service configurations:</p>
     <ol>
         <li>Click <strong>Database</strong> in the top menu bar and select <strong>Management</strong>.</li>
-        <li>A dialog will open showing a list of all saved services along with their stored algorithm and length configurations.</li>
+        <li>A dialog will open showing a list of all saved services along with their stored algorithm, length, and comments.</li>
         <li>Use the search filter to locate specific entries.</li>
         <li>Double-click any entry or select it and click <strong>Details</strong> to view its full configuration record.</li>
         <li>Select an entry and click <strong>Delete</strong> to remove it from local suggestions.</li>
@@ -163,14 +173,60 @@
         <div class="screenshot-caption">Database Management dialog showing saved service configurations</div>
     </div>
 
-    <h2>4. Security Features & Best Practices</h2>
+    <h3>3.4 Configuring Preferences & Settings</h3>
+    <p>Customize default generation parameters and application behavior via the Preferences dialog:</p>
+    <ol>
+        <li>Click <strong>Edit</strong> in the menu bar and select <strong>Settings</strong> (or <strong>Preferences</strong>).</li>
+        <li>In the <strong>General</strong> section, toggle <em>Check for updates periodically</em>.</li>
+        <li>In the <strong>Defaults</strong> section, choose your preferred default algorithm, password length, and default character classes.</li>
+        <li>Click <strong>Save</strong> to persist your configuration to <code>mkpass.conf</code>.</li>
+    </ol>
+
+    <h2>4. Automatic Updates & Integrity Verification</h2>
+    <p><code>mkpass-gui</code> includes an integrated, user-consented update system designed for convenience and privacy:</p>
+
+    <div class="info">
+        <strong>Privacy & Zero Telemetry:</strong> Update checks only query public GitHub Release metadata. No telemetry, identifiers, analytics, passwords, or service names are ever sent.
+    </div>
+
+    <h3>4.1 Background Checks & Manual Checks</h3>
+    <ul>
+        <li><strong>Automatic Background Checks</strong>: Shortly after launching (4 seconds), <code>mkpass-gui</code> performs a non-intrusive background check if enabled in settings. If the current version is up to date, no dialogs or interruptions appear.</li>
+        <li><strong>Manual Check</strong>: You can check for updates on demand at any time by selecting <strong>Help &rarr; Check for Updates...</strong> from the top menu bar.</li>
+    </ul>
+
+    <h3>4.2 The Update Dialog</h3>
+    <p>When a newer release is detected, the <strong>Update Available</strong> dialog appears:</p>
+    <ul>
+        <li><strong>Version Information</strong>: Displays the currently running version alongside the newly available release version.</li>
+        <li><strong>Release Notes</strong>: Renders formatted release changelogs and feature highlights directly from the GitHub release.</li>
+        <li><strong>Options</strong>: Allows skipping the release (<em>Skip this version</em>) or disabling future checks (<em>Do not check for updates automatically</em>).</li>
+        <li><strong>Action Buttons</strong>:
+            <ul>
+                <li><strong>Download and Install</strong>: Begins the download and automated installation pipeline.</li>
+                <li><strong>Remind Me Later</strong>: Dismisses the dialog until the next periodic check interval.</li>
+                <li><strong>View on GitHub</strong>: Opens the release page in your default web browser.</li>
+            </ul>
+        </li>
+    </ul>
+
+    <h3>4.3 Cryptographic Integrity Verification</h3>
+    <p>Before installing any update, <code>mkpass-gui</code> securely verifies the downloaded asset:</p>
+    <ol>
+        <li>Downloads the platform-appropriate installer or package and the official <code>SHA512SUMS.txt</code> checksum file.</li>
+        <li>Computes the SHA-512 cryptographic digest of the downloaded file locally.</li>
+        <li>Compares the computed digest with the signed/published checksum. If a mismatch is detected, the update is immediately aborted and discarded with a security warning.</li>
+        <li>Upon successful verification, the installer is executed (e.g. Inno Setup on Windows, native package or atomic AppImage replacement on Linux).</li>
+    </ol>
+
+    <h2>5. Security Features & Best Practices</h2>
     <div class="tip">
-        <strong>Automatic Clipboard Wiping:</strong> Whenever you close <code>mkpass-gui</code>, the application automatically clears the system clipboard to prevent unauthorized applications from reading your copied password.
+        <strong>Automatic Clipboard Wiping:</strong> Whenever you close <code>mkpass-gui</code>, the application automatically clears the system clipboard to prevent unauthorized background applications from reading your copied password.
     </div>
     <ul>
-        <li><strong>Memory Protection</strong>: Master passwords are kept in memory only for the duration of the generation computation.</li>
-        <li><strong>No Network Transmission</strong>: <code>mkpass-gui</code> performs all calculations locally on your CPU. No internet connection is used or required.</li>
-        <li><strong>Backup Your Parameters</strong>: Because generation is deterministic, as long as you remember your Master Password and know your service parameters, your passwords can never be lost.</li>
+        <li><strong>Memory Sanitization</strong>: Master passwords are kept in memory only for the duration of the generation computation and securely wiped afterwards.</li>
+        <li><strong>Local Processing</strong>: Password generation is completely local on your CPU. No network connection is used or required for password generation.</li>
+        <li><strong>Deterministic Reliability</strong>: Knowing your Master Password and configuration parameters guarantees password regeneration on any device without relying on backups or cloud providers.</li>
     </ul>
 
 </body>

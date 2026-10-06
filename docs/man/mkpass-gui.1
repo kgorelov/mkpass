@@ -1,4 +1,4 @@
-.TH MKPASS-GUI 1 "July 2026" "mkpass 0.1.0" "User Commands"
+.TH MKPASS-GUI 1 "October 2026" "mkpass 0.1.0" "User Commands"
 .SH NAME
 mkpass-gui \- Qt graphical interface for mkpass password generator
 .SH SYNOPSIS
@@ -16,9 +16,13 @@ Key Features of the GUI:
 .IP \(bu 2
 \fBReal-time Service Autocomplete\fR: Instant suggestions derived from the local SQLite database.
 .IP \(bu 2
-\fBInteractive Controls\fR: Dynamic form controls for algorithm selection (Argon2, SHA512, Diceware, WordNet pattern), length adjustments, and character set toggles.
+\fBInteractive Controls\fR: Dynamic form controls for algorithm selection (Argon2, SHA512, Diceware, WordNet pattern), length adjustments, character set toggles, and service comments.
 .IP \(bu 2
-\fBDatabase Management Dialog\fR: Built-in manager accessible via the Database menu to view, search, inspect full record details, and delete saved service configurations.
+\fBDatabase Management Dialog\fR: Built-in manager accessible via the Database menu to view, search, inspect full record details, edit comments, and delete saved service configurations.
+.IP \(bu 2
+\fBPreferences & Settings Dialog\fR: Configure persistent default generation parameters, default algorithm, and automatic update checking behavior.
+.IP \(bu 2
+\fBIntegrated Self-Updating System\fR: Non-intrusive background update checks and on-demand check via \fBHelp \-> Check for Updates...\fR. Includes cryptographic SHA-512 integrity verification and direct installer execution.
 .IP \(bu 2
 \fBClipboard Security\fR: Instant clipboard copy button with automatic clipboard wiping upon application shutdown.
 .IP \(bu 2
@@ -43,21 +47,36 @@ Display standard command-line help options.
 1. Launch \fBmkpass-gui\fR.
 2. Type your Master Password in the password field.
 3. Type or select a Service Name (e.g. "github.com").
-4. Adjust options if required (algorithm, length, character sets).
+4. Adjust options if required (algorithm, length, character sets, optional comment).
 5. Click \fBGenerate\fR or press Enter.
 6. Click \fBCopy to Clipboard\fR.
-
 .TP
 .B Managing Stored Service Configurations
 1. Open the \fBDatabase\fR menu and select \fBManagement\fR.
 2. Search or browse saved service entries.
 3. Double-click an entry or click Details to view its full configuration record.
 4. Select and delete obsolete service configurations.
+.TP
+.B Checking for Software Updates
+1. Open the \fBHelp\fR menu and click \fBCheck for Updates...\fR.
+2. If a new version is available, review the release notes in the update dialog.
+3. Click \fBDownload and Install\fR to automatically download the verified package and perform the update.
+.TP
+.B Configuring Application Defaults
+1. Open the \fBEdit\fR menu and select \fBSettings\fR (or \fBPreferences\fR).
+2. Adjust default algorithm, length, character sets, or toggle periodic update checking.
+3. Click \fBSave\fR to write settings to \fBmkpass.conf\fR.
 
 .SH FILES
 .TP
 .I ~/.config/mkpass/config.db
-SQLite database storing local non-secret service configuration entries and options history.
+SQLite database storing local non-secret service configuration entries, comments, and options history.
+.TP
+.I ~/.config/mkpass/mkpass.conf
+TOML user configuration file containing persistent defaults and update preferences.
+.TP
+.I ~/.cache/mkpass/update_state.json
+Local cache storing update check timestamps, HTTP ETags, and latest known release information.
 
 .SH SEE ALSO
 .BR mkpass (1)

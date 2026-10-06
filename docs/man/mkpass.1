@@ -1,9 +1,15 @@
-.TH MKPASS 1 "July 2026" "mkpass 0.1.0" "User Commands"
+.TH MKPASS 1 "October 2026" "mkpass 0.1.0" "User Commands"
 .SH NAME
 mkpass \- stateless deterministic password and passphrase generator
 .SH SYNOPSIS
 .B mkpass
 [\fIOPTIONS\fR]
+.br
+.B mkpass
+\fBconfig\fR \fISUBCOMMAND\fR [\fIARGS\fR]
+.br
+.B mkpass
+\fBupdate\fR [\fIUPDATE_OPTIONS\fR]
 .SH DESCRIPTION
 .B mkpass
 is a stateless, deterministic password and passphrase generator. Instead of storing generated secret passwords in an encrypted vault,
@@ -14,7 +20,7 @@ Every time you enter the same Master Password, Service Name, and parameters (suc
 .B mkpass
 computes the exact same password using cryptographic key derivation functions (Argon2id or HMAC-SHA512).
 .PP
-Non-secret configuration parameters (algorithm choice, length, character sets, separators, patterns) are stored in a local SQLite database (\fB~/.config/mkpass/config.db\fR) to provide auto-completion suggestions and remember per-service preferences. Even without access to the local database, knowing your Master Password and configuration parameters guarantees password regeneration on any device.
+Non-secret configuration parameters (algorithm choice, length, character sets, separators, patterns, comments) are stored in a local SQLite database (\fB~/.config/mkpass/config.db\fR) to provide auto-completion suggestions and remember per-service preferences. Persistent global defaults and update settings are maintained in a user configuration file (\fB~/.config/mkpass/mkpass.conf\fR). Even without access to the local database or config file, knowing your Master Password and configuration parameters guarantees password regeneration on any device.
 
 .SH OPTIONS
 .TP
@@ -24,59 +30,62 @@ Specify the Master Password. If omitted in interactive mode, the user will be se
 \fB\-s\fR, \fB\-\-service\fR \fISERVICE\fR
 Specify the target Service Name (e.g., "github.com"). Supports auto-completion in interactive mode. Can also be set via the \fBMKPASS_SERVICE\fR environment variable.
 .TP
+\fB\-m\fR, \fB\-\-comment\fR \fICOMMENT\fR
+Specify a descriptive comment or metadata for the service (e.g., "Work account - MFA recovery"). Stored in the local database. Can also be set via the \fBMKPASS_COMMENT\fR environment variable.
+.TP
 \fB\-a\fR, \fB\-\-algorithm\fR \fIALGO\fR
-Specify the generation algorithm (1-5):
+Specify the generation algorithm. Accepts numeric IDs (1-5) or descriptive strings:
 .RS
-.IP "1" 4
+.IP "1, password/argon2" 4
 Password using \fBArgon2id\fR key derivation (Recommended modern default).
-.IP "2" 4
+.IP "2, password/sha512" 4
 Password using \fBHMAC-SHA512\fR iterative hashing.
 .IP "3" 4
-Legacy algorithm support (for backwards compatibility).
-.IP "4" 4
+Legacy algorithm support (requires \fBenable_old_algorithm = true\fR in configuration).
+.IP "4, passphrase/diceware" 4
 Passphrase using \fBDiceware EFF Large\fR wordlist.
-.IP "5" 4
+.IP "5, passphrase/wordnet" 4
 Passphrase using \fBWordNet Pattern\fR grammatical structure.
 .RE
 .TP
 \fB\-c\fR, \fB\-\-char\-classes\fR \fICLASSES\fR
-Specify character classes to include for password generation (e.g. \fB1234\fR):
+Specify character classes to include for password generation. Accepts numeric strings (e.g. \fB1234\fR) or comma-separated names (e.g. \fBlowercase,uppercase,digits,symbols\fR):
 .RS
-.IP "1" 4
+.IP "1, lowercase" 4
 Lower-case letters (a-z)
-.IP "2" 4
+.IP "2, uppercase" 4
 Upper-case letters (A-Z)
-.IP "3" 4
+.IP "3, digits" 4
 Digits (0-9)
-.IP "4" 4
+.IP "4, symbols" 4
 Special symbols (!@#$%^&*...)
-.IP "5" 4
+.IP "5, custom" 4
 Custom character set (specified via \fB\-\-custom\-chars\fR)
 .RE
 .TP
 \fB\-\-custom\-chars\fR \fICHARS\fR
-Specify custom characters to append to the generation pool when character class 5 is selected.
+Specify custom characters to append to the generation pool when character class 5 is selected. Can also be set via the \fBMKPASS_CUSTOM_CHARS\fR environment variable.
 .TP
 \fB\-l\fR, \fB\-\-length\fR \fILEN\fR
-Set derived password or passphrase length (number of characters or words depending on algorithm). Range: 1 to 128. Default: 16.
+Set derived password or passphrase length (number of characters or words depending on algorithm). Range: 1 to 128. Default: 16. Can also be set via the \fBMKPASS_LENGTH\fR environment variable.
 .TP
 \fB\-\-separator\fR \fISEPARATOR\fR
-Set word separator string for passphrases (e.g., "-", " ", "/").
+Set word separator string for passphrases (e.g., "-", " ", "/"). Can also be set via the \fBMKPASS_SEPARATOR\fR environment variable.
 .TP
 \fB\-\-pattern\fR \fIPATTERN\fR
-Set grammatical passphrase structure for WordNet pattern algorithm (e.g., "adj,noun,verb").
+Set grammatical passphrase structure for WordNet pattern algorithm (e.g., "adj,noun,verb"). Can also be set via the \fBMKPASS_PASSPHRASE_PATTERN\fR environment variable.
 .TP
 \fB\-\-digits\fR \fIy|n\fR
-Enable or disable inclusion of random digits in generated passphrases.
+Enable or disable inclusion of random digits in generated passphrases. Can also be set via the \fBMKPASS_DIGITS\fR environment variable.
 .TP
 \fB\-\-symbols\fR \fIy|n\fR
-Enable or disable inclusion of random symbols in generated passphrases.
+Enable or disable inclusion of random symbols in generated passphrases. Can also be set via the \fBMKPASS_SYMBOLS\fR environment variable.
 .TP
 \fB\-\-substitutions\fR \fIy|n\fR
-Allow or disallow leetspeak-style character substitutions in passphrases (e.g., 'a' -> '4').
+Allow or disallow leetspeak-style character substitutions in passphrases (e.g., 'a' -> '4'). Can also be set via the \fBMKPASS_SUBSTITUTIONS\fR environment variable.
 .TP
 \fB\-\-capitalize\fR \fIy|n\fR
-Enable or disable word capitalization in passphrases.
+Enable or disable word capitalization in passphrases. Can also be set via the \fBMKPASS_CAPITALIZE\fR environment variable.
 .TP
 \fB\-q\fR, \fB\-\-qr\-code\fR
 Render the generated password directly in the terminal as a UTF-8 / ASCII QR code instead of plain text.
@@ -96,6 +105,73 @@ Enter record info mode to display full service configuration from the local data
 \fB\-h\fR, \fB\-\-help\fR
 Display command summary and exit.
 
+.SH SUBCOMMANDS
+.SS config
+Manage persistent user configuration settings stored in \fB~/.config/mkpass/mkpass.conf\fR.
+.TP
+\fBmkpass config get\fR \fIKEY\fR
+Display the current configured value for the specified configuration key.
+.TP
+\fBmkpass config set\fR \fIKEY\fR \fIVALUE\fR
+Set and persist a configuration option in \fBmkpass.conf\fR.
+.TP
+\fBmkpass config unset\fR \fIKEY\fR
+Remove the specified option from \fBmkpass.conf\fR, reverting it to its built-in default.
+.TP
+\fBmkpass config print\fR [\fB\-a\fR|\fB\-\-all\fR]
+Print active configuration settings. If \fB\-a\fR or \fB\-\-all\fR is specified, all settings including defaults are displayed.
+
+.PP
+Valid configuration keys:
+.RS
+.IP "\fBcheck_updates\fR" 4
+Boolean (\fBtrue\fR/\fBfalse\fR). Enable or disable periodic background checks for software updates. (Default: \fBtrue\fR)
+.IP "\fBupdate_check_interval_days\fR" 4
+Integer (1-365). Number of days between periodic update checks. (Default: \fB7\fR)
+.IP "\fBupdate_channel\fR" 4
+String (\fB"stable"\fR or \fB"prerelease"\fR). Release channel to query. (Default: \fB"stable"\fR)
+.IP "\fBalgorithm\fR" 4
+Default algorithm (\fBpassword/argon2\fR, \fBpassword/sha512\fR, \fBpassphrase/diceware\fR, \fBpassphrase/wordnet\fR).
+.IP "\fBlength\fR" 4
+Default password length or passphrase word count.
+.IP "\fBchar_classes\fR" 4
+Default character classes (e.g. \fB1234\fR or \fBlowercase,uppercase,digits,symbols\fR).
+.IP "\fBcustom_chars\fR" 4
+Default custom characters.
+.IP "\fBseparator\fR" 4
+Default passphrase separator string.
+.IP "\fBpassphrase_pattern\fR" 4
+Default WordNet passphrase grammatical pattern.
+.IP "\fBdigits\fR" 4
+Boolean. Default digits inclusion for passphrases.
+.IP "\fBsymbols\fR" 4
+Boolean. Default symbols inclusion for passphrases.
+.IP "\fBsubstitutions\fR" 4
+Boolean. Default leetspeak substitution flag for passphrases.
+.IP "\fBcapitalize\fR" 4
+Boolean. Default word capitalization flag for passphrases.
+.IP "\fBenable_old_algorithm\fR" 4
+Boolean. Enable deprecated legacy algorithm 3. (Default: \fBfalse\fR)
+.RE
+
+.SS update
+Check GitHub Releases for new versions of \fBmkpass\fR and install updates with SHA-512 cryptographic verification.
+.TP
+\fB\-\-check\-only\fR
+Check whether a new release is available and display release notes, without downloading or installing.
+.TP
+\fB\-y\fR, \fB\-\-yes\fR
+Automatically proceed with download, checksum verification, and installation without prompting for confirmation.
+
+.SH PASSIVE UPDATE NOTIFICATIONS
+When update checking is enabled (\fBcheck_updates = true\fR), \fBmkpass\fR consults cached release metadata (\fB~/.cache/mkpass/update_state.json\fR) during standard password generation. If a newer release is known to exist, a single-line advisory is emitted to \fBstderr\fR:
+.PP
+.RS
+\fI[mkpass] Update available: vX.Y.Z (current: vA.B.C). Run 'mkpass update' to install.\fR
+.RE
+.PP
+This notification is automatically suppressed when \fBstderr\fR is redirected or piped, and is never shown when \fBcheck_updates\fR is set to \fBfalse\fR.
+
 .SH ENVIRONMENT VARIABLES
 .TP
 .B MKPASS_PASSWORD
@@ -104,8 +180,11 @@ Master Password to use for generation.
 .B MKPASS_SERVICE
 Target Service Name.
 .TP
+.B MKPASS_COMMENT
+Service description or comment metadata.
+.TP
 .B MKPASS_ALGORITHM
-Default algorithm ID (1-5).
+Default algorithm identifier (e.g. "password/argon2" or 1-5).
 .TP
 .B MKPASS_CHAR_CLASSES
 Character classes string.
@@ -137,7 +216,13 @@ Capitalize words flag (y/n).
 .SH FILES
 .TP
 .I ~/.config/mkpass/config.db
-SQLite database storing local non-secret service configuration entries and options history.
+SQLite database storing local non-secret service configuration entries, comments, and options history.
+.TP
+.I ~/.config/mkpass/mkpass.conf
+TOML user configuration file containing persistent defaults and update preferences.
+.TP
+.I ~/.cache/mkpass/update_state.json
+Local cache storing update check timestamps, HTTP ETags, and latest known release information.
 
 .SH EXAMPLES
 .TP
@@ -145,16 +230,31 @@ SQLite database storing local non-secret service configuration entries and optio
 $ mkpass
 .TP
 .B Generate password for github.com non-interactively using defaults:
-$ MKPASS_PASSWORD="my_master_secret" mkpass -s github.com -d -d
+$ MKPASS_PASSWORD="my_master_secret" mkpass \-s github.com \-d \-d
+.TP
+.B Generate password with comment attached:
+$ mkpass \-s aws.amazon.com \-m "Root production access"
 .TP
 .B Generate password as a terminal QR code:
-$ mkpass -s email -q
+$ mkpass \-s email \-q
 .TP
 .B Display full service record from local database:
-$ mkpass -I -s github.com
+$ mkpass \-I \-s github.com
 .TP
 .B Delete a saved service entry from local database:
-$ mkpass -D -s oldservice.com
+$ mkpass \-D \-s oldservice.com
+.TP
+.B Check if a newer version of mkpass is available:
+$ mkpass update \-\-check\-only
+.TP
+.B Download and install latest release:
+$ mkpass update
+.TP
+.B Disable periodic automatic update checking:
+$ mkpass config set check_updates false
+.TP
+.B View all current configuration settings:
+$ mkpass config print \-a
 
 .SH SEE ALSO
 .BR mkpass-gui (1)
