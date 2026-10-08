@@ -126,6 +126,7 @@ if(WITH_GUI)
     if(DEFINED ENV{CONDA_PREFIX})
       set(CONDA_BIN_DIR "$ENV{CONDA_PREFIX}/Library/bin")
       file(GLOB ICU_DLLS "${CONDA_BIN_DIR}/icu*.dll")
+      file(GLOB OPENSSL_DLLS "${CONDA_BIN_DIR}/libcrypto*.dll" "${CONDA_BIN_DIR}/libssl*.dll")
       add_custom_command(TARGET mkpass-gui POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
           "${CONDA_BIN_DIR}/libpng16.dll"
@@ -136,6 +137,7 @@ if(WITH_GUI)
           "${CONDA_BIN_DIR}/harfbuzz.dll"
           "${CONDA_BIN_DIR}/libbz2.dll"
           ${ICU_DLLS}
+          ${OPENSSL_DLLS}
           "$<TARGET_FILE_DIR:mkpass-gui>/"
         COMMENT "Copying Qt runtime dependencies"
       )

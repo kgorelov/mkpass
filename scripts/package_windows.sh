@@ -64,6 +64,10 @@ fi
 
 # 4. Copy Qt and dependency DLLs from Conda prefix if available
 if [ -n "$PREFIX_BIN" ] && [ -d "$PREFIX_BIN" ]; then
+  # Copy all runtime DLLs from Conda prefix Library/bin (includes OpenSSL, Qt, ICU, etc.)
+  cp "$PREFIX_BIN"/*.dll package/mkpass/ 2>/dev/null || true
+  # Explicitly ensure OpenSSL (required by QtNetwork) and core libraries are present
+  cp "$PREFIX_BIN"/libcrypto*.dll "$PREFIX_BIN"/libssl*.dll package/mkpass/ 2>/dev/null || true
   cp "$PREFIX_BIN"/Qt5*.dll package/mkpass/ 2>/dev/null || true
   cp "$PREFIX_BIN"/icu*.dll package/mkpass/ 2>/dev/null || true
   cp "$PREFIX_BIN"/libpng*.dll "$PREFIX_BIN"/zlib*.dll "$PREFIX_BIN"/pcre2*.dll "$PREFIX_BIN"/zstd*.dll "$PREFIX_BIN"/freetype*.dll "$PREFIX_BIN"/harfbuzz*.dll "$PREFIX_BIN"/libbz2*.dll "$PREFIX_BIN"/bzip2*.dll package/mkpass/ 2>/dev/null || true
@@ -71,6 +75,10 @@ if [ -n "$PREFIX_BIN" ] && [ -d "$PREFIX_BIN" ]; then
   cp "$PREFIX_BIN"/sqlite*.dll package/mkpass/ 2>/dev/null || true
   cp "$PREFIX_BIN"/d3dcompiler*.dll "$PREFIX_BIN"/opengl32sw.dll "$PREFIX_BIN"/libEGL.dll "$PREFIX_BIN"/libGLESv2.dll package/mkpass/ 2>/dev/null || true
   cp "$PREFIX_BIN"/vcruntime*.dll "$PREFIX_BIN"/msvcp*.dll "$PREFIX_BIN"/vcomp*.dll package/mkpass/ 2>/dev/null || true
+fi
+
+if [ -n "$CONDA_PREFIX" ] && [ -d "$CONDA_PREFIX/bin" ]; then
+  cp "$CONDA_PREFIX"/bin/*.dll package/mkpass/ 2>/dev/null || true
 fi
 
 # 5. Copy MSVC runtime from system if available
@@ -134,7 +142,12 @@ if [ ! -f "package/mkpass/plugins/platforms/qwindows.dll" ] && [ ! -f "package/m
   exit 1
 fi
 
-echo "Verification passed: qwindows.dll is present."
+if ! compgen -G "package/mkpass/libssl*.dll" >/dev/null || ! compgen -G "package/mkpass/libcrypto*.dll" >/dev/null; then
+  echo "FATAL ERROR: OpenSSL DLLs (libssl / libcrypto) not found in package! mkpass-gui requires them for QtNetwork." >&2
+  exit 1
+fi
+
+echo "Verification passed: qwindows.dll and OpenSSL DLLs are present."
 
 # 11. Compress portable zip
 cmake -E chdir package cmake -E tar cfv "../dist/mkpass-${TAG_NAME}-windows-x64.zip" --format=zip mkpass
