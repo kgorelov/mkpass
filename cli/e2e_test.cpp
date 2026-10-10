@@ -10,7 +10,9 @@
 #include "character_classes.h"
 #include "algorithms.h"
 #include "platform_utils.h"
+#ifdef MKPASS_WITH_UPDATER
 #include "update_cmd.h"
+#endif
 #include "update_state.h"
 #include "config.h"
 
@@ -1116,6 +1118,7 @@ TEST(E2ECommentTest, InteractivePrompt) {
     remove(db_path.c_str());
 }
 
+#ifdef MKPASS_WITH_UPDATER
 TEST(E2EUpdateCommandTest, Sha512FileAndChecksumVerification) {
     std::string test_file = GetTmpDir() + "/test_sha512_file.bin";
     std::ofstream out(test_file, std::ios::binary);
@@ -1262,3 +1265,4 @@ TEST(E2EPassiveNotificationTest, NotificationSuppressedForPipedStderr) {
     remove(config_path.c_str());
     remove(state_path.c_str());
 }
+#endif // MKPASS_WITH_UPDATER

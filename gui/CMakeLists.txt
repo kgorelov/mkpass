@@ -14,32 +14,47 @@ if(WITH_GUI)
     settings_dialog.cpp
     comment_dialog.cpp
     icon_utils.cpp
-    update_manager.cpp
-    update_dialog.cpp
   )
+  if(WITH_UPDATER)
+    list(APPEND GUI_SOURCES
+      update_manager.cpp
+      update_dialog.cpp
+    )
+  endif()
+
+  set(QT_COMPONENTS Widgets Concurrent)
+  if(WITH_UPDATER)
+    list(APPEND QT_COMPONENTS Network)
+  endif()
 
   if (MKPASS_QT_VERSION STREQUAL "6")
-    find_package(Qt6 REQUIRED COMPONENTS Widgets Concurrent Network)
+    find_package(Qt6 REQUIRED COMPONENTS ${QT_COMPONENTS})
     set(USE_QT_VERSION 6)
   elseif (MKPASS_QT_VERSION STREQUAL "5")
-    find_package(Qt5 REQUIRED COMPONENTS Widgets Concurrent Network)
+    find_package(Qt5 REQUIRED COMPONENTS ${QT_COMPONENTS})
     set(USE_QT_VERSION 5)
   else()
-    find_package(Qt6 COMPONENTS Widgets Concurrent Network QUIET)
+    find_package(Qt6 COMPONENTS ${QT_COMPONENTS} QUIET)
     if (Qt6_FOUND)
       set(USE_QT_VERSION 6)
     else()
-      find_package(Qt5 REQUIRED COMPONENTS Widgets Concurrent Network)
+      find_package(Qt5 REQUIRED COMPONENTS ${QT_COMPONENTS})
       set(USE_QT_VERSION 5)
     endif()
   endif()
 
   if (USE_QT_VERSION EQUAL 6)
     qt_add_resources(GUI_SOURCES icons.qrc)
-    set(QT_LIBRARIES Qt6::Widgets Qt6::Concurrent Qt6::Network)
+    set(QT_LIBRARIES Qt6::Widgets Qt6::Concurrent)
+    if(WITH_UPDATER)
+      list(APPEND QT_LIBRARIES Qt6::Network)
+    endif()
   else()
     qt5_add_resources(GUI_SOURCES icons.qrc)
-    set(QT_LIBRARIES Qt5::Widgets Qt5::Concurrent Qt5::Network)
+    set(QT_LIBRARIES Qt5::Widgets Qt5::Concurrent)
+    if(WITH_UPDATER)
+      list(APPEND QT_LIBRARIES Qt5::Network)
+    endif()
   endif()
 
   add_library(gui_part STATIC ${GUI_SOURCES})
@@ -68,7 +83,11 @@ if(WITH_GUI)
 
   if(WITH_TESTS AND NOT EMSCRIPTEN AND NOT WIN32)
     find_package(GTest REQUIRED)
-    add_executable(gui_tests settings_dialog_test.cpp update_manager_test.cpp)
+    set(GUI_TEST_SOURCES settings_dialog_test.cpp)
+    if(WITH_UPDATER)
+      list(APPEND GUI_TEST_SOURCES update_manager_test.cpp)
+    endif()
+    add_executable(gui_tests ${GUI_TEST_SOURCES})
     target_compile_definitions(gui_tests PRIVATE WITH_GUI)
     if (MSVC)
       target_compile_options(gui_tests PRIVATE /std:c++20)
@@ -126,7 +145,11 @@ if(WITH_GUI)
     if(DEFINED ENV{CONDA_PREFIX})
       set(CONDA_BIN_DIR "$ENV{CONDA_PREFIX}/Library/bin")
       file(GLOB ICU_DLLS "${CONDA_BIN_DIR}/icu*.dll")
-      file(GLOB OPENSSL_DLLS "${CONDA_BIN_DIR}/libcrypto*.dll" "${CONDA_BIN_DIR}/libssl*.dll")
+      if(WITH_UPDATER)
+        file(GLOB OPENSSL_DLLS "${CONDA_BIN_DIR}/libcrypto*.dll" "${CONDA_BIN_DIR}/libssl*.dll")
+      else()
+        set(OPENSSL_DLLS "")
+      endif()
       add_custom_command(TARGET mkpass-gui POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
           "${CONDA_BIN_DIR}/libpng16.dll"

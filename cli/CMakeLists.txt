@@ -4,7 +4,11 @@ target_include_directories(linenoise PUBLIC linenoise-ng)
 option(STATIC_CLI "Link CLI mostly statically (-static-libstdc++ -static-libgcc)" OFF)
 option(FULLY_STATIC_CLI "Link CLI fully statically (-static)" OFF)
 
-add_executable(mkpass main.cpp cli.cpp update_cmd.cpp)
+set(CLI_SOURCES main.cpp cli.cpp)
+if(WITH_UPDATER)
+    list(APPEND CLI_SOURCES update_cmd.cpp)
+endif()
+add_executable(mkpass ${CLI_SOURCES})
 
 if (FULLY_STATIC_CLI)
     set_target_properties(mkpass PROPERTIES LINK_FLAGS "-static")
@@ -31,7 +35,11 @@ target_link_libraries(mkpass PRIVATE
 
 if (WITH_TESTS AND NOT WIN32)
   find_package(GTest REQUIRED)
-  add_executable(e2e_tests e2e_test.cpp update_cmd.cpp)
+  set(E2E_SOURCES e2e_test.cpp)
+  if(WITH_UPDATER)
+    list(APPEND E2E_SOURCES update_cmd.cpp)
+  endif()
+  add_executable(e2e_tests ${E2E_SOURCES})
 
   if(TARGET GTest::gtest)
     get_target_property(GTEST_INCLUDE_DIRS GTest::gtest INTERFACE_INCLUDE_DIRECTORIES)

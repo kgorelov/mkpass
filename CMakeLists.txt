@@ -5,6 +5,11 @@ add_definitions(-DMKPASS_VERSION="${PROJECT_VERSION}")
 option(WITH_GUI "Build with Qt GUI" ON)
 option(WITH_WEBASSEMBLY "Build with WebAssembly" OFF)
 option(WITH_TESTS "Build tests" ON)
+option(WITH_UPDATER "Build with updater support (requires Qt Network / OpenSSL on Windows for GUI)" ON)
+
+if(WITH_UPDATER)
+    add_definitions(-DMKPASS_WITH_UPDATER)
+endif()
 
 if(WITH_TESTS)
     enable_testing()

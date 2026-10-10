@@ -142,12 +142,21 @@ if [ ! -f "package/mkpass/plugins/platforms/qwindows.dll" ] && [ ! -f "package/m
   exit 1
 fi
 
-if ! compgen -G "package/mkpass/libssl*.dll" >/dev/null || ! compgen -G "package/mkpass/libcrypto*.dll" >/dev/null; then
-  echo "FATAL ERROR: OpenSSL DLLs (libssl / libcrypto) not found in package! mkpass-gui requires them for QtNetwork." >&2
-  exit 1
+# Clean up QtNetwork and OpenSSL DLLs if updater was disabled at build time
+if grep -q "WITH_UPDATER:BOOL=OFF" build/CMakeCache.txt 2>/dev/null; then
+  echo "Build configured with WITH_UPDATER=OFF: removing QtNetwork and OpenSSL DLLs from package."
+  rm -f package/mkpass/libssl*.dll package/mkpass/libcrypto*.dll package/mkpass/Qt*Network*.dll
 fi
 
-echo "Verification passed: qwindows.dll and OpenSSL DLLs are present."
+if compgen -G "package/mkpass/Qt*Network*.dll" >/dev/null; then
+  if ! compgen -G "package/mkpass/libssl*.dll" >/dev/null || ! compgen -G "package/mkpass/libcrypto*.dll" >/dev/null; then
+    echo "FATAL ERROR: OpenSSL DLLs (libssl / libcrypto) not found in package! mkpass-gui requires them for QtNetwork." >&2
+    exit 1
+  fi
+  echo "Verification passed: qwindows.dll and OpenSSL DLLs are present."
+else
+  echo "Verification passed: qwindows.dll is present (built without QtNetwork; OpenSSL DLLs not required)."
+fi
 
 # 11. Compress portable zip
 cmake -E chdir package cmake -E tar cfv "../dist/mkpass-${TAG_NAME}-windows-x64.zip" --format=zip mkpass

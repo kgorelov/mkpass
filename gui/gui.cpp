@@ -14,8 +14,10 @@
 #include "comment_dialog.h"
 #include "icon_utils.h"
 #include "config.h"
+#ifdef MKPASS_WITH_UPDATER
 #include "update_manager.h"
 #include "update_dialog.h"
+#endif
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -53,6 +55,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(serviceLineEdit, &QLineEdit::textChanged, this, &MainWindow::serviceChanged);
     serviceChanged("");
 
+#ifdef MKPASS_WITH_UPDATER
     updateManager_ = new mkpass::UpdateManager(this);
     connect(updateManager_, &mkpass::UpdateManager::updateAvailable, this, [this](const mkpass::ReleaseInfo &info) {
         mkpass::UpdateDialog dialog(info, updateManager_, this);
@@ -72,6 +75,7 @@ MainWindow::MainWindow(QWidget *parent)
             updateManager_->checkForUpdatesInBackground();
         }
     });
+#endif
 }
 
 MainWindow::~MainWindow() {
@@ -94,8 +98,10 @@ void MainWindow::setupUI() {
     QMenu *helpMenu = menuBar->addMenu("Help");
     QAction *manualAction = helpMenu->addAction("Manual");
     connect(manualAction, &QAction::triggered, this, &MainWindow::showManual);
+#ifdef MKPASS_WITH_UPDATER
     QAction *updateAction = helpMenu->addAction("Check for Updates...");
     connect(updateAction, &QAction::triggered, this, &MainWindow::checkForUpdates);
+#endif
     QAction *helpAction = helpMenu->addAction("About");
     connect(helpAction, &QAction::triggered, this, &MainWindow::showHelp);
 
@@ -773,11 +779,13 @@ void MainWindow::showHelp() {
     msgBox.exec();
 }
 
+#ifdef MKPASS_WITH_UPDATER
 void MainWindow::checkForUpdates() {
     if (updateManager_) {
         updateManager_->checkForUpdatesInteractive();
     }
 }
+#endif
 
 void MainWindow::showSettings() {
     SettingsDialog dialog(this);
